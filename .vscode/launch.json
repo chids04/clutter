@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/c/Documents/music-player-projects/clutter/rust_builder/macos/Classes",
+      "program": "/Users/c/Documents/music-player-projects/clutter/rust_builder/macos/Classes/build/Debug/outDebug"
+    }
+  ]
+}
