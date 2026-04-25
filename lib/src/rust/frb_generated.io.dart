@@ -3,9 +3,7 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
-import 'api/complex.dart';
 import 'api/scanner.dart';
-import 'api/simple.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
@@ -24,24 +22,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   get rust_arc_decrement_strong_count_CLibraryPtr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibraryPtr;
 
-  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_CSongPtr => wire
-      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSongPtr;
-
   @protected
   CLibrary
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    dynamic raw,
-  );
-
-  @protected
-  CSong
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    dynamic raw,
-  );
-
-  @protected
-  CLibrary
-  dco_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
     dynamic raw,
   );
 
@@ -52,20 +35,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  CSong
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    dynamic raw,
-  );
-
-  @protected
   CLibrary
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    dynamic raw,
-  );
-
-  @protected
-  CSong
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
     dynamic raw,
   );
 
@@ -73,37 +44,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String dco_decode_String(dynamic raw);
 
   @protected
-  ArtistGroupDart dco_decode_artist_group_dart(dynamic raw);
+  AlbumViewData dco_decode_album_view_data(dynamic raw);
+
+  @protected
+  ArtistViewData dco_decode_artist_view_data(dynamic raw);
 
   @protected
   bool dco_decode_bool(dynamic raw);
 
   @protected
-  ArtistGroupDart dco_decode_box_autoadd_artist_group_dart(dynamic raw);
-
-  @protected
-  CImage dco_decode_box_autoadd_c_image(dynamic raw);
-
-  @protected
-  CSongDart dco_decode_box_autoadd_c_song_dart(dynamic raw);
+  ArtistViewData dco_decode_box_autoadd_artist_view_data(dynamic raw);
 
   @protected
   Config dco_decode_box_autoadd_config(dynamic raw);
 
   @protected
-  Hello dco_decode_box_autoadd_hello(dynamic raw);
+  PlaybackStateData dco_decode_box_autoadd_playback_state_data(dynamic raw);
 
   @protected
-  CImage dco_decode_c_image(dynamic raw);
-
-  @protected
-  CSongDart dco_decode_c_song_dart(dynamic raw);
+  SongViewData dco_decode_box_autoadd_song_view_data(dynamic raw);
 
   @protected
   Config dco_decode_config(dynamic raw);
-
-  @protected
-  Hello dco_decode_hello(dynamic raw);
 
   @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
@@ -112,16 +74,45 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> dco_decode_list_String(dynamic raw);
 
   @protected
+  List<AlbumViewData> dco_decode_list_album_view_data(dynamic raw);
+
+  @protected
+  List<ArtistViewData> dco_decode_list_artist_view_data(dynamic raw);
+
+  @protected
+  List<PlaylistViewData> dco_decode_list_playlist_view_data(dynamic raw);
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+
+  @protected
+  List<SongViewData> dco_decode_list_song_view_data(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
-  CImage? dco_decode_opt_box_autoadd_c_image(dynamic raw);
+  ArtistViewData? dco_decode_opt_box_autoadd_artist_view_data(dynamic raw);
 
   @protected
-  CSongDart? dco_decode_opt_box_autoadd_c_song_dart(dynamic raw);
+  PlaybackStateData? dco_decode_opt_box_autoadd_playback_state_data(
+    dynamic raw,
+  );
+
+  @protected
+  SongViewData? dco_decode_opt_box_autoadd_song_view_data(dynamic raw);
+
+  @protected
+  PlaybackStateData dco_decode_playback_state_data(dynamic raw);
+
+  @protected
+  PlaylistViewData dco_decode_playlist_view_data(dynamic raw);
+
+  @protected
+  SongViewData dco_decode_song_view_data(dynamic raw);
+
+  @protected
+  int dco_decode_u_32(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -139,26 +130,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  CSong
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  CLibrary
-  sse_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   CLibrary
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  CSong
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
     SseDeserializer deserializer,
   );
 
@@ -169,48 +142,37 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  CSong
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
-  ArtistGroupDart sse_decode_artist_group_dart(SseDeserializer deserializer);
+  AlbumViewData sse_decode_album_view_data(SseDeserializer deserializer);
+
+  @protected
+  ArtistViewData sse_decode_artist_view_data(SseDeserializer deserializer);
 
   @protected
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
-  ArtistGroupDart sse_decode_box_autoadd_artist_group_dart(
+  ArtistViewData sse_decode_box_autoadd_artist_view_data(
     SseDeserializer deserializer,
   );
-
-  @protected
-  CImage sse_decode_box_autoadd_c_image(SseDeserializer deserializer);
-
-  @protected
-  CSongDart sse_decode_box_autoadd_c_song_dart(SseDeserializer deserializer);
 
   @protected
   Config sse_decode_box_autoadd_config(SseDeserializer deserializer);
 
   @protected
-  Hello sse_decode_box_autoadd_hello(SseDeserializer deserializer);
+  PlaybackStateData sse_decode_box_autoadd_playback_state_data(
+    SseDeserializer deserializer,
+  );
 
   @protected
-  CImage sse_decode_c_image(SseDeserializer deserializer);
-
-  @protected
-  CSongDart sse_decode_c_song_dart(SseDeserializer deserializer);
+  SongViewData sse_decode_box_autoadd_song_view_data(
+    SseDeserializer deserializer,
+  );
 
   @protected
   Config sse_decode_config(SseDeserializer deserializer);
-
-  @protected
-  Hello sse_decode_hello(SseDeserializer deserializer);
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
@@ -219,18 +181,59 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
+  List<AlbumViewData> sse_decode_list_album_view_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ArtistViewData> sse_decode_list_artist_view_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<PlaylistViewData> sse_decode_list_playlist_view_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  List<SongViewData> sse_decode_list_song_view_data(
+    SseDeserializer deserializer,
+  );
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
-  CImage? sse_decode_opt_box_autoadd_c_image(SseDeserializer deserializer);
-
-  @protected
-  CSongDart? sse_decode_opt_box_autoadd_c_song_dart(
+  ArtistViewData? sse_decode_opt_box_autoadd_artist_view_data(
     SseDeserializer deserializer,
   );
+
+  @protected
+  PlaybackStateData? sse_decode_opt_box_autoadd_playback_state_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SongViewData? sse_decode_opt_box_autoadd_song_view_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PlaybackStateData sse_decode_playback_state_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PlaylistViewData sse_decode_playlist_view_data(SseDeserializer deserializer);
+
+  @protected
+  SongViewData sse_decode_song_view_data(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -253,29 +256,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    CSong self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    CLibrary self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
     CLibrary self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    CSong self,
     SseSerializer serializer,
   );
 
@@ -287,18 +269,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    CSong self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
-  void sse_encode_artist_group_dart(
-    ArtistGroupDart self,
+  void sse_encode_album_view_data(AlbumViewData self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_artist_view_data(
+    ArtistViewData self,
     SseSerializer serializer,
   );
 
@@ -306,17 +284,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
-  void sse_encode_box_autoadd_artist_group_dart(
-    ArtistGroupDart self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_box_autoadd_c_image(CImage self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_box_autoadd_c_song_dart(
-    CSongDart self,
+  void sse_encode_box_autoadd_artist_view_data(
+    ArtistViewData self,
     SseSerializer serializer,
   );
 
@@ -324,19 +293,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_config(Config self, SseSerializer serializer);
 
   @protected
-  void sse_encode_box_autoadd_hello(Hello self, SseSerializer serializer);
+  void sse_encode_box_autoadd_playback_state_data(
+    PlaybackStateData self,
+    SseSerializer serializer,
+  );
 
   @protected
-  void sse_encode_c_image(CImage self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_c_song_dart(CSongDart self, SseSerializer serializer);
+  void sse_encode_box_autoadd_song_view_data(
+    SongViewData self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_config(Config self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_hello(Hello self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
@@ -345,8 +314,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_album_view_data(
+    List<AlbumViewData> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_artist_view_data(
+    List<ArtistViewData> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_playlist_view_data(
+    List<PlaylistViewData> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_song_view_data(
+    List<SongViewData> self,
     SseSerializer serializer,
   );
 
@@ -354,16 +347,40 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
-  void sse_encode_opt_box_autoadd_c_image(
-    CImage? self,
+  void sse_encode_opt_box_autoadd_artist_view_data(
+    ArtistViewData? self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_opt_box_autoadd_c_song_dart(
-    CSongDart? self,
+  void sse_encode_opt_box_autoadd_playback_state_data(
+    PlaybackStateData? self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_opt_box_autoadd_song_view_data(
+    SongViewData? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_playback_state_data(
+    PlaybackStateData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_playlist_view_data(
+    PlaylistViewData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_song_view_data(SongViewData self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);
@@ -424,39 +441,5 @@ class RustLibWire implements BaseWire {
       );
   late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary =
       _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibraryPtr
-          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    ffi.Pointer<ffi.Void> ptr,
-  ) {
-    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-      ptr,
-    );
-  }
-
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSongPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_clutter_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong',
-      );
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong =
-      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSongPtr
-          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    ffi.Pointer<ffi.Void> ptr,
-  ) {
-    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-      ptr,
-    );
-  }
-
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSongPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_clutter_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong',
-      );
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong =
-      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSongPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 }

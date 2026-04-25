@@ -1,450 +1,629 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:uuid/uuid.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:path/path.dart' as p;
-import 'package:metatagger/metatagger.dart';
 
 import 'package:clutter/utils/log.dart';
 import 'package:clutter/src/rust/api/scanner.dart';
 
-// song model is now immutable. added copywith just in case we need to update a title later.
-class Song {
-  final String id;
-  final String title;
-  final List<String> artists;
-  final String albumId;
-  final int trackNum;
-  final String path;
-  final CoverImage? coverImg;
-
-  const Song({
-    required this.id,
-    required this.title,
-    required this.artists,
-    required this.albumId,
-    required this.trackNum,
-    required this.path,
-    required this.coverImg,
-  });
-
-  Song copyWith({
-    String? id,
-    String? title,
-    List<String>? artists,
-    String? albumId,
-    String? path,
-    int? trackNum,
-    CoverImage? coverImg,
-  }) {
-    return Song(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      artists: artists ?? this.artists,
-      albumId: albumId ?? this.albumId,
-      path: path ?? this.path,
-      trackNum: trackNum ?? this.trackNum,
-      coverImg: coverImg ?? this.coverImg,
-    );
-  }
-}
-
-class CoverImage {
-  final Uint8List bytes;
-  final String mimeType;
-
-  const CoverImage({required this.bytes, required this.mimeType});
-}
-
-class Album {
-  final String id;
-  final String name;
-  final List<String> artists;
-  final Set<String> songs;
-
-  const Album({
-    required this.id,
-    required this.name,
-    required this.artists,
-    required this.songs,
-  });
-
-  Album copyWith({required Song songs}) {
-    return Album(id: id, name: name, artists: artists, songs: this.songs);
-  }
-}
-
-class Artist {
-  final String id;
-  final String name;
-  const Artist({required this.id, required this.name});
-}
-
-// this is the main state object. it holds everything and doesn't change itself.
-class MusicLibraryState {
-  final List<String> directories;
-  final Map<String, Song> songs;
-  final Map<String, Album> albums;
-  final Map<String, Artist> artists;
-  final String? playingId;
-  final bool isScanning;
-  final bool isPlaying;
-
-  const MusicLibraryState({
-    this.directories = const [],
-    this.songs = const {},
-    this.artists = const {},
-    this.albums = const {},
-    this.playingId,
-    this.isScanning = false,
-    this.isPlaying = false,
-  });
-
-  MusicLibraryState copyWith({
-    List<String>? directories,
-    Map<String, Song>? songs,
-    Map<String, Artist>? artists,
-    Map<String, Album>? albums,
-    String? playingId,
-    bool? isScanning,
-    bool? isPlaying,
-  }) {
-    return MusicLibraryState(
-      directories: directories ?? this.directories,
-      songs: songs ?? this.songs,
-      albums: albums ?? this.albums,
-      artists: artists ?? this.artists,
-      playingId: playingId ?? this.playingId,
-      isScanning: isScanning ?? this.isScanning,
-      isPlaying: isPlaying ?? this.isPlaying,
-    );
-  }
-}
-
+/// Thin Dart-side state container. Storage and metadata extraction all live
+/// on the Rust side; this class owns the audio player, the scan lifecycle,
+/// a cached paginated view over the SQLite-backed library, and the
+/// now-playing queue + history.
 class MusicLibrary extends ChangeNotifier {
-  // private state holder
-  MusicLibraryState _state = const MusicLibraryState();
+  MusicLibrary({required this.library}) {
+    _initPlaybackEvents();
+    _refreshTotal();
+    unawaited(hydrate());
+  }
 
-  // state (from rust)
-  CLibrary cLibrary = CLibrary();
+  final CLibrary library;
 
-  // getters for the ui to consume. wrapping in unmodifiable views
-  UnmodifiableListView<String> get directories =>
-      UnmodifiableListView(_state.directories);
-  UnmodifiableListView<Song> get songs =>
-      UnmodifiableListView(_state.songs.values);
+  final List<String> _directories = [];
+  final Set<String> _directorySet = {};
+  List<SongViewData> _songs = const [];
+  List<AlbumViewData> _albums = const [];
+  List<PlaylistViewData> _playlists = const [];
+  List<ArtistViewData> _artists = const [];
+  int _totalSongs = 0;
+  int _totalAlbums = 0;
+  int _totalPlaylists = 0;
+  int _totalArtists = 0;
+  String? _likedSongsPlaylistId;
+  Set<String> _likedSongIds = <String>{};
+  bool _isScanning = false;
+  bool _isPlaying = false;
+  SongViewData? _currentSong;
 
-  // getters for immutable state
-  String? get playingId => _state.playingId;
-  bool get isScanning => _state.isScanning;
-  bool get isPlaying => _state.isPlaying;
-  Song? songDetails(String id) => _state.songs[id];
+  // toast pill state (shown above MediaBar)
+  String? _toastMessage;
+  Timer? _toastTimer;
 
-  CSongDart? get currentSong => cLibrary.currentSong();
-
-  // getters for mutable state
-  Duration? get playerDuration => _duration;
-  Duration? get playerPosition => _position;
-  final List<StreamSubscription> _subscriptions = [];
-  final _player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
-  final songQueue = Queue<String>();
+  // audio player state
+  final AudioPlayer _player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+  final List<SongViewData> _queue = [];
+  final List<SongViewData> _history = [];
+  final List<StreamSubscription> _subs = [];
   Duration? _duration;
   Duration? _position;
 
-  String getArtistStr(String songID) {
-    if (_state.songs[songID] == null) {
-      return "unknown artists";
+  // When non-null, a pending saved playback position that hasn't been loaded
+  // into the audio player yet. Set by hydrate() on app relaunch; consumed on
+  // first user-initiated play. While active, the slider displays this value
+  // and user scrubs update it in place rather than seeking a stopped player.
+  int? _savedPositionMs;
+  Timer? _stateSaveTimer;
+
+  // getters
+  UnmodifiableListView<String> get directories =>
+      UnmodifiableListView(_directories);
+  UnmodifiableListView<SongViewData> get songs => UnmodifiableListView(_songs);
+  UnmodifiableListView<AlbumViewData> get albums =>
+      UnmodifiableListView(_albums);
+  UnmodifiableListView<PlaylistViewData> get playlists =>
+      UnmodifiableListView(_playlists);
+  UnmodifiableListView<ArtistViewData> get artists =>
+      UnmodifiableListView(_artists);
+  UnmodifiableListView<SongViewData> get queue => UnmodifiableListView(_queue);
+  int get totalSongs => _totalSongs;
+  int get totalAlbums => _totalAlbums;
+  int get totalPlaylists => _totalPlaylists;
+  int get totalArtists => _totalArtists;
+  bool get isScanning => _isScanning;
+  bool get isPlaying => _isPlaying;
+  SongViewData? get currentSong => _currentSong;
+  Duration? get playerDuration => _duration;
+  Duration? get playerPosition => _position;
+  String? get toastMessage => _toastMessage;
+
+  bool isLiked(String songId) => _likedSongIds.contains(songId);
+
+  /// Combines `primaryArtist` and any features into a single display string.
+  String artistsDisplay(SongViewData song) {
+    if (song.featuredArtists.isEmpty) return song.primaryArtist;
+    return "${song.primaryArtist} feat. ${song.featuredArtists.join(', ')}";
+  }
+
+  void _refreshTotal() {
+    _totalSongs = library.getTotalSongs();
+    _totalAlbums = library.getTotalAlbums();
+    _totalPlaylists = library.getTotalPlaylists();
+    _totalArtists = library.getTotalArtists();
+  }
+
+  /// Pull persisted state out of SQLite on boot: scan paths, then playback
+  /// state (last song + position), then the full library cache. Playback is
+  /// restored paused — the user must press play to actually start audio.
+  Future<void> hydrate() async {
+    final paths = await library.getScanPaths();
+    for (final p in paths) {
+      if (_directorySet.add(p)) _directories.add(p);
     }
-    if (_state.songs[songID]!.artists.length == 1) {
-      var artistID = _state.songs[songID]!.artists[0];
+    final saved = await library.loadPlaybackState();
+    if (saved != null) {
+      _currentSong = saved.song;
+      _savedPositionMs = saved.positionMs;
+      _position = Duration(milliseconds: saved.positionMs);
+    }
+    await _reloadSongs();
+  }
 
-      if (_state.artists[artistID] == null) {
-        return "unknown artist";
-      }
-
-      return _state.artists[artistID]!.name;
+  Future<void> _reloadSongs() async {
+    _refreshTotal();
+    if (_totalSongs == 0) {
+      _songs = const [];
     } else {
-      return _state.songs[songID]!.artists
-          .map((artistId) => _state.artists[artistId])
-          .toList()
-          .join(",");
+      _songs = await library.getSongsPaginated(offset: 0, limit: _totalSongs);
+    }
+    if (_totalAlbums == 0) {
+      _albums = const [];
+    } else {
+      _albums = await library.getAlbumsPaginated(
+        offset: 0,
+        limit: _totalAlbums,
+      );
+    }
+    if (_totalArtists == 0) {
+      _artists = const [];
+    } else {
+      _artists = await library.getArtistsPaginated(
+        offset: 0,
+        limit: _totalArtists,
+      );
+    }
+    await _reloadPlaylists();
+  }
+
+  Future<void> _reloadPlaylists() async {
+    _totalPlaylists = library.getTotalPlaylists();
+    _playlists = _totalPlaylists == 0
+        ? const []
+        : await library.getPlaylistsPaginated(
+            offset: 0,
+            limit: _totalPlaylists,
+          );
+    _likedSongsPlaylistId = await library.getLikedSongsPlaylistId();
+    final ids = await library.getLikedSongIds();
+    _likedSongIds = ids.toSet();
+    notifyListeners();
+  }
+
+  /// Fetch all songs for a single album, ordered by disc/track. Live query —
+  /// doesn't touch any cached state.
+  Future<List<SongViewData>> fetchAlbumSongs(String albumId) {
+    return library.getSongsByAlbumId(albumId: albumId);
+  }
+
+  Future<List<SongViewData>> fetchPlaylistSongs(String playlistId) {
+    return library.getSongsInPlaylist(playlistId: playlistId);
+  }
+
+  // --- search passthroughs ---
+
+  Future<List<SongViewData>> searchSongs(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return _songs;
+    return library.searchSongs(query: q, limit: 200);
+  }
+
+  Future<List<AlbumViewData>> searchAlbums(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return _albums;
+    return library.searchAlbums(query: q, limit: 200);
+  }
+
+  Future<List<PlaylistViewData>> searchPlaylists(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return _playlists;
+    return library.searchPlaylists(query: q, limit: 200);
+  }
+
+  Future<List<ArtistViewData>> searchArtists(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return _artists;
+    return library.searchArtists(query: q, limit: 200);
+  }
+
+  Future<List<AlbumViewData>> fetchArtistAlbums(String artistId) {
+    return library.getAlbumsByArtistId(artistId: artistId);
+  }
+
+  Future<List<AlbumViewData>> fetchArtistFeaturedAlbums(String artistId) {
+    return library.getAlbumsArtistFeaturedOn(artistId: artistId);
+  }
+
+  Future<List<SongViewData>> fetchArtistFeaturedSongs(String artistId) {
+    return library.getSongsArtistFeaturedOn(artistId: artistId);
+  }
+
+  // --- playlist CRUD & song membership ---
+
+  Future<String> createPlaylist(String name) async {
+    final id = await library.createPlaylist(name: name);
+    await _reloadPlaylists();
+    return id;
+  }
+
+  Future<void> deletePlaylist(String id) async {
+    await library.deletePlaylist(id: id);
+    await _reloadPlaylists();
+  }
+
+  Future<void> addSongToPlaylist(String playlistId, SongViewData song) async {
+    await library.addSongToPlaylist(playlistId: playlistId, songId: song.id);
+    String playlistName = "playlist";
+    for (final p in _playlists) {
+      if (p.id == playlistId) {
+        playlistName = p.name;
+        break;
+      }
+    }
+    showToast("${song.title} added to $playlistName");
+    await _reloadPlaylists();
+  }
+
+  Future<void> removeSongFromPlaylist(String playlistId, String songId) async {
+    await library.removeSongFromPlaylist(
+      playlistId: playlistId,
+      songId: songId,
+    );
+    await _reloadPlaylists();
+  }
+
+  Future<void> toggleLiked(SongViewData song) async {
+    final pid = _likedSongsPlaylistId;
+    if (pid == null) return;
+    if (_likedSongIds.contains(song.id)) {
+      await library.removeSongFromPlaylist(playlistId: pid, songId: song.id);
+      _likedSongIds.remove(song.id);
+      notifyListeners();
+      // silent on un-like per spec
+    } else {
+      await library.addSongToPlaylist(playlistId: pid, songId: song.id);
+      _likedSongIds.add(song.id);
+      showToast("${song.title} added to Liked Songs");
+    }
+    // Refresh counts / ordering of playlists cache.
+    unawaited(_reloadPlaylists());
+  }
+
+  void showToast(String message) {
+    _toastMessage = message;
+    _toastTimer?.cancel();
+    _toastTimer = Timer(const Duration(seconds: 2), () {
+      _toastMessage = null;
+      notifyListeners();
+    });
+    notifyListeners();
+  }
+
+  void addDirectory(String directory) async {
+    if (!_directorySet.add(directory)) return;
+    _directories.add(directory);
+    _isScanning = true;
+    notifyListeners();
+
+    try {
+      await library.scanDirectory(
+        path: directory,
+        config: const Config(isDeezer: true),
+      );
+      await _reloadSongs();
+    } catch (e) {
+      Log.e("scan failed for $directory", e);
+    } finally {
+      _isScanning = false;
+      notifyListeners();
     }
   }
 
-  MusicLibrary([String? initPath]) {
-    if (initPath != null && initPath != "") {
-      addDirectory(initPath);
+  Future<void> rescanDirectory(String directory) async {
+    if (!_directorySet.contains(directory)) return;
+    if (_isScanning) return;
+    _isScanning = true;
+    notifyListeners();
+    final before = _songs.length;
+    try {
+      await library.scanDirectory(
+        path: directory,
+        config: const Config(isDeezer: true),
+      );
+      await _reloadSongs();
+      final added = _songs.length - before;
+      showToast(
+        added <= 0
+            ? "no new songs in $directory"
+            : "added $added song${added == 1 ? '' : 's'} from $directory",
+      );
+    } catch (e) {
+      Log.e("rescan failed for $directory", e);
+      showToast("rescan failed");
+    } finally {
+      _isScanning = false;
+      notifyListeners();
     }
-    initPlaybackEvents();
   }
 
-  void initPlaybackEvents() {
-    _subscriptions.add(
-      _player.onPlayerComplete.listen((_) {
-        if (songQueue.isEmpty) {
-          _position = Duration(milliseconds: 0);
-          _state = _state.copyWith(isPlaying: false);
+  Future<void> removeDirectory(String directory) async {
+    if (!_directorySet.contains(directory)) return;
+    int removed = 0;
+    try {
+      removed = await library.deleteScanPath(path: directory);
+    } catch (e) {
+      Log.e("delete path failed for $directory", e);
+    }
+    _directorySet.remove(directory);
+    _directories.remove(directory);
+    await _purgeAfterDelete();
+    showToast(
+      removed == 0
+          ? "removed $directory"
+          : "removed $removed song${removed == 1 ? '' : 's'} from $directory",
+    );
+  }
+
+  Future<void> resetLibrary() async {
+    await _stopPlayback();
+    _directories.clear();
+    _directorySet.clear();
+    _songs = const [];
+    _albums = const [];
+    _queue.clear();
+    _history.clear();
+    await library.resetLibrary();
+    await _reloadSongs();
+  }
+
+  /// Remove a single song from the library. If it's currently playing,
+  /// playback stops and the MediaBar clears.
+  Future<void> deleteSong(String id) async {
+    try {
+      await library.deleteSong(id: id);
+    } catch (e) {
+      Log.e("delete song $id", e);
+      return;
+    }
+    _queue.removeWhere((s) => s.id == id);
+    _history.removeWhere((s) => s.id == id);
+    if (_currentSong?.id == id) {
+      await _stopPlayback();
+    }
+    await _purgeAfterDelete();
+  }
+
+  /// Remove an entire album (and all its songs).
+  Future<void> deleteAlbum(String albumId) async {
+    final songsInAlbum = await library.getSongsByAlbumId(albumId: albumId);
+    final ids = songsInAlbum.map((s) => s.id).toSet();
+    try {
+      await library.deleteAlbum(id: albumId);
+    } catch (e) {
+      Log.e("delete album $albumId", e);
+      return;
+    }
+    _queue.removeWhere((s) => ids.contains(s.id));
+    _history.removeWhere((s) => ids.contains(s.id));
+    if (_currentSong != null && ids.contains(_currentSong!.id)) {
+      await _stopPlayback();
+    }
+    await _purgeAfterDelete();
+  }
+
+  Future<List<SongViewData>> fetchRecentlyPlayed({int limit = 50}) {
+    return library.getRecentlyPlayed(limit: limit);
+  }
+
+  Future<void> _stopPlayback() async {
+    await _player.stop();
+    _currentSong = null;
+    _isPlaying = false;
+    _position = null;
+    _savedPositionMs = null;
+    try {
+      await library.savePlaybackState(songId: null, positionMs: 0);
+    } catch (e) {
+      Log.e("clear playback state", e);
+    }
+  }
+
+  Future<void> _purgeAfterDelete() async {
+    await _reloadSongs();
+  }
+
+  /// Start playing [song] immediately. All public playback entry points
+  /// funnel through here so swapping in a Rust audio backend later only
+  /// requires changing this one method.
+  Future<void> _playNow(SongViewData song) async {
+    _currentSong = song;
+    _isPlaying = true;
+    _savedPositionMs = null;
+    await _player.play(DeviceFileSource(song.filePath));
+    notifyListeners();
+    unawaited(_recordPlay(song.id));
+    unawaited(_saveState());
+    _ensureStateTimer();
+  }
+
+  Future<void> _recordPlay(String songId) async {
+    try {
+      await library.recordPlay(songId: songId);
+    } catch (e) {
+      Log.e("record play $songId", e);
+    }
+  }
+
+  Future<void> onPlaySong(String id) async {
+    final song = await library.getSongById(id: id);
+    if (song == null) {
+      Log.e("song $id not found");
+      return;
+    }
+    if (_currentSong != null) _history.add(_currentSong!);
+    await _playNow(song);
+  }
+
+  /// Advance to the next queued song. Stops playback if the queue is empty.
+  Future<void> playNext() async {
+    if (_queue.isEmpty) {
+      await _stopPlayback();
+      notifyListeners();
+      return;
+    }
+    if (_currentSong != null) _history.add(_currentSong!);
+    await _playNow(_queue.removeAt(0));
+  }
+
+  /// If less than 3 s into the current song, go back one in history. Otherwise
+  /// restart the current song.
+  Future<void> playPrevious() async {
+    final pos = _position?.inSeconds ?? 0;
+    if (pos >= 3 || _history.isEmpty) {
+      // Cold-start from saved state: slider resets without touching the player.
+      if (_savedPositionMs != null) {
+        _savedPositionMs = 0;
+        _position = Duration.zero;
+        notifyListeners();
+        unawaited(_saveState());
+        return;
+      }
+      await _player.seek(Duration.zero);
+      if (!_isPlaying) {
+        await _player.resume();
+        _isPlaying = true;
+      }
+      notifyListeners();
+      unawaited(_saveState());
+      return;
+    }
+    if (_currentSong != null) _queue.insert(0, _currentSong!);
+    await _playNow(_history.removeLast());
+  }
+
+  Future<void> togglePlay() async {
+    if (_isPlaying) {
+      await _player.pause();
+      _isPlaying = false;
+      notifyListeners();
+      unawaited(_saveState());
+      return;
+    }
+    // Cold-start from a hydrated playback_state row: load the source for the
+    // first time and seek to the stored offset before starting audio.
+    if (_savedPositionMs != null && _currentSong != null) {
+      final song = _currentSong!;
+      final startPos = Duration(milliseconds: _savedPositionMs!);
+      _savedPositionMs = null;
+      _isPlaying = true;
+      await _player.play(DeviceFileSource(song.filePath), position: startPos);
+      notifyListeners();
+      unawaited(_recordPlay(song.id));
+      unawaited(_saveState());
+      _ensureStateTimer();
+      return;
+    }
+
+    if (_currentSong == null) {
+      return;
+    }
+
+    await _player.resume();
+    _isPlaying = true;
+    notifyListeners();
+    unawaited(_saveState());
+    _ensureStateTimer();
+  }
+
+  void pause() {
+    _player.pause();
+    _isPlaying = false;
+    notifyListeners();
+    unawaited(_saveState());
+  }
+
+  void resume() {
+    if (_currentSong == null) return;
+    _player.resume();
+    _isPlaying = true;
+    notifyListeners();
+    unawaited(_saveState());
+    _ensureStateTimer();
+  }
+
+  void setPlayerPosition(double value) {
+    final newPos = Duration(milliseconds: value.toInt());
+    // User scrubbed while we're still in restored-but-not-yet-played state:
+    // update the pending seek target without touching the (empty) player.
+    if (_savedPositionMs != null) {
+      _savedPositionMs = newPos.inMilliseconds;
+      _position = newPos;
+      notifyListeners();
+      unawaited(_saveState());
+      return;
+    }
+    _player.seek(newPos).then((_) {
+      _position = newPos;
+      notifyListeners();
+      unawaited(_saveState());
+    });
+  }
+
+  Future<void> _saveState() async {
+    try {
+      await library.savePlaybackState(
+        songId: _currentSong?.id,
+        positionMs: _savedPositionMs ?? _position?.inMilliseconds ?? 0,
+      );
+    } catch (e) {
+      Log.e("save playback state", e);
+    }
+  }
+
+  void _ensureStateTimer() {
+    _stateSaveTimer ??= Timer.periodic(const Duration(seconds: 5), (_) {
+      if (_isPlaying) unawaited(_saveState());
+    });
+  }
+
+  void queueSong(SongViewData song) {
+    _queue.add(song);
+    notifyListeners();
+  }
+
+  /// Insert [song] at the front of the queue — "play next" semantics.
+  void queueSongNext(SongViewData song) {
+    _queue.insert(0, song);
+    notifyListeners();
+  }
+
+  void moveQueueItem(int from, int to) {
+    if (from == to) return;
+    final item = _queue.removeAt(from);
+    _queue.insert(to, item);
+    notifyListeners();
+  }
+
+  void removeFromQueue(int index) {
+    _queue.removeAt(index);
+    notifyListeners();
+  }
+
+  void clearQueue() {
+    _queue.clear();
+    notifyListeners();
+  }
+
+  Future<void> openFilePicker() async {
+    try {
+      final directory = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: "select directory to scan for music",
+      );
+      if (directory != null) addDirectory(directory);
+    } on PlatformException catch (e) {
+      Log.e("unsupported file picker op", e);
+    }
+  }
+
+  void _initPlaybackEvents() {
+    _subs.add(
+      _player.onPlayerComplete.listen((_) async {
+        if (_currentSong != null) _history.add(_currentSong!);
+        if (_queue.isNotEmpty) {
+          await _playNow(_queue.removeAt(0));
         } else {
-          onPlaySong(songQueue.removeFirst());
+          await _stopPlayback();
+          _position = const Duration(milliseconds: 0);
+          notifyListeners();
         }
       }),
     );
-
-    _subscriptions.add(
+    _subs.add(
       _player.onDurationChanged.listen((Duration d) {
         _duration = d;
         notifyListeners();
       }),
     );
-    _subscriptions.add(
+    _subs.add(
       _player.onPositionChanged.listen((Duration d) {
         _position = d;
         notifyListeners();
       }),
     );
-
-    _subscriptions.add(
-      _player.onPlayerStateChanged.listen((PlayerState s) => {}),
-    );
   }
 
   @override
   void dispose() {
-    for (var s in _subscriptions) {
+    for (var s in _subs) {
       s.cancel();
     }
-
+    _toastTimer?.cancel();
+    _stateSaveTimer?.cancel();
+    // Best-effort final flush. `dispose()` isn't guaranteed to run on a hard
+    // kill — the 5 s periodic timer covers that case.
+    unawaited(_saveState());
+    _player.dispose();
     super.dispose();
-  }
-
-  void setPlayerPosition(double value) {
-    var newPos = Duration(milliseconds: value.toInt());
-    _player.seek(newPos).then((_) {
-      _position = newPos;
-      notifyListeners();
-    });
-  }
-
-  void onPlaySong(String id) async {
-    //_state = _state.copyWith(playingId: id, isPlaying: true);
-
-    // if (currentSong == null) {
-    //   Log.w("Song not found in in-memory hash map");
-    //   return;
-    // }
-    var song = await cLibrary.playSong(id: id);
-
-    if (song == null) {
-      Log.e("SONG $id IS NULL");
-      return;
-    }
-
-    await _player.play(DeviceFileSource(song.path));
-    _duration = await _player.getDuration();
-
-    Log.d("playing new song");
-    notifyListeners();
-  }
-
-  void togglePlay() {
-    if (_state.isPlaying == false) {
-      _player.resume();
-    } else {
-      _player.pause();
-    }
-
-    _state = _state.copyWith(isPlaying: !_state.isPlaying);
-
-    notifyListeners();
-  }
-
-  void pause() {
-    _player.pause();
-    _state = _state.copyWith(isPlaying: false);
-    notifyListeners();
-  }
-
-  void resume() {
-    if (currentSong == null) {
-      return;
-    }
-
-    _player.resume();
-    _state = _state.copyWith(isPlaying: true);
-  }
-
-  void queueSong(String id) {
-    var song = _state.songs[id];
-
-    if (song == null) {
-      return;
-    }
-
-    songQueue.addLast(song.id);
-  }
-
-  // push a new dir into the list and start the scan
-  void addDirectory(String directory) {
-    final updatedDirs = List<String>.from(_state.directories)..add(directory);
-
-    _state = _state.copyWith(directories: updatedDirs, isScanning: true);
-    notifyListeners();
-
-    scanForMusic(directory).whenComplete(() {
-      Log.d("finished scanning for music");
-      _state = _state.copyWith(isScanning: false);
-      notifyListeners();
-    });
-  }
-
-  void removeDirectory(String directory) {
-    final updatedDirs = List<String>.from(_state.directories)
-      ..remove(directory);
-    _state = _state.copyWith(directories: updatedDirs);
-    notifyListeners();
-    // In a real app, we might want to also remove songs that were in this directory.
-    // For now, just removing the directory from the list as requested.
-  }
-
-  Future<void> scanForMusic(String path) async {
-    final dir = Directory(path);
-
-    await for (var entity in dir.list(recursive: true, followLinks: true)) {
-      final songPath = entity.absolute.path;
-
-      if (await FileSystemEntity.isFile(songPath) &&
-          songPath.endsWith(".mp3")) {
-        Log.d("found mp3 file $songPath, beginning parsing");
-
-        extractMetadata(
-          library_: cLibrary,
-          path: songPath,
-          config: Config(isDeezer: true),
-        );
-      }
-    }
-
-    notifyListeners();
-
-    // get the list of songs from the rust backend
-  }
-
-  Future<Song?> parseMetadata(String path) async {
-    return null;
-
-    // var metadata = await MetadataGod.readMetadata(file: path);
-
-    // var id = Uuid().v4();
-
-    // var tagger = MetaTagger();
-
-    // // some id3 tags store the artists as a / seperated list
-    // // apparently id3v2.4 can store things
-
-    // var title = metadata.title ?? p.basename(path);
-
-    // if (metadata.artist != null) {
-    //   Log.d("found artists: ${metadata.artist}");
-    // }
-
-    // final artistsList = metadata.artist?.split('/') ?? ["unknown artist"];
-    // Log.d("raw artists ${metadata.albumArtist}");
-
-    // final List<String> artistIDs = artistsList
-    //     .map((a) => updateArtist(artistName: a))
-    //     .toList();
-
-    // final albumName = metadata.album ?? "unknown album";
-    // // right now we dont actually split do string splits
-    // final albumArtists = [
-    //   metadata.albumArtist ?? path,
-    // ].map((s) => updateArtist(artistName: s)).toList();
-
-    // final albumId = "$albumName,${albumArtists.join(",")}";
-
-    // updateAlbum(
-    //   albumID: albumId,
-    //   albumName: albumName,
-    //   albumArtists: albumArtists,
-    //   songID: id,
-    // );
-
-    // CoverImage? img;
-    // if (metadata.picture != null) {
-    //   img = CoverImage(
-    //     bytes: metadata.picture!.data,
-    //     mimeType: metadata.picture!.mimeType,
-    //   );
-
-    //   Log.d("found cover art");
-    // }
-
-    // return Song(
-    //   id: const Uuid().v4(),
-    //   title: title,
-    //   artists: artistIDs,
-    //   albumId: albumId,
-    //   path: path,
-    //   trackNum: metadata.trackNumber ?? 1,
-    //   coverImg: img,
-    // );
-  }
-
-  // adds song id to existing album or creates a new album and adds to state
-  void updateAlbum({
-    required String albumID,
-    required String albumName,
-    required List<String> albumArtists,
-    required String songID,
-  }) {
-    if (_state.albums.containsKey(albumID)) {
-      var albums = Map<String, Album>.of(_state.albums);
-      albums[albumID]!.songs.add(songID);
-      _state = _state.copyWith(albums: albums);
-    } else {
-      var album = Album(
-        id: albumID,
-        name: albumName,
-        artists: albumArtists,
-        songs: {songID},
-      );
-      var albums = Map<String, Album>.of(_state.albums);
-      albums[albumID] = album;
-
-      _state = _state.copyWith(albums: albums);
-    }
-  }
-
-  String updateArtist({required String artistName}) {
-    if (!_state.artists.containsKey(artistName)) {
-      var id = Uuid().v4();
-      var artist = Artist(id: id, name: artistName);
-      var newArtists = Map<String, Artist>.of(_state.artists);
-      newArtists[id] = artist;
-
-      _state.copyWith(artists: newArtists);
-      return id;
-    } else {
-      return _state.artists[artistName]!.id;
-    }
-  }
-
-  void openFilePicker() async {
-    try {
-      final directory = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: "select directory to scan for music",
-      );
-
-      if (directory != null) {
-        addDirectory(directory);
-      }
-    } on PlatformException catch (e) {
-      Log.e("unsupported file picker op", e);
-    }
   }
 }

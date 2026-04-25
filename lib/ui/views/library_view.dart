@@ -3,11 +3,17 @@ import 'package:provider/provider.dart';
 
 import 'package:clutter/models/music_library.dart';
 import 'package:clutter/src/rust/api/scanner.dart';
-import 'package:clutter/utils/log.dart';
+import 'package:clutter/ui/views/albums_view.dart';
+import 'package:clutter/ui/views/artists_view.dart';
+import 'package:clutter/ui/views/playlists_view.dart';
+import 'package:clutter/ui/views/songs_view.dart';
+import 'package:clutter/ui/widgets/song_delegate.dart';
 
 enum LibraryPage {
   songs("songs"),
   albums("albums"),
+  artists("artists"),
+  playlists("playlists"),
   recentlyPlayed("recently played");
 
   final String label;
@@ -31,6 +37,35 @@ class _LibraryViewState extends State<LibraryView> {
     });
   }
 
+  Future<void> _promptCreatePlaylist() async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("new playlist"),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: "playlist name"),
+          onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text("cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+            child: const Text("create"),
+          ),
+        ],
+      ),
+    );
+    if (name != null && name.isNotEmpty && mounted) {
+      await context.read<MusicLibrary>().createPlaylist(name);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,11 +73,11 @@ class _LibraryViewState extends State<LibraryView> {
         title: Row(
           children: [
             Text(currentPage.label),
-            Spacer(),
+            const Spacer(),
             Row(
               spacing: 5,
               children: [
-                Text("list as", style: TextStyle(fontSize: 12)),
+                const Text("list as", style: TextStyle(fontSize: 12)),
                 DisplayOptDropdown(
                   onPageChanged: updateState,
                   currentPage: currentPage,
@@ -60,11 +95,20 @@ class _LibraryViewState extends State<LibraryView> {
           ),
         ),
       ),
-
+      floatingActionButton: currentPage == LibraryPage.playlists
+          ? FloatingActionButton(
+              tooltip: "new playlist",
+              onPressed: _promptCreatePlaylist,
+              child: const Icon(Icons.add),
+            )
+          : null,
       body: SafeArea(
         child: switch (currentPage) {
-          LibraryPage.songs => SongView(),
-          _ => Text("unimplemented rn"),
+          LibraryPage.songs => const SongView(),
+          LibraryPage.albums => const AlbumsView(),
+          LibraryPage.artists => const ArtistsView(),
+          LibraryPage.playlists => const PlaylistsView(),
+          LibraryPage.recentlyPlayed => const RecentlyPlayedView(),
         },
       ),
     );
@@ -112,156 +156,44 @@ class _DisplayOptDropdownState extends State<DisplayOptDropdown> {
   }
 }
 
-class SongView extends StatelessWidget {
-  const SongView({super.key});
+class RecentlyPlayedView extends StatelessWidget {
+  const RecentlyPlayedView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<MusicLibrary>(
-      builder: (context, musicLibrary, child) {
-        if (musicLibrary.songs.isEmpty && musicLibrary.isScanning) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        return ListView.separated(
-          padding: const EdgeInsets.all(8),
-          itemCount: musicLibrary.cLibrary.numSongs().toInt(),
-          itemBuilder: (context, index) =>
-              SongDelegate(index: index, musicLibrary: musicLibrary),
-          separatorBuilder: (context, index) => const Divider(),
-        );
-      },
-    );
-  }
-}
-
-class SongDelegate extends StatefulWidget {
-  final int index;
-  final MusicLibrary musicLibrary;
-
-  const SongDelegate({
-    super.key,
-    required this.index,
-    required this.musicLibrary,
-  });
-
-  @override
-  State<SongDelegate> createState() => _SongDelegateState();
-}
-
-class _SongDelegateState extends State<SongDelegate> {
-  late Future<CSongDart?> _songFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _songFuture = widget.musicLibrary.cLibrary.getSongByIndex(
-      index: BigInt.from(widget.index),
-    );
-  }
-
-  @override
-  void didUpdateWidget(covariant SongDelegate oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.index != widget.index) {
-      _songFuture = widget.musicLibrary.cLibrary.getSongByIndex(
-        index: BigInt.from(widget.index),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<CSongDart?>(
-      future: _songFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const ListTile(title: LinearProgressIndicator());
-        }
-
-        if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-          return const SizedBox.shrink();
-        }
-
-        final song = snapshot.data!;
-        final musicLibrary = context.watch<MusicLibrary>();
-
-        final isCurrentSong = musicLibrary.currentSong?.id == song.id;
-
-        final leadingStr = musicLibrary.cLibrary.getArtist(
-          id: song.artists.leading,
-        );
-        final featuresStr = song.artists.features
-            .map((artistId) => musicLibrary.cLibrary.getArtist(id: artistId))
-            .join(', ');
-
-        final artistsStr =
-            "$leadingStr ${featuresStr.isNotEmpty ? "feat." : ""} $featuresStr";
-
-        return InkWell(
-          onTap: () => musicLibrary.onPlaySong(song.id),
-          child: ListTile(
-            leading: _buildCoverImg(song),
-            title: Text(
-              song.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(
-              artistsStr,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: isCurrentSong
-                ? const Icon(Icons.play_arrow, color: Colors.green)
-                : const Icon(Icons.favorite_border),
+      builder: (context, musicLibrary, _) {
+        return FutureBuilder<List<SongViewData>>(
+          // Rebuild whenever the library changes so plays/deletes refresh
+          // the list without the user leaving the tab.
+          key: ValueKey(
+            "recents-${musicLibrary.totalSongs}-${musicLibrary.currentSong?.id ?? ''}",
           ),
+          future: musicLibrary.fetchRecentlyPlayed(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final songs = snapshot.data!;
+            if (songs.isEmpty) {
+              return const Center(
+                child: Text(
+                  "nothing played yet",
+                  style: TextStyle(color: Colors.grey),
+                ),
+              );
+            }
+            return ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              itemCount: songs.length,
+              itemBuilder: (context, i) => SongDelegate(
+                song: songs[i],
+                musicLibrary: musicLibrary,
+              ),
+              separatorBuilder: (_, _) => const Divider(),
+            );
+          },
         );
-      },
-    );
-  }
-
-  Widget _buildCoverImg(CSongDart song) {
-    final img = song.cover;
-    if (img == null) {
-      return const SizedBox(
-        width: 50,
-        height: 50,
-        child: Placeholder(color: Colors.red),
-      );
-    }
-    return Image.memory(
-      img.data,
-      width: 50,
-      height: 50,
-      fit: BoxFit.cover,
-      // Helps performance by not decoding huge images for tiny thumbnails
-      cacheWidth: 150,
-      cacheHeight: 150,
-    );
-  }
-}
-
-class AlbumsView extends StatelessWidget {
-  const AlbumsView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<MusicLibrary>(
-      builder: (context, musicLibrary, child) {
-        if (musicLibrary.songs.isEmpty && musicLibrary.isScanning) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        return const Center(child: CircularProgressIndicator());
-
-        // return ListView.separated(
-        //   padding: const EdgeInsets.all(8),
-        //   itemCount: musicLibrary.songs.length,
-        //   itemBuilder: (context, index) =>
-        //       SongDelegate(song: musicLibrary.songs[index]),
-        //   separatorBuilder: (context, index) => const Divider(),
-        // );
       },
     );
   }

@@ -15,6 +15,6 @@ class AppColors {
     0xFFB4B4B4,
   ); // Grey for less important text
 
-  static const accentBlue = Color(0xFF2D7FF9); // Modern accent blue
+  static const accent = Color(0xFF71717A); // zinc-500
   static const errorRed = Color(0xFFEF4444);
 }

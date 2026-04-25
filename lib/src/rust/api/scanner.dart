@@ -6,132 +6,208 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `assign_album_cover`, `get_artist_uuid`, `handle_album`, `handle_artist`, `new`, `tag_value_to_i64`, `update_album_field`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AlbumField`, `Album`, `ArtistGroup`, `Artist`, `MetadataCache`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `hash`
-
-Future<void> extractMetadata({
-  required CLibrary library_,
-  required Config config,
-  required String path,
-}) => RustLib.instance.api.crateApiScannerExtractMetadata(
-  library_: library_,
-  config: config,
-  path: path,
-);
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CLibrary>>
 abstract class CLibrary implements RustOpaqueInterface {
-  Future<void> addSong({required Config config, required String path});
+  Future<void> addSongToPlaylist({
+    required String playlistId,
+    required String songId,
+  });
 
-  CSongDart? currentSong();
+  Future<String> createPlaylist({required String name});
 
-  String? getArtist({required String id});
+  Future<void> deleteAlbum({required String id});
 
-  Future<CSongDart?> getSongById({required String id});
+  Future<void> deletePlaylist({required String id});
 
-  Future<CSongDart?> getSongByIndex({required BigInt index});
+  /// Remove a scan path and every song indexed beneath it. Returns the
+  /// number of songs purged so the UI can surface it in a toast.
+  Future<int> deleteScanPath({required String path});
 
-  factory CLibrary() => RustLib.instance.api.crateApiScannerCLibraryNew();
+  Future<void> deleteSong({required String id});
 
-  BigInt numSongs();
+  Future<List<AlbumViewData>> getAlbumsArtistFeaturedOn({
+    required String artistId,
+  });
 
-  Future<CSongDart?> playSong({required String id});
+  Future<List<AlbumViewData>> getAlbumsByArtistId({required String artistId});
+
+  Future<List<AlbumViewData>> getAlbumsPaginated({
+    required int offset,
+    required int limit,
+  });
+
+  Future<ArtistViewData?> getArtistById({required String id});
+
+  Future<List<ArtistViewData>> getArtistsPaginated({
+    required int offset,
+    required int limit,
+  });
+
+  Future<List<String>> getLikedSongIds();
+
+  Future<String?> getLikedSongsPlaylistId();
+
+  Future<List<PlaylistViewData>> getPlaylistsPaginated({
+    required int offset,
+    required int limit,
+  });
+
+  Future<List<SongViewData>> getRecentlyPlayed({required int limit});
+
+  Future<List<String>> getScanPaths();
+
+  Future<SongViewData?> getSongById({required String id});
+
+  Future<List<SongViewData>> getSongsArtistFeaturedOn({
+    required String artistId,
+  });
+
+  Future<List<SongViewData>> getSongsByAlbumId({required String albumId});
+
+  Future<List<SongViewData>> getSongsInPlaylist({required String playlistId});
+
+  Future<List<SongViewData>> getSongsPaginated({
+    required int offset,
+    required int limit,
+  });
+
+  int getTotalAlbums();
+
+  int getTotalArtists();
+
+  int getTotalPlaylists();
+
+  int getTotalSongs();
+
+  /// Open (or create) the SQLite database at `db_path` and ensure the covers
+  /// directory exists. Must be called once from Dart before any other method.
+  static Future<CLibrary> init({
+    required String dbPath,
+    required String coversDir,
+  }) => RustLib.instance.api.crateApiScannerCLibraryInit(
+    dbPath: dbPath,
+    coversDir: coversDir,
+  );
+
+  Future<PlaybackStateData?> loadPlaybackState();
+
+  Future<void> recordPlay({required String songId});
+
+  Future<void> removeSongFromPlaylist({
+    required String playlistId,
+    required String songId,
+  });
+
+  Future<void> resetLibrary();
+
+  Future<void> savePlaybackState({
+    String? songId,
+    required PlatformInt64 positionMs,
+  });
+
+  /// Recursively scan `path` for audio files and write their metadata into
+  /// SQLite. Files already present (matched by `file_path`) are skipped.
+  Future<void> scanDirectory({required String path, required Config config});
+
+  Future<List<AlbumViewData>> searchAlbums({
+    required String query,
+    required int limit,
+  });
+
+  Future<List<ArtistViewData>> searchArtists({
+    required String query,
+    required int limit,
+  });
+
+  Future<List<PlaylistViewData>> searchPlaylists({
+    required String query,
+    required int limit,
+  });
+
+  Future<List<SongViewData>> searchSongs({
+    required String query,
+    required int limit,
+  });
+
+  /// Fork an album onto a freshly-created artist row with the same name.
+  /// Returns the new artist's id. Used by the UI to resolve ambiguity when
+  /// the scanner merged two distinct same-named artists into one row.
+  Future<String> splitAlbumToNewArtist({required String albumId});
 }
 
-// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CSong>>
-abstract class CSong implements RustOpaqueInterface {
-  Future<ArtistGroupDart> getArtists();
-
-  Future<String> getId();
-
-  Future<String> getTitle();
-}
-
-class ArtistGroupDart {
-  final String leading;
-  final List<String> features;
-
-  const ArtistGroupDart({required this.leading, required this.features});
-
-  Future<void> getArtistStr() => RustLib.instance.api
-      .crateApiScannerArtistGroupDartGetArtistStr(that: this);
-
-  @override
-  int get hashCode => leading.hashCode ^ features.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ArtistGroupDart &&
-          runtimeType == other.runtimeType &&
-          leading == other.leading &&
-          features == other.features;
-}
-
-class CImage {
-  final Uint8List data;
-  final String mimeType;
-
-  const CImage({required this.data, required this.mimeType});
-
-  @override
-  int get hashCode => data.hashCode ^ mimeType.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is CImage &&
-          runtimeType == other.runtimeType &&
-          data == other.data &&
-          mimeType == other.mimeType;
-}
-
-class CSongDart {
+/// UI-ready album shape. `artist` is the resolved album-artist name.
+class AlbumViewData {
   final String id;
   final String title;
-  final ArtistGroupDart artists;
-  final PlatformInt64 trackNum;
-  final PlatformInt64 discNum;
-  final String album;
-  final CImage? cover;
-  final String path;
+  final String artist;
+  final String? coverPath;
+  final PlatformInt64 songCount;
 
-  const CSongDart({
+  const AlbumViewData({
     required this.id,
     required this.title,
-    required this.artists,
-    required this.trackNum,
-    required this.discNum,
-    required this.album,
-    this.cover,
-    required this.path,
+    required this.artist,
+    this.coverPath,
+    required this.songCount,
   });
 
   @override
   int get hashCode =>
       id.hashCode ^
       title.hashCode ^
-      artists.hashCode ^
-      trackNum.hashCode ^
-      discNum.hashCode ^
-      album.hashCode ^
-      cover.hashCode ^
-      path.hashCode;
+      artist.hashCode ^
+      coverPath.hashCode ^
+      songCount.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is CSongDart &&
+      other is AlbumViewData &&
           runtimeType == other.runtimeType &&
           id == other.id &&
           title == other.title &&
-          artists == other.artists &&
-          trackNum == other.trackNum &&
-          discNum == other.discNum &&
-          album == other.album &&
-          cover == other.cover &&
-          path == other.path;
+          artist == other.artist &&
+          coverPath == other.coverPath &&
+          songCount == other.songCount;
+}
+
+/// UI-ready artist shape. `cover_path` is a representative album cover for
+/// the artist (may be `None` if no albums have covers yet).
+class ArtistViewData {
+  final String id;
+  final String name;
+  final String? coverPath;
+  final PlatformInt64 albumCount;
+  final PlatformInt64 songCount;
+
+  const ArtistViewData({
+    required this.id,
+    required this.name,
+    this.coverPath,
+    required this.albumCount,
+    required this.songCount,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      name.hashCode ^
+      coverPath.hashCode ^
+      albumCount.hashCode ^
+      songCount.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ArtistViewData &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          coverPath == other.coverPath &&
+          albumCount == other.albumCount &&
+          songCount == other.songCount;
 }
 
 class Config {
@@ -148,4 +224,105 @@ class Config {
       other is Config &&
           runtimeType == other.runtimeType &&
           isDeezer == other.isDeezer;
+}
+
+/// UI-ready playback state used to resume the MediaBar on relaunch.
+class PlaybackStateData {
+  final SongViewData song;
+  final PlatformInt64 positionMs;
+
+  const PlaybackStateData({required this.song, required this.positionMs});
+
+  @override
+  int get hashCode => song.hashCode ^ positionMs.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PlaybackStateData &&
+          runtimeType == other.runtimeType &&
+          song == other.song &&
+          positionMs == other.positionMs;
+}
+
+/// UI-ready playlist shape.
+class PlaylistViewData {
+  final String id;
+  final String name;
+  final bool isSystem;
+  final PlatformInt64 songCount;
+
+  const PlaylistViewData({
+    required this.id,
+    required this.name,
+    required this.isSystem,
+    required this.songCount,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^ name.hashCode ^ isSystem.hashCode ^ songCount.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PlaylistViewData &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          isSystem == other.isSystem &&
+          songCount == other.songCount;
+}
+
+/// Flattened, UI-ready view of a song. All names are resolved strings — the
+/// frontend never sees IDs for artists/albums.
+class SongViewData {
+  final String id;
+  final String title;
+  final String primaryArtist;
+  final List<String> featuredArtists;
+  final String? coverPath;
+  final String filePath;
+  final PlatformInt64 trackNum;
+  final PlatformInt64 discNum;
+  final String album;
+
+  const SongViewData({
+    required this.id,
+    required this.title,
+    required this.primaryArtist,
+    required this.featuredArtists,
+    this.coverPath,
+    required this.filePath,
+    required this.trackNum,
+    required this.discNum,
+    required this.album,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      title.hashCode ^
+      primaryArtist.hashCode ^
+      featuredArtists.hashCode ^
+      coverPath.hashCode ^
+      filePath.hashCode ^
+      trackNum.hashCode ^
+      discNum.hashCode ^
+      album.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SongViewData &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          title == other.title &&
+          primaryArtist == other.primaryArtist &&
+          featuredArtists == other.featuredArtists &&
+          coverPath == other.coverPath &&
+          filePath == other.filePath &&
+          trackNum == other.trackNum &&
+          discNum == other.discNum &&
+          album == other.album;
 }

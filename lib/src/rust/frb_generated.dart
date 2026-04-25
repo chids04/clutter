@@ -3,9 +3,7 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
-import 'api/complex.dart';
 import 'api/scanner.dart';
-import 'api/simple.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -68,7 +66,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -949780389;
+  int get rustContentHash => 991947650;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -80,61 +78,185 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
-  Future<void> crateApiScannerCLibraryAddSong({
+  Future<void> crateApiScannerCLibraryAddSongToPlaylist({
     required CLibrary that,
-    required Config config,
+    required String playlistId,
+    required String songId,
+  });
+
+  Future<String> crateApiScannerCLibraryCreatePlaylist({
+    required CLibrary that,
+    required String name,
+  });
+
+  Future<void> crateApiScannerCLibraryDeleteAlbum({
+    required CLibrary that,
+    required String id,
+  });
+
+  Future<void> crateApiScannerCLibraryDeletePlaylist({
+    required CLibrary that,
+    required String id,
+  });
+
+  Future<int> crateApiScannerCLibraryDeleteScanPath({
+    required CLibrary that,
     required String path,
   });
 
-  CSongDart? crateApiScannerCLibraryCurrentSong({required CLibrary that});
-
-  String? crateApiScannerCLibraryGetArtist({
+  Future<void> crateApiScannerCLibraryDeleteSong({
     required CLibrary that,
     required String id,
   });
 
-  Future<CSongDart?> crateApiScannerCLibraryGetSongById({
+  Future<List<AlbumViewData>> crateApiScannerCLibraryGetAlbumsArtistFeaturedOn({
+    required CLibrary that,
+    required String artistId,
+  });
+
+  Future<List<AlbumViewData>> crateApiScannerCLibraryGetAlbumsByArtistId({
+    required CLibrary that,
+    required String artistId,
+  });
+
+  Future<List<AlbumViewData>> crateApiScannerCLibraryGetAlbumsPaginated({
+    required CLibrary that,
+    required int offset,
+    required int limit,
+  });
+
+  Future<ArtistViewData?> crateApiScannerCLibraryGetArtistById({
     required CLibrary that,
     required String id,
   });
 
-  Future<CSongDart?> crateApiScannerCLibraryGetSongByIndex({
+  Future<List<ArtistViewData>> crateApiScannerCLibraryGetArtistsPaginated({
     required CLibrary that,
-    required BigInt index,
+    required int offset,
+    required int limit,
   });
 
-  CLibrary crateApiScannerCLibraryNew();
+  Future<List<String>> crateApiScannerCLibraryGetLikedSongIds({
+    required CLibrary that,
+  });
 
-  BigInt crateApiScannerCLibraryNumSongs({required CLibrary that});
+  Future<String?> crateApiScannerCLibraryGetLikedSongsPlaylistId({
+    required CLibrary that,
+  });
 
-  Future<CSongDart?> crateApiScannerCLibraryPlaySong({
+  Future<List<PlaylistViewData>> crateApiScannerCLibraryGetPlaylistsPaginated({
+    required CLibrary that,
+    required int offset,
+    required int limit,
+  });
+
+  Future<List<SongViewData>> crateApiScannerCLibraryGetRecentlyPlayed({
+    required CLibrary that,
+    required int limit,
+  });
+
+  Future<List<String>> crateApiScannerCLibraryGetScanPaths({
+    required CLibrary that,
+  });
+
+  Future<SongViewData?> crateApiScannerCLibraryGetSongById({
     required CLibrary that,
     required String id,
   });
 
-  Future<ArtistGroupDart> crateApiScannerCSongGetArtists({required CSong that});
-
-  Future<String> crateApiScannerCSongGetId({required CSong that});
-
-  Future<String> crateApiScannerCSongGetTitle({required CSong that});
-
-  Future<void> crateApiScannerArtistGroupDartGetArtistStr({
-    required ArtistGroupDart that,
+  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsArtistFeaturedOn({
+    required CLibrary that,
+    required String artistId,
   });
 
-  Future<void> crateApiScannerExtractMetadata({
-    required CLibrary library_,
-    required Config config,
+  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsByAlbumId({
+    required CLibrary that,
+    required String albumId,
+  });
+
+  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsInPlaylist({
+    required CLibrary that,
+    required String playlistId,
+  });
+
+  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsPaginated({
+    required CLibrary that,
+    required int offset,
+    required int limit,
+  });
+
+  int crateApiScannerCLibraryGetTotalAlbums({required CLibrary that});
+
+  int crateApiScannerCLibraryGetTotalArtists({required CLibrary that});
+
+  int crateApiScannerCLibraryGetTotalPlaylists({required CLibrary that});
+
+  int crateApiScannerCLibraryGetTotalSongs({required CLibrary that});
+
+  Future<CLibrary> crateApiScannerCLibraryInit({
+    required String dbPath,
+    required String coversDir,
+  });
+
+  Future<PlaybackStateData?> crateApiScannerCLibraryLoadPlaybackState({
+    required CLibrary that,
+  });
+
+  Future<void> crateApiScannerCLibraryRecordPlay({
+    required CLibrary that,
+    required String songId,
+  });
+
+  Future<void> crateApiScannerCLibraryRemoveSongFromPlaylist({
+    required CLibrary that,
+    required String playlistId,
+    required String songId,
+  });
+
+  Future<void> crateApiScannerCLibraryResetLibrary({required CLibrary that});
+
+  Future<void> crateApiScannerCLibrarySavePlaybackState({
+    required CLibrary that,
+    String? songId,
+    required PlatformInt64 positionMs,
+  });
+
+  Future<void> crateApiScannerCLibraryScanDirectory({
+    required CLibrary that,
     required String path,
+    required Config config,
   });
 
-  String crateApiSimpleGreet({required String name});
+  Future<List<AlbumViewData>> crateApiScannerCLibrarySearchAlbums({
+    required CLibrary that,
+    required String query,
+    required int limit,
+  });
+
+  Future<List<ArtistViewData>> crateApiScannerCLibrarySearchArtists({
+    required CLibrary that,
+    required String query,
+    required int limit,
+  });
+
+  Future<List<PlaylistViewData>> crateApiScannerCLibrarySearchPlaylists({
+    required CLibrary that,
+    required String query,
+    required int limit,
+  });
+
+  Future<List<SongViewData>> crateApiScannerCLibrarySearchSongs({
+    required CLibrary that,
+    required String query,
+    required int limit,
+  });
+
+  Future<String> crateApiScannerCLibrarySplitAlbumToNewArtist({
+    required CLibrary that,
+    required String albumId,
+  });
 
   Future<void> crateApiSimpleInitApp();
-
-  Future<void> crateApiComplexPrintHello({required Hello hello});
-
-  String crateApiComplexSpank({required String name});
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_CLibrary;
@@ -143,12 +265,6 @@ abstract class RustLibApi extends BaseApi {
   get rust_arc_decrement_strong_count_CLibrary;
 
   CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_CLibraryPtr;
-
-  RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_CSong;
-
-  RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_CSong;
-
-  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_CSongPtr;
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -160,21 +276,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
-  Future<void> crateApiScannerCLibraryAddSong({
+  Future<void> crateApiScannerCLibraryAddSongToPlaylist({
     required CLibrary that,
-    required Config config,
-    required String path,
+    required String playlistId,
+    required String songId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
             that,
             serializer,
           );
-          sse_encode_box_autoadd_config(config, serializer);
-          sse_encode_String(path, serializer);
+          sse_encode_String(playlistId, serializer);
+          sse_encode_String(songId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -184,85 +300,99 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
+          decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryAddSongConstMeta,
-        argValues: [that, config, path],
+        constMeta: kCrateApiScannerCLibraryAddSongToPlaylistConstMeta,
+        argValues: [that, playlistId, songId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryAddSongConstMeta =>
+  TaskConstMeta get kCrateApiScannerCLibraryAddSongToPlaylistConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_add_song",
-        argNames: ["that", "config", "path"],
+        debugName: "CLibrary_add_song_to_playlist",
+        argNames: ["that", "playlistId", "songId"],
       );
 
   @override
-  CSongDart? crateApiScannerCLibraryCurrentSong({required CLibrary that}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+  Future<String> crateApiScannerCLibraryCreatePlaylist({
+    required CLibrary that,
+    required String name,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
+          sse_encode_String(name, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_box_autoadd_c_song_dart,
-          decodeErrorData: null,
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryCurrentSongConstMeta,
-        argValues: [that],
+        constMeta: kCrateApiScannerCLibraryCreatePlaylistConstMeta,
+        argValues: [that, name],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryCurrentSongConstMeta =>
+  TaskConstMeta get kCrateApiScannerCLibraryCreatePlaylistConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_current_song",
-        argNames: ["that"],
+        debugName: "CLibrary_create_playlist",
+        argNames: ["that", "name"],
       );
 
   @override
-  String? crateApiScannerCLibraryGetArtist({
+  Future<void> crateApiScannerCLibraryDeleteAlbum({
     required CLibrary that,
     required String id,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
             that,
             serializer,
           );
           sse_encode_String(id, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3)!;
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 3,
+            port: port_,
+          );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_String,
-          decodeErrorData: null,
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryGetArtistConstMeta,
+        constMeta: kCrateApiScannerCLibraryDeleteAlbumConstMeta,
         argValues: [that, id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetArtistConstMeta =>
+  TaskConstMeta get kCrateApiScannerCLibraryDeleteAlbumConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_artist",
+        debugName: "CLibrary_delete_album",
         argNames: ["that", "id"],
       );
 
   @override
-  Future<CSongDart?> crateApiScannerCLibraryGetSongById({
+  Future<void> crateApiScannerCLibraryDeletePlaylist({
     required CLibrary that,
     required String id,
   }) {
@@ -283,7 +413,502 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_box_autoadd_c_song_dart,
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiScannerCLibraryDeletePlaylistConstMeta,
+        argValues: [that, id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryDeletePlaylistConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_delete_playlist",
+        argNames: ["that", "id"],
+      );
+
+  @override
+  Future<int> crateApiScannerCLibraryDeleteScanPath({
+    required CLibrary that,
+    required String path,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(path, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiScannerCLibraryDeleteScanPathConstMeta,
+        argValues: [that, path],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryDeleteScanPathConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_delete_scan_path",
+        argNames: ["that", "path"],
+      );
+
+  @override
+  Future<void> crateApiScannerCLibraryDeleteSong({
+    required CLibrary that,
+    required String id,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiScannerCLibraryDeleteSongConstMeta,
+        argValues: [that, id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryDeleteSongConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_delete_song",
+        argNames: ["that", "id"],
+      );
+
+  @override
+  Future<List<AlbumViewData>> crateApiScannerCLibraryGetAlbumsArtistFeaturedOn({
+    required CLibrary that,
+    required String artistId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(artistId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_album_view_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetAlbumsArtistFeaturedOnConstMeta,
+        argValues: [that, artistId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiScannerCLibraryGetAlbumsArtistFeaturedOnConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_albums_artist_featured_on",
+        argNames: ["that", "artistId"],
+      );
+
+  @override
+  Future<List<AlbumViewData>> crateApiScannerCLibraryGetAlbumsByArtistId({
+    required CLibrary that,
+    required String artistId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(artistId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 8,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_album_view_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetAlbumsByArtistIdConstMeta,
+        argValues: [that, artistId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetAlbumsByArtistIdConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_albums_by_artist_id",
+        argNames: ["that", "artistId"],
+      );
+
+  @override
+  Future<List<AlbumViewData>> crateApiScannerCLibraryGetAlbumsPaginated({
+    required CLibrary that,
+    required int offset,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_u_32(offset, serializer);
+          sse_encode_u_32(limit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 9,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_album_view_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetAlbumsPaginatedConstMeta,
+        argValues: [that, offset, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetAlbumsPaginatedConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_albums_paginated",
+        argNames: ["that", "offset", "limit"],
+      );
+
+  @override
+  Future<ArtistViewData?> crateApiScannerCLibraryGetArtistById({
+    required CLibrary that,
+    required String id,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_artist_view_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetArtistByIdConstMeta,
+        argValues: [that, id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetArtistByIdConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_artist_by_id",
+        argNames: ["that", "id"],
+      );
+
+  @override
+  Future<List<ArtistViewData>> crateApiScannerCLibraryGetArtistsPaginated({
+    required CLibrary that,
+    required int offset,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_u_32(offset, serializer);
+          sse_encode_u_32(limit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 11,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_artist_view_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetArtistsPaginatedConstMeta,
+        argValues: [that, offset, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetArtistsPaginatedConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_artists_paginated",
+        argNames: ["that", "offset", "limit"],
+      );
+
+  @override
+  Future<List<String>> crateApiScannerCLibraryGetLikedSongIds({
+    required CLibrary that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 12,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetLikedSongIdsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetLikedSongIdsConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_liked_song_ids",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<String?> crateApiScannerCLibraryGetLikedSongsPlaylistId({
+    required CLibrary that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 13,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetLikedSongsPlaylistIdConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetLikedSongsPlaylistIdConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_liked_songs_playlist_id",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<List<PlaylistViewData>> crateApiScannerCLibraryGetPlaylistsPaginated({
+    required CLibrary that,
+    required int offset,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_u_32(offset, serializer);
+          sse_encode_u_32(limit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 14,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_playlist_view_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetPlaylistsPaginatedConstMeta,
+        argValues: [that, offset, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetPlaylistsPaginatedConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_playlists_paginated",
+        argNames: ["that", "offset", "limit"],
+      );
+
+  @override
+  Future<List<SongViewData>> crateApiScannerCLibraryGetRecentlyPlayed({
+    required CLibrary that,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_u_32(limit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 15,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_song_view_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetRecentlyPlayedConstMeta,
+        argValues: [that, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetRecentlyPlayedConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_recently_played",
+        argNames: ["that", "limit"],
+      );
+
+  @override
+  Future<List<String>> crateApiScannerCLibraryGetScanPaths({
+    required CLibrary that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 16,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetScanPathsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetScanPathsConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_scan_paths",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<SongViewData?> crateApiScannerCLibraryGetSongById({
+    required CLibrary that,
+    required String id,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 17,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_song_view_data,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiScannerCLibraryGetSongByIdConstMeta,
@@ -300,9 +925,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<CSongDart?> crateApiScannerCLibraryGetSongByIndex({
+  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsArtistFeaturedOn({
     required CLibrary that,
-    required BigInt index,
+    required String artistId,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -312,56 +937,149 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          sse_encode_usize(index, serializer);
+          sse_encode_String(artistId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 18,
             port: port_,
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_box_autoadd_c_song_dart,
+          decodeSuccessData: sse_decode_list_song_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetSongByIndexConstMeta,
-        argValues: [that, index],
+        constMeta: kCrateApiScannerCLibraryGetSongsArtistFeaturedOnConstMeta,
+        argValues: [that, artistId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetSongByIndexConstMeta =>
+  TaskConstMeta get kCrateApiScannerCLibraryGetSongsArtistFeaturedOnConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_song_by_index",
-        argNames: ["that", "index"],
+        debugName: "CLibrary_get_songs_artist_featured_on",
+        argNames: ["that", "artistId"],
       );
 
   @override
-  CLibrary crateApiScannerCLibraryNew() {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsByAlbumId({
+    required CLibrary that,
+    required String albumId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6)!;
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(albumId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 19,
+            port: port_,
+          );
         },
         codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary,
+          decodeSuccessData: sse_decode_list_song_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryNewConstMeta,
-        argValues: [],
+        constMeta: kCrateApiScannerCLibraryGetSongsByAlbumIdConstMeta,
+        argValues: [that, albumId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryNewConstMeta =>
-      const TaskConstMeta(debugName: "CLibrary_new", argNames: []);
+  TaskConstMeta get kCrateApiScannerCLibraryGetSongsByAlbumIdConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_songs_by_album_id",
+        argNames: ["that", "albumId"],
+      );
 
   @override
-  BigInt crateApiScannerCLibraryNumSongs({required CLibrary that}) {
+  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsInPlaylist({
+    required CLibrary that,
+    required String playlistId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(playlistId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 20,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_song_view_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetSongsInPlaylistConstMeta,
+        argValues: [that, playlistId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetSongsInPlaylistConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_songs_in_playlist",
+        argNames: ["that", "playlistId"],
+      );
+
+  @override
+  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsPaginated({
+    required CLibrary that,
+    required int offset,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_u_32(offset, serializer);
+          sse_encode_u_32(limit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 21,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_song_view_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetSongsPaginatedConstMeta,
+        argValues: [that, offset, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetSongsPaginatedConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_songs_paginated",
+        argNames: ["that", "offset", "limit"],
+      );
+
+  @override
+  int crateApiScannerCLibraryGetTotalAlbums({required CLibrary that}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
@@ -370,250 +1088,573 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 7)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 22)!;
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_usize,
+          decodeSuccessData: sse_decode_u_32,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryNumSongsConstMeta,
+        constMeta: kCrateApiScannerCLibraryGetTotalAlbumsConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryNumSongsConstMeta =>
-      const TaskConstMeta(debugName: "CLibrary_num_songs", argNames: ["that"]);
-
-  @override
-  Future<CSongDart?> crateApiScannerCLibraryPlaySong({
-    required CLibrary that,
-    required String id,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-            that,
-            serializer,
-          );
-          sse_encode_String(id, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 8,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_box_autoadd_c_song_dart,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiScannerCLibraryPlaySongConstMeta,
-        argValues: [that, id],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiScannerCLibraryPlaySongConstMeta =>
+  TaskConstMeta get kCrateApiScannerCLibraryGetTotalAlbumsConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_play_song",
-        argNames: ["that", "id"],
-      );
-
-  @override
-  Future<ArtistGroupDart> crateApiScannerCSongGetArtists({
-    required CSong that,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-            that,
-            serializer,
-          );
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 9,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_artist_group_dart,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiScannerCSongGetArtistsConstMeta,
-        argValues: [that],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiScannerCSongGetArtistsConstMeta =>
-      const TaskConstMeta(debugName: "CSong_get_artists", argNames: ["that"]);
-
-  @override
-  Future<String> crateApiScannerCSongGetId({required CSong that}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-            that,
-            serializer,
-          );
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 10,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiScannerCSongGetIdConstMeta,
-        argValues: [that],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiScannerCSongGetIdConstMeta =>
-      const TaskConstMeta(debugName: "CSong_get_id", argNames: ["that"]);
-
-  @override
-  Future<String> crateApiScannerCSongGetTitle({required CSong that}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-            that,
-            serializer,
-          );
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 11,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiScannerCSongGetTitleConstMeta,
-        argValues: [that],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiScannerCSongGetTitleConstMeta =>
-      const TaskConstMeta(debugName: "CSong_get_title", argNames: ["that"]);
-
-  @override
-  Future<void> crateApiScannerArtistGroupDartGetArtistStr({
-    required ArtistGroupDart that,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_box_autoadd_artist_group_dart(that, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 12,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiScannerArtistGroupDartGetArtistStrConstMeta,
-        argValues: [that],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiScannerArtistGroupDartGetArtistStrConstMeta =>
-      const TaskConstMeta(
-        debugName: "artist_group_dart_getArtistStr",
+        debugName: "CLibrary_get_total_albums",
         argNames: ["that"],
       );
 
   @override
-  Future<void> crateApiScannerExtractMetadata({
-    required CLibrary library_,
-    required Config config,
-    required String path,
+  int crateApiScannerCLibraryGetTotalArtists({required CLibrary that}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetTotalArtistsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetTotalArtistsConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_total_artists",
+        argNames: ["that"],
+      );
+
+  @override
+  int crateApiScannerCLibraryGetTotalPlaylists({required CLibrary that}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetTotalPlaylistsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetTotalPlaylistsConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_total_playlists",
+        argNames: ["that"],
+      );
+
+  @override
+  int crateApiScannerCLibraryGetTotalSongs({required CLibrary that}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryGetTotalSongsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryGetTotalSongsConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_get_total_songs",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<CLibrary> crateApiScannerCLibraryInit({
+    required String dbPath,
+    required String coversDir,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-            library_,
-            serializer,
-          );
-          sse_encode_box_autoadd_config(config, serializer);
-          sse_encode_String(path, serializer);
+          sse_encode_String(dbPath, serializer);
+          sse_encode_String(coversDir, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 26,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiScannerCLibraryInitConstMeta,
+        argValues: [dbPath, coversDir],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryInitConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_init",
+        argNames: ["dbPath", "coversDir"],
+      );
+
+  @override
+  Future<PlaybackStateData?> crateApiScannerCLibraryLoadPlaybackState({
+    required CLibrary that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 27,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_playback_state_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibraryLoadPlaybackStateConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryLoadPlaybackStateConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_load_playback_state",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiScannerCLibraryRecordPlay({
+    required CLibrary that,
+    required String songId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(songId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 28,
             port: port_,
           );
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
+          decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerExtractMetadataConstMeta,
-        argValues: [library_, config, path],
+        constMeta: kCrateApiScannerCLibraryRecordPlayConstMeta,
+        argValues: [that, songId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerExtractMetadataConstMeta =>
+  TaskConstMeta get kCrateApiScannerCLibraryRecordPlayConstMeta =>
       const TaskConstMeta(
-        debugName: "extract_metadata",
-        argNames: ["library_", "config", "path"],
+        debugName: "CLibrary_record_play",
+        argNames: ["that", "songId"],
       );
 
   @override
-  String crateApiSimpleGreet({required String name}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+  Future<void> crateApiScannerCLibraryRemoveSongFromPlaylist({
+    required CLibrary that,
+    required String playlistId,
+    required String songId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 14)!;
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(playlistId, serializer);
+          sse_encode_String(songId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 29,
+            port: port_,
+          );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: null,
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiSimpleGreetConstMeta,
-        argValues: [name],
+        constMeta: kCrateApiScannerCLibraryRemoveSongFromPlaylistConstMeta,
+        argValues: [that, playlistId, songId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSimpleGreetConstMeta =>
-      const TaskConstMeta(debugName: "greet", argNames: ["name"]);
+  TaskConstMeta get kCrateApiScannerCLibraryRemoveSongFromPlaylistConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_remove_song_from_playlist",
+        argNames: ["that", "playlistId", "songId"],
+      );
+
+  @override
+  Future<void> crateApiScannerCLibraryResetLibrary({required CLibrary that}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 30,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiScannerCLibraryResetLibraryConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryResetLibraryConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_reset_library",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiScannerCLibrarySavePlaybackState({
+    required CLibrary that,
+    String? songId,
+    required PlatformInt64 positionMs,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_opt_String(songId, serializer);
+          sse_encode_i_64(positionMs, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 31,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiScannerCLibrarySavePlaybackStateConstMeta,
+        argValues: [that, songId, positionMs],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibrarySavePlaybackStateConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_save_playback_state",
+        argNames: ["that", "songId", "positionMs"],
+      );
+
+  @override
+  Future<void> crateApiScannerCLibraryScanDirectory({
+    required CLibrary that,
+    required String path,
+    required Config config,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(path, serializer);
+          sse_encode_box_autoadd_config(config, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 32,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiScannerCLibraryScanDirectoryConstMeta,
+        argValues: [that, path, config],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibraryScanDirectoryConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_scan_directory",
+        argNames: ["that", "path", "config"],
+      );
+
+  @override
+  Future<List<AlbumViewData>> crateApiScannerCLibrarySearchAlbums({
+    required CLibrary that,
+    required String query,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(query, serializer);
+          sse_encode_u_32(limit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 33,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_album_view_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibrarySearchAlbumsConstMeta,
+        argValues: [that, query, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibrarySearchAlbumsConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_search_albums",
+        argNames: ["that", "query", "limit"],
+      );
+
+  @override
+  Future<List<ArtistViewData>> crateApiScannerCLibrarySearchArtists({
+    required CLibrary that,
+    required String query,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(query, serializer);
+          sse_encode_u_32(limit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 34,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_artist_view_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibrarySearchArtistsConstMeta,
+        argValues: [that, query, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibrarySearchArtistsConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_search_artists",
+        argNames: ["that", "query", "limit"],
+      );
+
+  @override
+  Future<List<PlaylistViewData>> crateApiScannerCLibrarySearchPlaylists({
+    required CLibrary that,
+    required String query,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(query, serializer);
+          sse_encode_u_32(limit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 35,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_playlist_view_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibrarySearchPlaylistsConstMeta,
+        argValues: [that, query, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibrarySearchPlaylistsConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_search_playlists",
+        argNames: ["that", "query", "limit"],
+      );
+
+  @override
+  Future<List<SongViewData>> crateApiScannerCLibrarySearchSongs({
+    required CLibrary that,
+    required String query,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(query, serializer);
+          sse_encode_u_32(limit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 36,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_song_view_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiScannerCLibrarySearchSongsConstMeta,
+        argValues: [that, query, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibrarySearchSongsConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_search_songs",
+        argNames: ["that", "query", "limit"],
+      );
+
+  @override
+  Future<String> crateApiScannerCLibrarySplitAlbumToNewArtist({
+    required CLibrary that,
+    required String albumId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+            that,
+            serializer,
+          );
+          sse_encode_String(albumId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 37,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiScannerCLibrarySplitAlbumToNewArtistConstMeta,
+        argValues: [that, albumId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiScannerCLibrarySplitAlbumToNewArtistConstMeta =>
+      const TaskConstMeta(
+        debugName: "CLibrary_split_album_to_new_artist",
+        argNames: ["that", "albumId"],
+      );
 
   @override
   Future<void> crateApiSimpleInitApp() {
@@ -624,7 +1665,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 38,
             port: port_,
           );
         },
@@ -642,57 +1683,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiSimpleInitAppConstMeta =>
       const TaskConstMeta(debugName: "init_app", argNames: []);
 
-  @override
-  Future<void> crateApiComplexPrintHello({required Hello hello}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_box_autoadd_hello(hello, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 16,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiComplexPrintHelloConstMeta,
-        argValues: [hello],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiComplexPrintHelloConstMeta =>
-      const TaskConstMeta(debugName: "print_hello", argNames: ["hello"]);
-
-  @override
-  String crateApiComplexSpank({required String name}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 17)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiComplexSpankConstMeta,
-        argValues: [name],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiComplexSpankConstMeta =>
-      const TaskConstMeta(debugName: "spank", argNames: ["name"]);
-
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_CLibrary => wire
       .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary;
@@ -701,35 +1691,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   get rust_arc_decrement_strong_count_CLibrary => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary;
 
-  RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_CSong => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong;
-
-  RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_CSong => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong;
-
   @protected
   CLibrary
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return CLibraryImpl.frbInternalDcoDecode(raw as List<dynamic>);
-  }
-
-  @protected
-  CSong
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return CSongImpl.frbInternalDcoDecode(raw as List<dynamic>);
-  }
-
-  @protected
-  CLibrary
-  dco_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -746,15 +1710,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CSong
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return CSongImpl.frbInternalDcoDecode(raw as List<dynamic>);
-  }
-
-  @protected
   CLibrary
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
     dynamic raw,
@@ -764,29 +1719,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CSong
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return CSongImpl.frbInternalDcoDecode(raw as List<dynamic>);
-  }
-
-  @protected
   String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as String;
   }
 
   @protected
-  ArtistGroupDart dco_decode_artist_group_dart(dynamic raw) {
+  AlbumViewData dco_decode_album_view_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
-    return ArtistGroupDart(
-      leading: dco_decode_String(arr[0]),
-      features: dco_decode_list_String(arr[1]),
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return AlbumViewData(
+      id: dco_decode_String(arr[0]),
+      title: dco_decode_String(arr[1]),
+      artist: dco_decode_String(arr[2]),
+      coverPath: dco_decode_opt_String(arr[3]),
+      songCount: dco_decode_i_64(arr[4]),
+    );
+  }
+
+  @protected
+  ArtistViewData dco_decode_artist_view_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return ArtistViewData(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      coverPath: dco_decode_opt_String(arr[2]),
+      albumCount: dco_decode_i_64(arr[3]),
+      songCount: dco_decode_i_64(arr[4]),
     );
   }
 
@@ -797,21 +1761,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ArtistGroupDart dco_decode_box_autoadd_artist_group_dart(dynamic raw) {
+  ArtistViewData dco_decode_box_autoadd_artist_view_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_artist_group_dart(raw);
-  }
-
-  @protected
-  CImage dco_decode_box_autoadd_c_image(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_c_image(raw);
-  }
-
-  @protected
-  CSongDart dco_decode_box_autoadd_c_song_dart(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_c_song_dart(raw);
+    return dco_decode_artist_view_data(raw);
   }
 
   @protected
@@ -821,39 +1773,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  Hello dco_decode_box_autoadd_hello(dynamic raw) {
+  PlaybackStateData dco_decode_box_autoadd_playback_state_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_hello(raw);
+    return dco_decode_playback_state_data(raw);
   }
 
   @protected
-  CImage dco_decode_c_image(dynamic raw) {
+  SongViewData dco_decode_box_autoadd_song_view_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
-    return CImage(
-      data: dco_decode_list_prim_u_8_strict(arr[0]),
-      mimeType: dco_decode_String(arr[1]),
-    );
-  }
-
-  @protected
-  CSongDart dco_decode_c_song_dart(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
-    return CSongDart(
-      id: dco_decode_String(arr[0]),
-      title: dco_decode_String(arr[1]),
-      artists: dco_decode_artist_group_dart(arr[2]),
-      trackNum: dco_decode_i_64(arr[3]),
-      discNum: dco_decode_i_64(arr[4]),
-      album: dco_decode_String(arr[5]),
-      cover: dco_decode_opt_box_autoadd_c_image(arr[6]),
-      path: dco_decode_String(arr[7]),
-    );
+    return dco_decode_song_view_data(raw);
   }
 
   @protected
@@ -863,15 +1791,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (arr.length != 1)
       throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
     return Config(isDeezer: dco_decode_bool(arr[0]));
-  }
-
-  @protected
-  Hello dco_decode_hello(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 1)
-      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
-    return Hello(name: dco_decode_String(arr[0]));
   }
 
   @protected
@@ -887,9 +1806,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<AlbumViewData> dco_decode_list_album_view_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_album_view_data).toList();
+  }
+
+  @protected
+  List<ArtistViewData> dco_decode_list_artist_view_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_artist_view_data).toList();
+  }
+
+  @protected
+  List<PlaylistViewData> dco_decode_list_playlist_view_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_playlist_view_data).toList();
+  }
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
+  }
+
+  @protected
+  List<SongViewData> dco_decode_list_song_view_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_song_view_data).toList();
   }
 
   @protected
@@ -899,15 +1842,74 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CImage? dco_decode_opt_box_autoadd_c_image(dynamic raw) {
+  ArtistViewData? dco_decode_opt_box_autoadd_artist_view_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_c_image(raw);
+    return raw == null ? null : dco_decode_box_autoadd_artist_view_data(raw);
   }
 
   @protected
-  CSongDart? dco_decode_opt_box_autoadd_c_song_dart(dynamic raw) {
+  PlaybackStateData? dco_decode_opt_box_autoadd_playback_state_data(
+    dynamic raw,
+  ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_c_song_dart(raw);
+    return raw == null ? null : dco_decode_box_autoadd_playback_state_data(raw);
+  }
+
+  @protected
+  SongViewData? dco_decode_opt_box_autoadd_song_view_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_song_view_data(raw);
+  }
+
+  @protected
+  PlaybackStateData dco_decode_playback_state_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return PlaybackStateData(
+      song: dco_decode_song_view_data(arr[0]),
+      positionMs: dco_decode_i_64(arr[1]),
+    );
+  }
+
+  @protected
+  PlaylistViewData dco_decode_playlist_view_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return PlaylistViewData(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      isSystem: dco_decode_bool(arr[2]),
+      songCount: dco_decode_i_64(arr[3]),
+    );
+  }
+
+  @protected
+  SongViewData dco_decode_song_view_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return SongViewData(
+      id: dco_decode_String(arr[0]),
+      title: dco_decode_String(arr[1]),
+      primaryArtist: dco_decode_String(arr[2]),
+      featuredArtists: dco_decode_list_String(arr[3]),
+      coverPath: dco_decode_opt_String(arr[4]),
+      filePath: dco_decode_String(arr[5]),
+      trackNum: dco_decode_i_64(arr[6]),
+      discNum: dco_decode_i_64(arr[7]),
+      album: dco_decode_String(arr[8]),
+    );
+  }
+
+  @protected
+  int dco_decode_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
   }
 
   @protected
@@ -941,48 +1943,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CSong
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return CSongImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
-  CLibrary
-  sse_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return CLibraryImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
   CLibrary
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return CLibraryImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
-  CSong
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return CSongImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -1001,18 +1967,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CSong
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return CSongImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
   String sse_decode_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_list_prim_u_8_strict(deserializer);
@@ -1020,11 +1974,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ArtistGroupDart sse_decode_artist_group_dart(SseDeserializer deserializer) {
+  AlbumViewData sse_decode_album_view_data(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_leading = sse_decode_String(deserializer);
-    var var_features = sse_decode_list_String(deserializer);
-    return ArtistGroupDart(leading: var_leading, features: var_features);
+    var var_id = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_artist = sse_decode_String(deserializer);
+    var var_coverPath = sse_decode_opt_String(deserializer);
+    var var_songCount = sse_decode_i_64(deserializer);
+    return AlbumViewData(
+      id: var_id,
+      title: var_title,
+      artist: var_artist,
+      coverPath: var_coverPath,
+      songCount: var_songCount,
+    );
+  }
+
+  @protected
+  ArtistViewData sse_decode_artist_view_data(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_coverPath = sse_decode_opt_String(deserializer);
+    var var_albumCount = sse_decode_i_64(deserializer);
+    var var_songCount = sse_decode_i_64(deserializer);
+    return ArtistViewData(
+      id: var_id,
+      name: var_name,
+      coverPath: var_coverPath,
+      albumCount: var_albumCount,
+      songCount: var_songCount,
+    );
   }
 
   @protected
@@ -1034,23 +2014,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ArtistGroupDart sse_decode_box_autoadd_artist_group_dart(
+  ArtistViewData sse_decode_box_autoadd_artist_view_data(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_artist_group_dart(deserializer));
-  }
-
-  @protected
-  CImage sse_decode_box_autoadd_c_image(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_c_image(deserializer));
-  }
-
-  @protected
-  CSongDart sse_decode_box_autoadd_c_song_dart(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_c_song_dart(deserializer));
+    return (sse_decode_artist_view_data(deserializer));
   }
 
   @protected
@@ -1060,40 +2028,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  Hello sse_decode_box_autoadd_hello(SseDeserializer deserializer) {
+  PlaybackStateData sse_decode_box_autoadd_playback_state_data(
+    SseDeserializer deserializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_hello(deserializer));
+    return (sse_decode_playback_state_data(deserializer));
   }
 
   @protected
-  CImage sse_decode_c_image(SseDeserializer deserializer) {
+  SongViewData sse_decode_box_autoadd_song_view_data(
+    SseDeserializer deserializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_data = sse_decode_list_prim_u_8_strict(deserializer);
-    var var_mimeType = sse_decode_String(deserializer);
-    return CImage(data: var_data, mimeType: var_mimeType);
-  }
-
-  @protected
-  CSongDart sse_decode_c_song_dart(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_id = sse_decode_String(deserializer);
-    var var_title = sse_decode_String(deserializer);
-    var var_artists = sse_decode_artist_group_dart(deserializer);
-    var var_trackNum = sse_decode_i_64(deserializer);
-    var var_discNum = sse_decode_i_64(deserializer);
-    var var_album = sse_decode_String(deserializer);
-    var var_cover = sse_decode_opt_box_autoadd_c_image(deserializer);
-    var var_path = sse_decode_String(deserializer);
-    return CSongDart(
-      id: var_id,
-      title: var_title,
-      artists: var_artists,
-      trackNum: var_trackNum,
-      discNum: var_discNum,
-      album: var_album,
-      cover: var_cover,
-      path: var_path,
-    );
+    return (sse_decode_song_view_data(deserializer));
   }
 
   @protected
@@ -1101,13 +2048,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_isDeezer = sse_decode_bool(deserializer);
     return Config(isDeezer: var_isDeezer);
-  }
-
-  @protected
-  Hello sse_decode_hello(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_name = sse_decode_String(deserializer);
-    return Hello(name: var_name);
   }
 
   @protected
@@ -1129,10 +2069,66 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<AlbumViewData> sse_decode_list_album_view_data(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <AlbumViewData>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_album_view_data(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<ArtistViewData> sse_decode_list_artist_view_data(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <ArtistViewData>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_artist_view_data(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<PlaylistViewData> sse_decode_list_playlist_view_data(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <PlaylistViewData>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_playlist_view_data(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  List<SongViewData> sse_decode_list_song_view_data(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <SongViewData>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_song_view_data(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -1147,27 +2143,98 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CImage? sse_decode_opt_box_autoadd_c_image(SseDeserializer deserializer) {
+  ArtistViewData? sse_decode_opt_box_autoadd_artist_view_data(
+    SseDeserializer deserializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_c_image(deserializer));
+      return (sse_decode_box_autoadd_artist_view_data(deserializer));
     } else {
       return null;
     }
   }
 
   @protected
-  CSongDart? sse_decode_opt_box_autoadd_c_song_dart(
+  PlaybackStateData? sse_decode_opt_box_autoadd_playback_state_data(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_c_song_dart(deserializer));
+      return (sse_decode_box_autoadd_playback_state_data(deserializer));
     } else {
       return null;
     }
+  }
+
+  @protected
+  SongViewData? sse_decode_opt_box_autoadd_song_view_data(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_song_view_data(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  PlaybackStateData sse_decode_playback_state_data(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_song = sse_decode_song_view_data(deserializer);
+    var var_positionMs = sse_decode_i_64(deserializer);
+    return PlaybackStateData(song: var_song, positionMs: var_positionMs);
+  }
+
+  @protected
+  PlaylistViewData sse_decode_playlist_view_data(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_isSystem = sse_decode_bool(deserializer);
+    var var_songCount = sse_decode_i_64(deserializer);
+    return PlaylistViewData(
+      id: var_id,
+      name: var_name,
+      isSystem: var_isSystem,
+      songCount: var_songCount,
+    );
+  }
+
+  @protected
+  SongViewData sse_decode_song_view_data(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_primaryArtist = sse_decode_String(deserializer);
+    var var_featuredArtists = sse_decode_list_String(deserializer);
+    var var_coverPath = sse_decode_opt_String(deserializer);
+    var var_filePath = sse_decode_String(deserializer);
+    var var_trackNum = sse_decode_i_64(deserializer);
+    var var_discNum = sse_decode_i_64(deserializer);
+    var var_album = sse_decode_String(deserializer);
+    return SongViewData(
+      id: var_id,
+      title: var_title,
+      primaryArtist: var_primaryArtist,
+      featuredArtists: var_featuredArtists,
+      coverPath: var_coverPath,
+      filePath: var_filePath,
+      trackNum: var_trackNum,
+      discNum: var_discNum,
+      album: var_album,
+    );
+  }
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint32();
   }
 
   @protected
@@ -1208,32 +2275,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    CSong self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as CSongImpl).frbInternalSseEncode(move: true),
-      serializer,
-    );
-  }
-
-  @protected
-  void
-  sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    CLibrary self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as CLibraryImpl).frbInternalSseEncode(move: false),
-      serializer,
-    );
-  }
-
-  @protected
-  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
     CLibrary self,
     SseSerializer serializer,
@@ -1241,19 +2282,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
       (self as CLibraryImpl).frbInternalSseEncode(move: false),
-      serializer,
-    );
-  }
-
-  @protected
-  void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    CSong self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as CSongImpl).frbInternalSseEncode(move: false),
       serializer,
     );
   }
@@ -1272,32 +2300,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCSong(
-    CSong self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as CSongImpl).frbInternalSseEncode(move: null),
-      serializer,
-    );
-  }
-
-  @protected
   void sse_encode_String(String self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer);
   }
 
   @protected
-  void sse_encode_artist_group_dart(
-    ArtistGroupDart self,
+  void sse_encode_album_view_data(
+    AlbumViewData self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.leading, serializer);
-    sse_encode_list_String(self.features, serializer);
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.artist, serializer);
+    sse_encode_opt_String(self.coverPath, serializer);
+    sse_encode_i_64(self.songCount, serializer);
+  }
+
+  @protected
+  void sse_encode_artist_view_data(
+    ArtistViewData self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_opt_String(self.coverPath, serializer);
+    sse_encode_i_64(self.albumCount, serializer);
+    sse_encode_i_64(self.songCount, serializer);
   }
 
   @protected
@@ -1307,27 +2338,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_box_autoadd_artist_group_dart(
-    ArtistGroupDart self,
+  void sse_encode_box_autoadd_artist_view_data(
+    ArtistViewData self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_artist_group_dart(self, serializer);
-  }
-
-  @protected
-  void sse_encode_box_autoadd_c_image(CImage self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_c_image(self, serializer);
-  }
-
-  @protected
-  void sse_encode_box_autoadd_c_song_dart(
-    CSongDart self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_c_song_dart(self, serializer);
+    sse_encode_artist_view_data(self, serializer);
   }
 
   @protected
@@ -1337,41 +2353,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_box_autoadd_hello(Hello self, SseSerializer serializer) {
+  void sse_encode_box_autoadd_playback_state_data(
+    PlaybackStateData self,
+    SseSerializer serializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_hello(self, serializer);
+    sse_encode_playback_state_data(self, serializer);
   }
 
   @protected
-  void sse_encode_c_image(CImage self, SseSerializer serializer) {
+  void sse_encode_box_autoadd_song_view_data(
+    SongViewData self,
+    SseSerializer serializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_list_prim_u_8_strict(self.data, serializer);
-    sse_encode_String(self.mimeType, serializer);
-  }
-
-  @protected
-  void sse_encode_c_song_dart(CSongDart self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.id, serializer);
-    sse_encode_String(self.title, serializer);
-    sse_encode_artist_group_dart(self.artists, serializer);
-    sse_encode_i_64(self.trackNum, serializer);
-    sse_encode_i_64(self.discNum, serializer);
-    sse_encode_String(self.album, serializer);
-    sse_encode_opt_box_autoadd_c_image(self.cover, serializer);
-    sse_encode_String(self.path, serializer);
+    sse_encode_song_view_data(self, serializer);
   }
 
   @protected
   void sse_encode_config(Config self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bool(self.isDeezer, serializer);
-  }
-
-  @protected
-  void sse_encode_hello(Hello self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.name, serializer);
   }
 
   @protected
@@ -1390,6 +2392,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_album_view_data(
+    List<AlbumViewData> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_album_view_data(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_artist_view_data(
+    List<ArtistViewData> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_artist_view_data(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_playlist_view_data(
+    List<PlaylistViewData> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_playlist_view_data(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
     SseSerializer serializer,
@@ -1397,6 +2435,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
+  }
+
+  @protected
+  void sse_encode_list_song_view_data(
+    List<SongViewData> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_song_view_data(item, serializer);
+    }
   }
 
   @protected
@@ -1410,29 +2460,84 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_c_image(
-    CImage? self,
+  void sse_encode_opt_box_autoadd_artist_view_data(
+    ArtistViewData? self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
-      sse_encode_box_autoadd_c_image(self, serializer);
+      sse_encode_box_autoadd_artist_view_data(self, serializer);
     }
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_c_song_dart(
-    CSongDart? self,
+  void sse_encode_opt_box_autoadd_playback_state_data(
+    PlaybackStateData? self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
-      sse_encode_box_autoadd_c_song_dart(self, serializer);
+      sse_encode_box_autoadd_playback_state_data(self, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_song_view_data(
+    SongViewData? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_song_view_data(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_playback_state_data(
+    PlaybackStateData self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_song_view_data(self.song, serializer);
+    sse_encode_i_64(self.positionMs, serializer);
+  }
+
+  @protected
+  void sse_encode_playlist_view_data(
+    PlaylistViewData self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_bool(self.isSystem, serializer);
+    sse_encode_i_64(self.songCount, serializer);
+  }
+
+  @protected
+  void sse_encode_song_view_data(SongViewData self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.primaryArtist, serializer);
+    sse_encode_list_String(self.featuredArtists, serializer);
+    sse_encode_opt_String(self.coverPath, serializer);
+    sse_encode_String(self.filePath, serializer);
+    sse_encode_i_64(self.trackNum, serializer);
+    sse_encode_i_64(self.discNum, serializer);
+    sse_encode_String(self.album, serializer);
+  }
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint32(self);
   }
 
   @protected
@@ -1478,59 +2583,214 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
         RustLib.instance.api.rust_arc_decrement_strong_count_CLibraryPtr,
   );
 
-  Future<void> addSong({required Config config, required String path}) =>
-      RustLib.instance.api.crateApiScannerCLibraryAddSong(
-        that: this,
-        config: config,
-        path: path,
-      );
-
-  CSongDart? currentSong() =>
-      RustLib.instance.api.crateApiScannerCLibraryCurrentSong(that: this);
-
-  String? getArtist({required String id}) =>
-      RustLib.instance.api.crateApiScannerCLibraryGetArtist(that: this, id: id);
-
-  Future<CSongDart?> getSongById({required String id}) => RustLib.instance.api
-      .crateApiScannerCLibraryGetSongById(that: this, id: id);
-
-  Future<CSongDart?> getSongByIndex({required BigInt index}) => RustLib
-      .instance
-      .api
-      .crateApiScannerCLibraryGetSongByIndex(that: this, index: index);
-
-  BigInt numSongs() =>
-      RustLib.instance.api.crateApiScannerCLibraryNumSongs(that: this);
-
-  Future<CSongDart?> playSong({required String id}) =>
-      RustLib.instance.api.crateApiScannerCLibraryPlaySong(that: this, id: id);
-}
-
-@sealed
-class CSongImpl extends RustOpaque implements CSong {
-  // Not to be used by end users
-  CSongImpl.frbInternalDcoDecode(List<dynamic> wire)
-    : super.frbInternalDcoDecode(wire, _kStaticData);
-
-  // Not to be used by end users
-  CSongImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
-    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
-
-  static final _kStaticData = RustArcStaticData(
-    rustArcIncrementStrongCount:
-        RustLib.instance.api.rust_arc_increment_strong_count_CSong,
-    rustArcDecrementStrongCount:
-        RustLib.instance.api.rust_arc_decrement_strong_count_CSong,
-    rustArcDecrementStrongCountPtr:
-        RustLib.instance.api.rust_arc_decrement_strong_count_CSongPtr,
+  Future<void> addSongToPlaylist({
+    required String playlistId,
+    required String songId,
+  }) => RustLib.instance.api.crateApiScannerCLibraryAddSongToPlaylist(
+    that: this,
+    playlistId: playlistId,
+    songId: songId,
   );
 
-  Future<ArtistGroupDart> getArtists() =>
-      RustLib.instance.api.crateApiScannerCSongGetArtists(that: this);
+  Future<String> createPlaylist({required String name}) => RustLib.instance.api
+      .crateApiScannerCLibraryCreatePlaylist(that: this, name: name);
 
-  Future<String> getId() =>
-      RustLib.instance.api.crateApiScannerCSongGetId(that: this);
+  Future<void> deleteAlbum({required String id}) => RustLib.instance.api
+      .crateApiScannerCLibraryDeleteAlbum(that: this, id: id);
 
-  Future<String> getTitle() =>
-      RustLib.instance.api.crateApiScannerCSongGetTitle(that: this);
+  Future<void> deletePlaylist({required String id}) => RustLib.instance.api
+      .crateApiScannerCLibraryDeletePlaylist(that: this, id: id);
+
+  /// Remove a scan path and every song indexed beneath it. Returns the
+  /// number of songs purged so the UI can surface it in a toast.
+  Future<int> deleteScanPath({required String path}) => RustLib.instance.api
+      .crateApiScannerCLibraryDeleteScanPath(that: this, path: path);
+
+  Future<void> deleteSong({required String id}) => RustLib.instance.api
+      .crateApiScannerCLibraryDeleteSong(that: this, id: id);
+
+  Future<List<AlbumViewData>> getAlbumsArtistFeaturedOn({
+    required String artistId,
+  }) => RustLib.instance.api.crateApiScannerCLibraryGetAlbumsArtistFeaturedOn(
+    that: this,
+    artistId: artistId,
+  );
+
+  Future<List<AlbumViewData>> getAlbumsByArtistId({required String artistId}) =>
+      RustLib.instance.api.crateApiScannerCLibraryGetAlbumsByArtistId(
+        that: this,
+        artistId: artistId,
+      );
+
+  Future<List<AlbumViewData>> getAlbumsPaginated({
+    required int offset,
+    required int limit,
+  }) => RustLib.instance.api.crateApiScannerCLibraryGetAlbumsPaginated(
+    that: this,
+    offset: offset,
+    limit: limit,
+  );
+
+  Future<ArtistViewData?> getArtistById({required String id}) => RustLib
+      .instance
+      .api
+      .crateApiScannerCLibraryGetArtistById(that: this, id: id);
+
+  Future<List<ArtistViewData>> getArtistsPaginated({
+    required int offset,
+    required int limit,
+  }) => RustLib.instance.api.crateApiScannerCLibraryGetArtistsPaginated(
+    that: this,
+    offset: offset,
+    limit: limit,
+  );
+
+  Future<List<String>> getLikedSongIds() =>
+      RustLib.instance.api.crateApiScannerCLibraryGetLikedSongIds(that: this);
+
+  Future<String?> getLikedSongsPlaylistId() => RustLib.instance.api
+      .crateApiScannerCLibraryGetLikedSongsPlaylistId(that: this);
+
+  Future<List<PlaylistViewData>> getPlaylistsPaginated({
+    required int offset,
+    required int limit,
+  }) => RustLib.instance.api.crateApiScannerCLibraryGetPlaylistsPaginated(
+    that: this,
+    offset: offset,
+    limit: limit,
+  );
+
+  Future<List<SongViewData>> getRecentlyPlayed({required int limit}) => RustLib
+      .instance
+      .api
+      .crateApiScannerCLibraryGetRecentlyPlayed(that: this, limit: limit);
+
+  Future<List<String>> getScanPaths() =>
+      RustLib.instance.api.crateApiScannerCLibraryGetScanPaths(that: this);
+
+  Future<SongViewData?> getSongById({required String id}) => RustLib
+      .instance
+      .api
+      .crateApiScannerCLibraryGetSongById(that: this, id: id);
+
+  Future<List<SongViewData>> getSongsArtistFeaturedOn({
+    required String artistId,
+  }) => RustLib.instance.api.crateApiScannerCLibraryGetSongsArtistFeaturedOn(
+    that: this,
+    artistId: artistId,
+  );
+
+  Future<List<SongViewData>> getSongsByAlbumId({required String albumId}) =>
+      RustLib.instance.api.crateApiScannerCLibraryGetSongsByAlbumId(
+        that: this,
+        albumId: albumId,
+      );
+
+  Future<List<SongViewData>> getSongsInPlaylist({required String playlistId}) =>
+      RustLib.instance.api.crateApiScannerCLibraryGetSongsInPlaylist(
+        that: this,
+        playlistId: playlistId,
+      );
+
+  Future<List<SongViewData>> getSongsPaginated({
+    required int offset,
+    required int limit,
+  }) => RustLib.instance.api.crateApiScannerCLibraryGetSongsPaginated(
+    that: this,
+    offset: offset,
+    limit: limit,
+  );
+
+  int getTotalAlbums() =>
+      RustLib.instance.api.crateApiScannerCLibraryGetTotalAlbums(that: this);
+
+  int getTotalArtists() =>
+      RustLib.instance.api.crateApiScannerCLibraryGetTotalArtists(that: this);
+
+  int getTotalPlaylists() =>
+      RustLib.instance.api.crateApiScannerCLibraryGetTotalPlaylists(that: this);
+
+  int getTotalSongs() =>
+      RustLib.instance.api.crateApiScannerCLibraryGetTotalSongs(that: this);
+
+  Future<PlaybackStateData?> loadPlaybackState() =>
+      RustLib.instance.api.crateApiScannerCLibraryLoadPlaybackState(that: this);
+
+  Future<void> recordPlay({required String songId}) => RustLib.instance.api
+      .crateApiScannerCLibraryRecordPlay(that: this, songId: songId);
+
+  Future<void> removeSongFromPlaylist({
+    required String playlistId,
+    required String songId,
+  }) => RustLib.instance.api.crateApiScannerCLibraryRemoveSongFromPlaylist(
+    that: this,
+    playlistId: playlistId,
+    songId: songId,
+  );
+
+  Future<void> resetLibrary() =>
+      RustLib.instance.api.crateApiScannerCLibraryResetLibrary(that: this);
+
+  Future<void> savePlaybackState({
+    String? songId,
+    required PlatformInt64 positionMs,
+  }) => RustLib.instance.api.crateApiScannerCLibrarySavePlaybackState(
+    that: this,
+    songId: songId,
+    positionMs: positionMs,
+  );
+
+  /// Recursively scan `path` for audio files and write their metadata into
+  /// SQLite. Files already present (matched by `file_path`) are skipped.
+  Future<void> scanDirectory({required String path, required Config config}) =>
+      RustLib.instance.api.crateApiScannerCLibraryScanDirectory(
+        that: this,
+        path: path,
+        config: config,
+      );
+
+  Future<List<AlbumViewData>> searchAlbums({
+    required String query,
+    required int limit,
+  }) => RustLib.instance.api.crateApiScannerCLibrarySearchAlbums(
+    that: this,
+    query: query,
+    limit: limit,
+  );
+
+  Future<List<ArtistViewData>> searchArtists({
+    required String query,
+    required int limit,
+  }) => RustLib.instance.api.crateApiScannerCLibrarySearchArtists(
+    that: this,
+    query: query,
+    limit: limit,
+  );
+
+  Future<List<PlaylistViewData>> searchPlaylists({
+    required String query,
+    required int limit,
+  }) => RustLib.instance.api.crateApiScannerCLibrarySearchPlaylists(
+    that: this,
+    query: query,
+    limit: limit,
+  );
+
+  Future<List<SongViewData>> searchSongs({
+    required String query,
+    required int limit,
+  }) => RustLib.instance.api.crateApiScannerCLibrarySearchSongs(
+    that: this,
+    query: query,
+    limit: limit,
+  );
+
+  /// Fork an album onto a freshly-created artist row with the same name.
+  /// Returns the new artist's id. Used by the UI to resolve ambiguity when
+  /// the scanner merged two distinct same-named artists into one row.
+  Future<String> splitAlbumToNewArtist({required String albumId}) =>
+      RustLib.instance.api.crateApiScannerCLibrarySplitAlbumToNewArtist(
+        that: this,
+        albumId: albumId,
+      );
 }

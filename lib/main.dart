@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import 'package:clutter/models/music_library.dart';
@@ -8,18 +10,23 @@ import 'package:clutter/ui/views/settings_view.dart';
 import 'package:clutter/ui/views/playlist_view.dart';
 import 'package:clutter/ui/views/mediabar.dart';
 
+import 'package:clutter/src/rust/api/scanner.dart';
 import 'package:clutter/src/rust/frb_generated.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
 
+  final appDir = await getApplicationDocumentsDirectory();
+  final clutterDir = p.join(appDir.path, 'clutter');
+  final dbPath = p.join(clutterDir, 'library.db');
+  final coversDir = p.join(clutterDir, 'covers');
+
+  final library = await CLibrary.init(dbPath: dbPath, coversDir: coversDir);
+
   runApp(
     ChangeNotifierProvider(
-      // probably should add this to assets soon
-      create: (context) => MusicLibrary(
-        "/Users/c/Documents/music-player-projects/clutter/test/Playboi Carti - Whole Lotta Red",
-      ),
+      create: (context) => MusicLibrary(library: library),
       child: const MyApp(),
     ),
   );
@@ -52,7 +59,7 @@ final ThemeData darkTheme = ThemeData(
   ),
   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
     backgroundColor: AppColors.darkBackground,
-    selectedItemColor: AppColors.accentBlue,
+    selectedItemColor: AppColors.accent,
     unselectedItemColor: AppColors.textSecondary,
     elevation: 0,
     type: BottomNavigationBarType.fixed,
@@ -65,7 +72,7 @@ final ThemeData darkTheme = ThemeData(
   colorScheme: const ColorScheme.dark(
     surface: AppColors.darkSurface,
     onSurface: AppColors.textPrimary,
-    primary: AppColors.accentBlue,
+    primary: AppColors.accent,
     onPrimary: Colors.white,
     secondary: AppColors.darkSurfaceSecondary,
     onSecondary: AppColors.textPrimary,
@@ -109,10 +116,10 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    LibraryView(),
-    SearchView(),
-    SettingsView(),
+  static final List<Widget> _widgetOptions = <Widget>[
+    _TabNavigator(child: const LibraryView()),
+    _TabNavigator(child: const SearchView()),
+    _TabNavigator(child: const SettingsView()),
   ];
 
   @override
@@ -134,6 +141,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
           ),
+          const _ToastPill(),
           const MediaBar(),
 
           BottomNavigationBar(
@@ -160,6 +168,67 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Owns a `Navigator` per bottom-nav tab so `Navigator.push` calls from within
+/// a tab (e.g., into `AlbumDetailView`) stack inside the tab's body and leave
+/// the MediaBar + BottomNavigationBar from the root `Scaffold` visible.
+class _TabNavigator extends StatelessWidget {
+  final Widget child;
+  const _TabNavigator({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Navigator(
+      onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => child),
+    );
+  }
+}
+
+/// Small transient message pill rendered just above the MediaBar. Watches
+/// `MusicLibrary.toastMessage`, which clears itself on a 2 s timer.
+class _ToastPill extends StatelessWidget {
+  const _ToastPill();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Consumer<MusicLibrary>(
+      builder: (context, lib, _) {
+        final message = lib.toastMessage;
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: message == null
+              ? const SizedBox(key: ValueKey('toast-empty'), height: 0)
+              : Padding(
+                  key: const ValueKey('toast-visible'),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        border: Border.all(
+                          color: theme.dividerTheme.color ??
+                              Colors.transparent,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        message,
+                        style: const TextStyle(fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ),
+        );
+      },
     );
   }
 }

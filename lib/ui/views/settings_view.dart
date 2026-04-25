@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:clutter/models/music_library.dart';
 import 'package:clutter/ui/views/c_view.dart';
+import 'package:clutter/ui/widgets/confirm_dialog.dart';
 
 class SettingsView extends CView {
   const SettingsView({super.key}) : super(viewTitle: 'settings');
@@ -83,14 +84,50 @@ class _DirectoriesViewState extends State<DirectoriesView> {
                       style: const TextStyle(fontSize: 14),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    trailing: IconButton(
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: "Rescan",
+                          icon: const Icon(Icons.refresh),
+                          onPressed: musicLibrary.isScanning
+                              ? null
+                              : () => musicLibrary.rescanDirectory(dir),
+                        ),
+                        IconButton(
                       icon: const Icon(
                         Icons.delete_outline,
                         color: Colors.redAccent,
                       ),
-                      onPressed: () {
-                        musicLibrary.removeDirectory(dir);
+                      onPressed: () async {
+                        final ok = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text("Remove directory"),
+                            content: Text(
+                              "Remove \"$dir\" from the library? All songs indexed from this path will be removed. Files on disk will not be deleted.",
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(false),
+                                child: const Text("cancel"),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(true),
+                                child: const Text(
+                                  "Remove",
+                                  style: TextStyle(color: Colors.redAccent),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (ok == true) {
+                          await musicLibrary.removeDirectory(dir);
+                        }
                       },
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -98,6 +135,34 @@ class _DirectoriesViewState extends State<DirectoriesView> {
                     const Divider(),
               );
             },
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: Consumer<MusicLibrary>(
+            builder: (context, musicLibrary, _) => ElevatedButton.icon(
+              icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+              label: const Text(
+                "Reset Database",
+                style: TextStyle(color: Colors.redAccent),
+              ),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              onPressed: () async {
+                final ok = await confirmDestructive(
+                  context,
+                  title: "Reset database",
+                  message:
+                      "All songs, albums, playlists, and scan history will be removed from the library. Files on disk will not be deleted.",
+                  actionLabel: "Reset",
+                );
+                if (ok && context.mounted) {
+                  await musicLibrary.resetLibrary();
+                }
+              },
+            ),
           ),
         ),
       ],
