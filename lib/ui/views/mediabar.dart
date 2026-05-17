@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+const double _kControlSize = 40.0;
+
 class MediaBar extends StatefulWidget {
   const MediaBar({super.key});
 
@@ -15,8 +17,10 @@ class MediaBar extends StatefulWidget {
 }
 
 class _MediaBarState extends State<MediaBar> {
-  bool _expanded = false;
   bool _showQueue = false;
+
+  bool get _isDesktop =>
+      Platform.isLinux || Platform.isMacOS || Platform.isWindows;
 
   Widget _coverImg(String? coverPath, double size, {int? cacheSide}) {
     if (coverPath == null) {
@@ -52,42 +56,43 @@ class _MediaBarState extends State<MediaBar> {
       onPressed: () => setState(() => _showQueue = !_showQueue),
       padding: EdgeInsets.zero,
       visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+      constraints: const BoxConstraints(
+        minWidth: _kControlSize,
+        minHeight: _kControlSize,
+      ),
     );
   }
 
-  Widget _playbackControls(MusicLibrary musicLibrary, {required bool compact}) {
-    final skipSize = compact ? 22.0 : 26.0;
-    final playSize = compact ? 24.0 : 30.0;
-    final minH = compact ? 32.0 : 36.0;
-    final minW = compact ? 32.0 : 40.0;
-    final playMinW = compact ? 36.0 : 44.0;
+  Widget _playbackControls(MusicLibrary musicLibrary) {
+    final hasSong = musicLibrary.currentSong != null;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: Icon(Icons.skip_previous, size: skipSize),
-          onPressed: () => musicLibrary.playPrevious(),
+          icon: const Icon(Icons.skip_previous, size: 21),
+          onPressed: musicLibrary.canPlayPrevious
+              ? () => musicLibrary.playPrevious()
+              : null,
           padding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,
-          constraints: BoxConstraints(minWidth: minW, minHeight: minH),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 29),
         ),
         IconButton(
           icon: Icon(
             musicLibrary.isPlaying ? Icons.pause : Icons.play_arrow,
-            size: playSize,
+            size: 24,
           ),
-          onPressed: () => musicLibrary.togglePlay(),
+          onPressed: hasSong ? () => musicLibrary.togglePlay() : null,
           padding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,
-          constraints: BoxConstraints(minWidth: playMinW, minHeight: minH),
+          constraints: const BoxConstraints(minWidth: 35, minHeight: 29),
         ),
         IconButton(
-          icon: Icon(Icons.skip_next, size: skipSize),
-          onPressed: () => musicLibrary.playNext(),
+          icon: const Icon(Icons.skip_next, size: 21),
+          onPressed: hasSong ? () => musicLibrary.playNext() : null,
           padding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,
-          constraints: BoxConstraints(minWidth: minW, minHeight: minH),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 29),
         ),
       ],
     );
@@ -139,97 +144,94 @@ class _MediaBarState extends State<MediaBar> {
     );
   }
 
-  Widget _collapsedInfoColumn(MusicLibrary musicLibrary, SongViewData? current) {
-    final theme = Theme.of(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          current?.title ?? "nothing playing",
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: current == null
-                ? Colors.grey
-                : theme.colorScheme.onSurface,
-          ),
-        ),
-        if (current != null)
-          Text(
-            musicLibrary.artistsDisplay(current),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 11,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-        _sliderRow(musicLibrary, 10),
-      ],
-    );
+  double _coverSizeFor(double width) {
+    if (width < 360) return 32;
+    if (width < 600) return 36;
+    if (width < 900) return 40;
+    return 44;
   }
 
-  Widget _buildCollapsed(MusicLibrary musicLibrary, SongViewData? current) {
+  Widget _buildBar(MusicLibrary musicLibrary, SongViewData? current) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onLongPressStart: current == null
           ? null
           : (d) => showSongContextMenu(
-                context,
-                globalPosition: d.globalPosition,
-                song: current,
-                musicLibrary: musicLibrary,
-              ),
+              context,
+              globalPosition: d.globalPosition,
+              song: current,
+              musicLibrary: musicLibrary,
+            ),
       onSecondaryTapDown: current == null
           ? null
           : (d) => showSongContextMenu(
-                context,
-                globalPosition: d.globalPosition,
-                song: current,
-                musicLibrary: musicLibrary,
-              ),
-      child: InkWell(
-        onTap: current == null ? null : () => setState(() => _expanded = true),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-          child: LayoutBuilder(
+              context,
+              globalPosition: d.globalPosition,
+              song: current,
+              musicLibrary: musicLibrary,
+            ),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: theme.dividerColor, width: 1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: LayoutBuilder(
           builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 600;
-            if (isWide) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
+            final coverSize = _coverSizeFor(constraints.maxWidth);
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _coverImg(current?.coverPath, coverSize),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Balance the queue toggle (40px) on the right so the
-                      // info column is truly centered within the bar.
-                      const SizedBox(width: 40),
-                      Expanded(
-                        child: _collapsedInfoColumn(musicLibrary, current),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              current?.title ?? "nothing playing",
+                              textAlign: TextAlign.left,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: current == null
+                                    ? Colors.grey
+                                    : theme.colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                          _playbackControls(musicLibrary),
+                          const Expanded(child: SizedBox()),
+                        ],
                       ),
-                      _queueToggle(),
+                      if (current != null)
+                        Text(
+                          musicLibrary.artistsDisplay(current),
+                          textAlign: TextAlign.left,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
+                        ),
+                      _sliderRow(musicLibrary, 11),
                     ],
                   ),
-                  Align(
-                    alignment: Alignment.center,
-                    child: _playbackControls(musicLibrary, compact: false),
-                  ),
-                ],
-              );
-            }
-            // Compact controls row: skip(32) + play(36) + skip(32) = 100px.
-            // Balance that on the left so the info column stays centered.
-            return Row(
-              children: [
-                const SizedBox(width: 100),
-                Expanded(child: _collapsedInfoColumn(musicLibrary, current)),
+                ),
                 Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    _playbackControls(musicLibrary, compact: true),
+                    if (_isDesktop) _VolumeControl(musicLibrary: musicLibrary),
                     _queueToggle(),
                   ],
                 ),
@@ -237,89 +239,6 @@ class _MediaBarState extends State<MediaBar> {
             );
           },
         ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExpanded(MusicLibrary musicLibrary, SongViewData? current) {
-    final theme = Theme.of(context);
-    return GestureDetector(
-      onLongPressStart: current == null
-          ? null
-          : (d) => showSongContextMenu(
-                context,
-                globalPosition: d.globalPosition,
-                song: current,
-                musicLibrary: musicLibrary,
-              ),
-      onSecondaryTapDown: current == null
-          ? null
-          : (d) => showSongContextMenu(
-                context,
-                globalPosition: d.globalPosition,
-                song: current,
-                musicLibrary: musicLibrary,
-              ),
-      child: InkWell(
-        onTap: () => setState(() => _expanded = false),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            _coverImg(current?.coverPath, 56),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    current?.title ?? "nothing playing",
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (current != null)
-                    Text(
-                      musicLibrary.artistsDisplay(current),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.6,
-                        ),
-                      ),
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _sliderRow(musicLibrary, 11),
-                  ),
-                  Align(
-                    alignment: Alignment.center,
-                    child: _playbackControls(musicLibrary, compact: false),
-                  ),
-                ],
-              ),
-            ),
-            // Match cover (56) + spacer (10) = 66px on the left so the
-            // info column is truly centered.
-            SizedBox(
-              width: 66,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: _queueToggle(),
-              ),
-            ),
-          ],
-        ),
-      ),
       ),
     );
   }
@@ -332,14 +251,7 @@ class _MediaBarState extends State<MediaBar> {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AnimatedSize(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              alignment: Alignment.bottomCenter,
-              child: _expanded
-                  ? _buildExpanded(musicLibrary, current)
-                  : _buildCollapsed(musicLibrary, current),
-            ),
+            _buildBar(musicLibrary, current),
             if (_showQueue)
               _QueuePanel(
                 musicLibrary: musicLibrary,
@@ -348,6 +260,80 @@ class _MediaBarState extends State<MediaBar> {
           ],
         );
       },
+    );
+  }
+}
+
+class _VolumeControl extends StatefulWidget {
+  final MusicLibrary musicLibrary;
+
+  const _VolumeControl({required this.musicLibrary});
+
+  @override
+  State<_VolumeControl> createState() => _VolumeControlState();
+}
+
+class _VolumeControlState extends State<_VolumeControl> {
+  bool _hovered = false;
+
+  IconData _volumeIconFor(double v) {
+    if (v <= 0.0) return Icons.volume_off;
+    if (v < 0.5) return Icons.volume_down;
+    return Icons.volume_up;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final musicLibrary = widget.musicLibrary;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            width: _hovered ? 110 : 0,
+            height: _kControlSize,
+            child: ClipRect(
+              child: OverflowBox(
+                alignment: Alignment.centerRight,
+                minWidth: 110,
+                maxWidth: 110,
+                minHeight: _kControlSize,
+                maxHeight: _kControlSize,
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 2,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 6,
+                    ),
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 10,
+                    ),
+                  ),
+                  child: Slider(
+                    value: musicLibrary.volume,
+                    onChanged: (v) => musicLibrary.setVolume(v),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(_volumeIconFor(musicLibrary.volume)),
+            tooltip: "Volume",
+            onPressed: () {},
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(
+              minWidth: _kControlSize,
+              minHeight: _kControlSize,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

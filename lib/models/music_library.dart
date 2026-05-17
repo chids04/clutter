@@ -49,6 +49,7 @@ class MusicLibrary extends ChangeNotifier {
   final List<StreamSubscription> _subs = [];
   Duration? _duration;
   Duration? _position;
+  double _volume = 1.0;
 
   // When non-null, a pending saved playback position that hasn't been loaded
   // into the audio player yet. Set by hydrate() on app relaunch; consumed on
@@ -77,9 +78,12 @@ class MusicLibrary extends ChangeNotifier {
   SongViewData? get currentSong => _currentSong;
   Duration? get playerDuration => _duration;
   Duration? get playerPosition => _position;
+  double get volume => _volume;
   String? get toastMessage => _toastMessage;
 
   bool isLiked(String songId) => _likedSongIds.contains(songId);
+  bool get canPlayPrevious =>
+      _currentSong != null || _history.isNotEmpty;
 
   /// Combines `primaryArtist` and any features into a single display string.
   String artistsDisplay(SongViewData song) {
@@ -377,10 +381,11 @@ class MusicLibrary extends ChangeNotifier {
   }
 
   Future<void> _stopPlayback() async {
-    await _player.stop();
+    await _player.release();
     _currentSong = null;
     _isPlaying = false;
     _position = null;
+    _duration = null;
     _savedPositionMs = null;
     try {
       await library.savePlaybackState(songId: null, positionMs: 0);
@@ -427,6 +432,7 @@ class MusicLibrary extends ChangeNotifier {
 
   /// Advance to the next queued song. Stops playback if the queue is empty.
   Future<void> playNext() async {
+    if (_currentSong == null) return;
     if (_queue.isEmpty) {
       await _stopPlayback();
       notifyListeners();
@@ -439,6 +445,11 @@ class MusicLibrary extends ChangeNotifier {
   /// If less than 3 s into the current song, go back one in history. Otherwise
   /// restart the current song.
   Future<void> playPrevious() async {
+    if (_currentSong == null) {
+      if (_history.isEmpty) return;
+      await _playNow(_history.removeLast());
+      return;
+    }
     final pos = _position?.inSeconds ?? 0;
     if (pos >= 3 || _history.isEmpty) {
       // Cold-start from saved state: slider resets without touching the player.
@@ -497,6 +508,7 @@ class MusicLibrary extends ChangeNotifier {
   }
 
   void pause() {
+    if (_currentSong == null) return;
     _player.pause();
     _isPlaying = false;
     notifyListeners();
@@ -512,7 +524,16 @@ class MusicLibrary extends ChangeNotifier {
     _ensureStateTimer();
   }
 
+  Future<void> setVolume(double v) async {
+    final clamped = v.clamp(0.0, 1.0);
+    if (clamped == _volume) return;
+    _volume = clamped;
+    await _player.setVolume(clamped);
+    notifyListeners();
+  }
+
   void setPlayerPosition(double value) {
+    if (_currentSong == null) return;
     final newPos = Duration(milliseconds: value.toInt());
     // User scrubbed while we're still in restored-but-not-yet-played state:
     // update the pending seek target without touching the (empty) player.
@@ -594,7 +615,6 @@ class MusicLibrary extends ChangeNotifier {
           await _playNow(_queue.removeAt(0));
         } else {
           await _stopPlayback();
-          _position = const Duration(milliseconds: 0);
           notifyListeners();
         }
       }),

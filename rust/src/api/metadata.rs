@@ -3,7 +3,9 @@ use std::path::Path;
 use flutter_rust_bridge::frb;
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
-use symphonia::core::meta::{MetadataOptions, StandardTagKey, StandardVisualKey, Tag, Value, Visual};
+use symphonia::core::meta::{
+    MetadataOptions, StandardTagKey, StandardVisualKey, Tag, Value, Visual,
+};
 use symphonia::core::probe::Hint;
 
 pub const MISSING_ARTIST: &str = "Unknown Artist";
@@ -267,17 +269,9 @@ mod tests {
                 .unwrap_or_else(|e| panic!("failed to read {:?}: {}", path, e));
 
             assert!(meta.title.is_some(), "missing title: {:?}", path);
-            assert!(
-                meta.leading_artist.is_some(),
-                "missing artist: {:?}",
-                path
-            );
+            assert!(meta.leading_artist.is_some(), "missing artist: {:?}", path);
             assert!(meta.album.is_some(), "missing album: {:?}", path);
-            assert!(
-                meta.track_num.is_some(),
-                "missing track number: {:?}",
-                path
-            );
+            assert!(meta.track_num.is_some(), "missing track number: {:?}", path);
             count += 1;
         }
         assert_eq!(count, 24, "expected 24 mp3s in the test fixture");
