@@ -82,8 +82,7 @@ class MusicLibrary extends ChangeNotifier {
   String? get toastMessage => _toastMessage;
 
   bool isLiked(String songId) => _likedSongIds.contains(songId);
-  bool get canPlayPrevious =>
-      _currentSong != null || _history.isNotEmpty;
+  bool get canPlayPrevious => _currentSong != null || _history.isNotEmpty;
 
   /// Combines `primaryArtist` and any features into a single display string.
   String artistsDisplay(SongViewData song) {
