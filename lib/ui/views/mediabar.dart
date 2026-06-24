@@ -1,11 +1,12 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 
 import 'package:clutter/models/music_library.dart';
 import 'package:clutter/src/rust/api/scanner.dart';
 import 'package:clutter/ui/widgets/song_context_menu.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:clutter/services/cover_img_loader.dart';
 
 const double _kControlSize = 40.0;
 
@@ -21,25 +22,6 @@ class _MediaBarState extends State<MediaBar> {
 
   bool get _isDesktop =>
       Platform.isLinux || Platform.isMacOS || Platform.isWindows;
-
-  Widget _coverImg(String? coverPath, double size, {int? cacheSide}) {
-    if (coverPath == null) {
-      return SvgPicture.asset(
-        "assets/note.svg",
-        width: size,
-        height: size,
-        colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
-      );
-    }
-    final cache = cacheSide ?? (size * 3).toInt();
-    return Image.file(
-      File(coverPath),
-      width: size,
-      height: size,
-      cacheWidth: cache,
-      cacheHeight: cache,
-    );
-  }
 
   String _formatDuration(Duration? duration) {
     if (duration == null) return "";
@@ -115,8 +97,8 @@ class _MediaBarState extends State<MediaBar> {
         value: value,
         max: max <= 0 ? 1.0 : max,
         onChanged: max <= 0 ? null : (v) => musicLibrary.setPlayerPosition(v),
-        onChangeStart: max <= 0 ? null : (_) => musicLibrary.pause(),
-        onChangeEnd: max <= 0 ? null : (_) => musicLibrary.resume(),
+        onChangeStart: max <= 0 ? null : (_) => musicLibrary.startScrub(),
+        onChangeEnd: max <= 0 ? null : (_) => musicLibrary.endScrub(),
       ),
     );
   }
@@ -182,7 +164,7 @@ class _MediaBarState extends State<MediaBar> {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _coverImg(current?.coverPath, coverSize),
+                coverImg(current?.coverPath, coverSize),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -232,6 +214,7 @@ class _MediaBarState extends State<MediaBar> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (_isDesktop) _VolumeControl(musicLibrary: musicLibrary),
+                    _LoopButton(musicLibrary: musicLibrary),
                     _queueToggle(),
                   ],
                 ),
@@ -255,7 +238,7 @@ class _MediaBarState extends State<MediaBar> {
             if (_showQueue)
               _QueuePanel(
                 musicLibrary: musicLibrary,
-                buildCover: (path) => _coverImg(path, 36, cacheSide: 108),
+                buildCover: (path) => coverImg(path, 36, cacheSize: 108),
               ),
           ],
         );
@@ -333,6 +316,32 @@ class _VolumeControlState extends State<_VolumeControl> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LoopButton extends StatelessWidget {
+  final MusicLibrary musicLibrary;
+
+  const _LoopButton({required this.musicLibrary});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final active = musicLibrary.loopOne;
+    return IconButton(
+      icon: Icon(active ? Icons.repeat_one : Icons.repeat, size: 21),
+      tooltip: active ? "Disable loop" : "Loop current track",
+      color: active ? theme.colorScheme.primary : null,
+      onPressed: musicLibrary.currentSong == null
+          ? null
+          : () => musicLibrary.toggleLoopOne(),
+      padding: EdgeInsets.zero,
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints(
+        minWidth: _kControlSize,
+        minHeight: _kControlSize,
       ),
     );
   }

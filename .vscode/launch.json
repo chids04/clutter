@@ -7,13 +7,11 @@
       "request": "launch",
       "program": "lib/main.dart"
     },
-    {
-      "name": "C/C++ Runner: Debug Session",
-      "type": "lldb",
-      "request": "launch",
-      "args": [],
-      "cwd": "/Users/c/Documents/music-player-projects/clutter/rust_builder/macos/Classes",
-      "program": "/Users/c/Documents/music-player-projects/clutter/rust_builder/macos/Classes/build/Debug/outDebug"
+     {
+      "name": "Flutter Demon (TCP)",
+      "type": "pwa-node",
+      "request": "attach",
+      "debugServer": 52732
     }
   ]
 }

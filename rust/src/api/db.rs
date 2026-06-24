@@ -56,6 +56,17 @@ pub struct PlaylistRow {
 pub struct PlaybackStateRow {
     pub song: SongRow,
     pub position_ms: i64,
+    pub loop_one: bool,
+}
+
+/// A pinned item in the quick-play sidebar. `kind` is one of
+/// `song`, `album`, or `playlist`.
+#[frb(ignore)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PinnedItemRow {
+    pub item_id: String,
+    pub kind: String,
+    pub position: i64,
 }
 
 /// Flattened artist row. Maps to `ArtistViewData` on the UI side.
@@ -77,12 +88,20 @@ pub(crate) const LIKED_SONGS_NAME: &str = "Liked Songs";
 pub struct Store {
     pub conn: Mutex<Connection>,
     covers_dir: PathBuf,
+    /// Base directory that every stored path is relativized against. On iOS the
+    /// app's sandbox container path (and thus the documents dir) carries a UUID
+    /// that rotates on every relaunch/reinstall, so absolute paths persisted in
+    /// the DB go stale. We store paths relative to this base and rebuild the
+    /// absolute path on read against the *current* base. Paths outside the base
+    /// (e.g. a desktop music folder) are stored/returned absolute unchanged.
+    base_dir: PathBuf,
 }
 
 impl Store {
     /// Open (or create) the SQLite database at `db_path` and ensure the covers
-    /// directory exists.
-    pub fn open(db_path: &str, covers_dir: &str) -> Result<Store, String> {
+    /// directory exists. `base_dir` is the directory all stored paths are made
+    /// relative to (see [`Store::base_dir`]).
+    pub fn open(db_path: &str, covers_dir: &str, base_dir: &str) -> Result<Store, String> {
         let covers_dir_buf = PathBuf::from(covers_dir);
         fs::create_dir_all(&covers_dir_buf).map_err(|e| format!("create covers dir: {e}"))?;
 
@@ -98,12 +117,51 @@ impl Store {
         conn.execute_batch(include_str!("schema.sql"))
             .map_err(|e| format!("init schema: {e}"))?;
 
+        // Idempotent migration: add loop_one column to playback_state for
+        // databases created before this column existed.
+        //
+        let _ = conn.execute(
+            "ALTER TABLE playback_state ADD COLUMN loop_one INTEGER NOT NULL DEFAULT 0",
+            [],
+        );
+
         ensure_liked_songs_playlist(&conn).map_err(|e| format!("seed liked songs: {e}"))?;
 
         Ok(Store {
             conn: Mutex::new(conn),
             covers_dir: covers_dir_buf,
+            base_dir: PathBuf::from(base_dir),
         })
+    }
+
+    /// Convert an absolute path to one relative to `base_dir` for storage. If
+    /// `abs` is not under `base_dir` (e.g. a desktop music folder outside the
+    /// app sandbox), it is returned absolute unchanged.
+    fn to_rel(&self, abs: &Path) -> String {
+        relativize(abs, &self.base_dir)
+    }
+
+    /// Rebuild an absolute path from a stored value. Already-absolute stored
+    /// values are returned unchanged; relative ones are joined onto the current
+    /// `base_dir`.
+    fn to_abs(&self, stored: &str) -> String {
+        absolutize(stored, &self.base_dir)
+    }
+
+    fn abs_song(&self, mut row: SongRow) -> SongRow {
+        row.file_path = self.to_abs(&row.file_path);
+        row.cover_path = row.cover_path.map(|c| self.to_abs(&c));
+        row
+    }
+
+    fn abs_album(&self, mut row: AlbumRow) -> AlbumRow {
+        row.cover_path = row.cover_path.map(|c| self.to_abs(&c));
+        row
+    }
+
+    fn abs_artist(&self, mut row: ArtistRow) -> ArtistRow {
+        row.cover_path = row.cover_path.map(|c| self.to_abs(&c));
+        row
     }
 
     pub fn get_total_songs(&self) -> u32 {
@@ -127,10 +185,14 @@ impl Store {
                 return Vec::new();
             }
         };
-        query_songs(&conn, SongFilter::Page { offset, limit }).unwrap_or_else(|e| {
-            warn!("query paginated failed: {e}");
-            Vec::new()
-        })
+        query_songs(&conn, SongFilter::Page { offset, limit })
+            .unwrap_or_else(|e| {
+                warn!("query paginated failed: {e}");
+                Vec::new()
+            })
+            .into_iter()
+            .map(|r| self.abs_song(r))
+            .collect()
     }
 
     pub fn get_song_by_id(&self, id: &str) -> Option<SongRow> {
@@ -138,6 +200,7 @@ impl Store {
         query_songs(&conn, SongFilter::ById(id.to_string()))
             .ok()
             .and_then(|mut v| v.pop())
+            .map(|r| self.abs_song(r))
     }
 
     /// Insert a song with its pre-parsed artists. `leading_artist` is the
@@ -156,6 +219,7 @@ impl Store {
         insert_song(
             &conn,
             &self.covers_dir,
+            &self.base_dir,
             file_path,
             meta,
             leading_artist,
@@ -186,10 +250,14 @@ impl Store {
                 return Vec::new();
             }
         };
-        query_albums(&conn, offset, limit).unwrap_or_else(|e| {
-            warn!("query albums failed: {e}");
-            Vec::new()
-        })
+        query_albums(&conn, offset, limit)
+            .unwrap_or_else(|e| {
+                warn!("query albums failed: {e}");
+                Vec::new()
+            })
+            .into_iter()
+            .map(|r| self.abs_album(r))
+            .collect()
     }
 
     pub fn get_songs_by_album_id(&self, album_id: &str) -> Vec<SongRow> {
@@ -200,10 +268,14 @@ impl Store {
                 return Vec::new();
             }
         };
-        query_songs(&conn, SongFilter::ByAlbumId(album_id.to_string())).unwrap_or_else(|e| {
-            warn!("query songs by album failed: {e}");
-            Vec::new()
-        })
+        query_songs(&conn, SongFilter::ByAlbumId(album_id.to_string()))
+            .unwrap_or_else(|e| {
+                warn!("query songs by album failed: {e}");
+                Vec::new()
+            })
+            .into_iter()
+            .map(|r| self.abs_song(r))
+            .collect()
     }
 
     pub fn get_total_playlists(&self) -> u32 {
@@ -241,10 +313,14 @@ impl Store {
                 return Vec::new();
             }
         };
-        query_songs(&conn, SongFilter::ByPlaylistId(playlist_id.to_string())).unwrap_or_else(|e| {
-            warn!("query songs in playlist failed: {e}");
-            Vec::new()
-        })
+        query_songs(&conn, SongFilter::ByPlaylistId(playlist_id.to_string()))
+            .unwrap_or_else(|e| {
+                warn!("query songs in playlist failed: {e}");
+                Vec::new()
+            })
+            .into_iter()
+            .map(|r| self.abs_song(r))
+            .collect()
     }
 
     pub fn get_liked_song_ids(&self) -> Vec<String> {
@@ -392,6 +468,9 @@ impl Store {
             warn!("search songs failed: {e}");
             Vec::new()
         })
+        .into_iter()
+        .map(|r| self.abs_song(r))
+        .collect()
     }
 
     pub fn search_albums(&self, query: &str, limit: u32) -> Vec<AlbumRow> {
@@ -402,10 +481,14 @@ impl Store {
                 return Vec::new();
             }
         };
-        search_albums(&conn, query, limit).unwrap_or_else(|e| {
-            warn!("search albums failed: {e}");
-            Vec::new()
-        })
+        search_albums(&conn, query, limit)
+            .unwrap_or_else(|e| {
+                warn!("search albums failed: {e}");
+                Vec::new()
+            })
+            .into_iter()
+            .map(|r| self.abs_album(r))
+            .collect()
     }
 
     pub fn get_total_artists(&self) -> u32 {
@@ -429,10 +512,14 @@ impl Store {
                 return Vec::new();
             }
         };
-        query_artists(&conn, ArtistFilter::Page { offset, limit }).unwrap_or_else(|e| {
-            warn!("query artists failed: {e}");
-            Vec::new()
-        })
+        query_artists(&conn, ArtistFilter::Page { offset, limit })
+            .unwrap_or_else(|e| {
+                warn!("query artists failed: {e}");
+                Vec::new()
+            })
+            .into_iter()
+            .map(|r| self.abs_artist(r))
+            .collect()
     }
 
     pub fn search_artists(&self, query: &str, limit: u32) -> Vec<ArtistRow> {
@@ -454,6 +541,9 @@ impl Store {
             warn!("search artists failed: {e}");
             Vec::new()
         })
+        .into_iter()
+        .map(|r| self.abs_artist(r))
+        .collect()
     }
 
     pub fn get_artist_by_id(&self, id: &str) -> Option<ArtistRow> {
@@ -461,6 +551,7 @@ impl Store {
         query_artists(&conn, ArtistFilter::ById(id.to_string()))
             .ok()
             .and_then(|mut v| v.pop())
+            .map(|r| self.abs_artist(r))
     }
 
     pub fn get_albums_by_artist_id(&self, artist_id: &str) -> Vec<AlbumRow> {
@@ -471,10 +562,14 @@ impl Store {
                 return Vec::new();
             }
         };
-        query_albums_by_artist(&conn, artist_id, false).unwrap_or_else(|e| {
-            warn!("albums by artist failed: {e}");
-            Vec::new()
-        })
+        query_albums_by_artist(&conn, artist_id, false)
+            .unwrap_or_else(|e| {
+                warn!("albums by artist failed: {e}");
+                Vec::new()
+            })
+            .into_iter()
+            .map(|r| self.abs_album(r))
+            .collect()
     }
 
     pub fn get_albums_artist_featured_on(&self, artist_id: &str) -> Vec<AlbumRow> {
@@ -485,10 +580,14 @@ impl Store {
                 return Vec::new();
             }
         };
-        query_albums_by_artist(&conn, artist_id, true).unwrap_or_else(|e| {
-            warn!("albums featured on failed: {e}");
-            Vec::new()
-        })
+        query_albums_by_artist(&conn, artist_id, true)
+            .unwrap_or_else(|e| {
+                warn!("albums featured on failed: {e}");
+                Vec::new()
+            })
+            .into_iter()
+            .map(|r| self.abs_album(r))
+            .collect()
     }
 
     pub fn get_songs_artist_featured_on(&self, artist_id: &str) -> Vec<SongRow> {
@@ -499,12 +598,14 @@ impl Store {
                 return Vec::new();
             }
         };
-        query_songs(&conn, SongFilter::FeaturedByArtistId(artist_id.to_string())).unwrap_or_else(
-            |e| {
+        query_songs(&conn, SongFilter::FeaturedByArtistId(artist_id.to_string()))
+            .unwrap_or_else(|e| {
                 warn!("songs featured on failed: {e}");
                 Vec::new()
-            },
-        )
+            })
+            .into_iter()
+            .map(|r| self.abs_song(r))
+            .collect()
     }
 
     pub fn search_playlists(&self, query: &str, limit: u32) -> Vec<PlaylistRow> {
@@ -588,7 +689,7 @@ impl Store {
             return Err("song not found".into());
         }
         if let Some(aid) = album_id {
-            cleanup_orphan_album(&tx, &aid)?;
+            cleanup_orphan_album(&tx, &self.base_dir, &aid)?;
         }
         tx.commit().map_err(|e| format!("commit: {e}"))?;
         Ok(())
@@ -610,12 +711,9 @@ impl Store {
         if exists.is_none() {
             return Err("album not found".into());
         }
-        tx.execute(
-            "DELETE FROM songs WHERE album_id = ?1",
-            params![album_id],
-        )
-        .map_err(|e| format!("delete album songs: {e}"))?;
-        remove_album_row(&tx, album_id)?;
+        tx.execute("DELETE FROM songs WHERE album_id = ?1", params![album_id])
+            .map_err(|e| format!("delete album songs: {e}"))?;
+        remove_album_row(&tx, &self.base_dir, album_id)?;
         tx.commit().map_err(|e| format!("commit: {e}"))?;
         Ok(())
     }
@@ -625,6 +723,11 @@ impl Store {
     pub fn delete_scan_path(&self, path: &str) -> Result<u32, String> {
         let mut conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
         let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
+        // `file_path` and `scan_paths.path` are stored relative to `base_dir`;
+        // the incoming `path` is the absolute dir from the picker, so match
+        // against its relativized form.
+        let path = self.to_rel(Path::new(path));
+        let path = path.as_str();
         let prefix = format!("{}/%", path.trim_end_matches('/'));
         let affected_albums: Vec<String> = {
             let mut stmt = tx
@@ -645,7 +748,7 @@ impl Store {
             )
             .map_err(|e| format!("delete songs by path: {e}"))?;
         for aid in &affected_albums {
-            cleanup_orphan_album(&tx, aid)?;
+            cleanup_orphan_album(&tx, &self.base_dir, aid)?;
         }
         tx.execute("DELETE FROM scan_paths WHERE path = ?1", params![path])
             .map_err(|e| format!("delete scan path: {e}"))?;
@@ -656,9 +759,10 @@ impl Store {
     pub fn add_scan_path(&self, path: &str) -> Result<(), String> {
         let conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
         let now = now_secs();
+        let rel = self.to_rel(Path::new(path));
         conn.execute(
             "INSERT OR IGNORE INTO scan_paths (path, added_at) VALUES (?1, ?2)",
-            params![path, now],
+            params![rel, now],
         )
         .map_err(|e| format!("insert scan path: {e}"))?;
         Ok(())
@@ -686,7 +790,9 @@ impl Store {
                 return Vec::new();
             }
         };
-        rows.filter_map(|r| r.ok()).collect()
+        rows.filter_map(|r| r.ok())
+            .map(|p| self.to_abs(&p))
+            .collect()
     }
 
     pub fn record_play(&self, song_id: &str) -> Result<(), String> {
@@ -709,27 +815,34 @@ impl Store {
                 return Vec::new();
             }
         };
-        query_songs(&conn, SongFilter::RecentlyPlayed { limit }).unwrap_or_else(|e| {
-            warn!("query recently played failed: {e}");
-            Vec::new()
-        })
+        query_songs(&conn, SongFilter::RecentlyPlayed { limit })
+            .unwrap_or_else(|e| {
+                warn!("query recently played failed: {e}");
+                Vec::new()
+            })
+            .into_iter()
+            .map(|r| self.abs_song(r))
+            .collect()
     }
 
     pub fn save_playback_state(
         &self,
         song_id: Option<&str>,
         position_ms: i64,
+        loop_one: bool,
     ) -> Result<(), String> {
         let conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
         let now = now_secs();
+        let loop_flag: i64 = if loop_one { 1 } else { 0 };
         conn.execute(
-            "INSERT INTO playback_state (id, song_id, position_ms, updated_at) \
-             VALUES (1, ?1, ?2, ?3) \
+            "INSERT INTO playback_state (id, song_id, position_ms, loop_one, updated_at) \
+             VALUES (1, ?1, ?2, ?3, ?4) \
              ON CONFLICT(id) DO UPDATE SET \
                  song_id = excluded.song_id, \
                  position_ms = excluded.position_ms, \
+                 loop_one = excluded.loop_one, \
                  updated_at = excluded.updated_at",
-            params![song_id, position_ms, now],
+            params![song_id, position_ms, loop_flag, now],
         )
         .map_err(|e| format!("save playback state: {e}"))?;
         Ok(())
@@ -737,19 +850,133 @@ impl Store {
 
     pub fn load_playback_state(&self) -> Option<PlaybackStateRow> {
         let conn = self.conn.lock().ok()?;
-        let (song_id, position_ms): (Option<String>, i64) = conn
+        let (song_id, position_ms, loop_flag): (Option<String>, i64, i64) = conn
             .query_row(
-                "SELECT song_id, position_ms FROM playback_state WHERE id = 1",
+                "SELECT song_id, position_ms, loop_one FROM playback_state WHERE id = 1",
                 [],
-                |r| Ok((r.get(0)?, r.get(1)?)),
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
             )
             .optional()
             .ok()
             .flatten()?;
         let song_id = song_id?;
         let mut rows = query_songs(&conn, SongFilter::ById(song_id)).ok()?;
-        let song = rows.pop()?;
-        Some(PlaybackStateRow { song, position_ms })
+        let song = self.abs_song(rows.pop()?);
+        Some(PlaybackStateRow {
+            song,
+            position_ms,
+            loop_one: loop_flag != 0,
+        })
+    }
+
+    pub fn pin_item(&self, item_id: &str, kind: &str) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
+        let now = now_secs();
+        let next_pos: i64 = conn
+            .query_row(
+                "SELECT COALESCE(MAX(position), 0) + 1 FROM pinned_items",
+                [],
+                |r| r.get(0),
+            )
+            .map_err(|e| format!("next pin position: {e}"))?;
+        conn.execute(
+            "INSERT OR REPLACE INTO pinned_items (item_id, kind, position, pinned_at) \
+             VALUES (?1, ?2, ?3, ?4)",
+            params![item_id, kind, next_pos, now],
+        )
+        .map_err(|e| format!("pin item: {e}"))?;
+        Ok(())
+    }
+
+    pub fn unpin_item(&self, item_id: &str, kind: &str) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
+        conn.execute(
+            "DELETE FROM pinned_items WHERE item_id = ?1 AND kind = ?2",
+            params![item_id, kind],
+        )
+        .map_err(|e| format!("unpin item: {e}"))?;
+        Ok(())
+    }
+
+    pub fn get_pinned_items(&self) -> Vec<PinnedItemRow> {
+        let conn = match self.conn.lock() {
+            Ok(c) => c,
+            Err(e) => {
+                warn!("get_pinned_items: lock poisoned: {e}");
+                return Vec::new();
+            }
+        };
+        let mut stmt = match conn.prepare(
+            "SELECT item_id, kind, position FROM pinned_items ORDER BY position, pinned_at DESC",
+        ) {
+            Ok(s) => s,
+            Err(e) => {
+                warn!("prepare pinned items: {e}");
+                return Vec::new();
+            }
+        };
+        let rows = match stmt.query_map([], |r| {
+            Ok(PinnedItemRow {
+                item_id: r.get(0)?,
+                kind: r.get(1)?,
+                position: r.get(2)?,
+            })
+        }) {
+            Ok(r) => r,
+            Err(e) => {
+                warn!("query pinned items: {e}");
+                return Vec::new();
+            }
+        };
+        rows.filter_map(|r| r.ok()).collect()
+    }
+
+    pub fn move_pinned_item(
+        &self,
+        item_id: &str,
+        kind: &str,
+        new_index: usize,
+    ) -> Result<(), String> {
+        let mut conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
+        let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
+
+        let mut items: Vec<(String, String, i64)> = {
+            let mut stmt = tx
+                .prepare("SELECT item_id, kind, position FROM pinned_items ORDER BY position, pinned_at DESC")
+                .map_err(|e| format!("prepare: {e}"))?;
+            let rows = stmt
+                .query_map([], |r| {
+                    Ok((
+                        r.get::<_, String>(0)?,
+                        r.get::<_, String>(1)?,
+                        r.get::<_, i64>(2)?,
+                    ))
+                })
+                .map_err(|e| format!("query: {e}"))?;
+            rows.filter_map(|r| r.ok()).collect()
+        };
+
+        let current_pos = items
+            .iter()
+            .position(|(id, k, _)| id == item_id && k == kind)
+            .ok_or_else(|| "pinned item not found".to_string())?;
+        if new_index >= items.len() {
+            return Err("new index out of bounds".to_string());
+        }
+
+        let item = items.remove(current_pos);
+        items.insert(new_index, item);
+
+        for (i, (id, k, _)) in items.iter().enumerate() {
+            tx.execute(
+                "UPDATE pinned_items SET position = ?1 WHERE item_id = ?2 AND kind = ?3",
+                params![i as i64, id, k],
+            )
+            .map_err(|e| format!("update position: {e}"))?;
+        }
+
+        tx.commit().map_err(|e| format!("commit: {e}"))?;
+        Ok(())
     }
 
     pub fn reset_library(&self) -> Result<(), String> {
@@ -767,6 +994,8 @@ impl Store {
             .map_err(|e| format!("delete scan_paths: {e}"))?;
         tx.execute("DELETE FROM playback_state", [])
             .map_err(|e| format!("delete playback_state: {e}"))?;
+        tx.execute("DELETE FROM pinned_items", [])
+            .map_err(|e| format!("delete pinned_items: {e}"))?;
         ensure_liked_songs_playlist(&tx).map_err(|e| format!("reseed liked songs: {e}"))?;
         tx.commit().map_err(|e| format!("commit: {e}"))?;
         // Nuke the entire covers directory and recreate it — clears all cover
@@ -780,7 +1009,11 @@ impl Store {
 /// Drop an album row if it no longer has any songs. Also unlinks the cover
 /// file from disk. Called inside `delete_song` / `delete_album` /
 /// `delete_scan_path` transactions.
-fn cleanup_orphan_album(tx: &rusqlite::Transaction, album_id: &str) -> Result<(), String> {
+fn cleanup_orphan_album(
+    tx: &rusqlite::Transaction,
+    base_dir: &Path,
+    album_id: &str,
+) -> Result<(), String> {
     let remaining: i64 = tx
         .query_row(
             "SELECT COUNT(*) FROM songs WHERE album_id = ?1",
@@ -791,10 +1024,14 @@ fn cleanup_orphan_album(tx: &rusqlite::Transaction, album_id: &str) -> Result<()
     if remaining > 0 {
         return Ok(());
     }
-    remove_album_row(tx, album_id)
+    remove_album_row(tx, base_dir, album_id)
 }
 
-fn remove_album_row(tx: &rusqlite::Transaction, album_id: &str) -> Result<(), String> {
+fn remove_album_row(
+    tx: &rusqlite::Transaction,
+    base_dir: &Path,
+    album_id: &str,
+) -> Result<(), String> {
     let cover: Option<String> = tx
         .query_row(
             "SELECT cover_path FROM albums WHERE id = ?1",
@@ -807,6 +1044,8 @@ fn remove_album_row(tx: &rusqlite::Transaction, album_id: &str) -> Result<(), St
     tx.execute("DELETE FROM albums WHERE id = ?1", params![album_id])
         .map_err(|e| format!("delete album: {e}"))?;
     if let Some(path) = cover {
+        // Stored relative; resolve against the current base before unlinking.
+        let path = absolutize(&path, base_dir);
         if let Err(e) = fs::remove_file(&path) {
             if e.kind() != std::io::ErrorKind::NotFound {
                 warn!("failed to remove cover {path}: {e}");
@@ -997,6 +1236,27 @@ fn like_escape(q: &str) -> String {
         .replace('_', "\\_")
 }
 
+/// Make `abs` relative to `base` for storage. Stored relative paths always use
+/// `/` separators so a library is portable across platforms. If `abs` is not
+/// under `base`, it is returned absolute unchanged.
+fn relativize(abs: &Path, base: &Path) -> String {
+    match abs.strip_prefix(base) {
+        Ok(rel) => rel.to_string_lossy().replace('\\', "/"),
+        Err(_) => abs.to_string_lossy().to_string(),
+    }
+}
+
+/// Inverse of [`relativize`]. Already-absolute stored values pass through; a
+/// relative value is joined onto the current `base`.
+fn absolutize(stored: &str, base: &Path) -> String {
+    let p = Path::new(stored);
+    if p.is_absolute() {
+        stored.to_string()
+    } else {
+        base.join(p).to_string_lossy().to_string()
+    }
+}
+
 fn ensure_liked_songs_playlist(conn: &Connection) -> rusqlite::Result<String> {
     if let Some(id) = conn
         .query_row(
@@ -1048,9 +1308,7 @@ fn query_artists(conn: &Connection, filter: ArtistFilter) -> rusqlite::Result<Ve
 
     match filter {
         ArtistFilter::Page { offset, limit } => {
-            let sql = format!(
-                "{base} ORDER BY a.name COLLATE NOCASE LIMIT ?1 OFFSET ?2"
-            );
+            let sql = format!("{base} ORDER BY a.name COLLATE NOCASE LIMIT ?1 OFFSET ?2");
             let mut stmt = conn.prepare(&sql)?;
             let rows = stmt.query_map(params![limit as i64, offset as i64], map)?;
             rows.collect()
@@ -1159,9 +1417,11 @@ fn map_song_row(row: &rusqlite::Row) -> rusqlite::Result<SongRow> {
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn insert_song(
     conn: &Connection,
     covers_dir: &Path,
+    base_dir: &Path,
     file_path: &Path,
     meta: RawMetadata,
     leading_artist: &str,
@@ -1172,7 +1432,7 @@ fn insert_song(
     let album_name = meta.album.unwrap_or_else(|| MISSING_ALBUM.to_string());
     let track_num = meta.track_num.unwrap_or(1);
     let disc_num = meta.disc_num.unwrap_or(1);
-    let file_path_str = file_path.to_string_lossy().to_string();
+    let file_path_str = relativize(file_path, base_dir);
 
     let existing: Option<String> = conn
         .query_row(
@@ -1201,7 +1461,7 @@ fn insert_song(
     let album_id = ensure_album(conn, &album_name, &album_artist_id)?;
 
     if let Some(cover) = meta.cover {
-        write_cover_if_missing(conn, covers_dir, &album_id, &cover)?;
+        write_cover_if_missing(conn, covers_dir, base_dir, &album_id, &cover)?;
     }
 
     let song_id = Uuid::new_v4().to_string();
@@ -1274,6 +1534,7 @@ fn ensure_album(conn: &Connection, title: &str, artist_id: &str) -> rusqlite::Re
 fn write_cover_if_missing(
     conn: &Connection,
     covers_dir: &Path,
+    base_dir: &Path,
     album_id: &str,
     cover: &RawCover,
 ) -> rusqlite::Result<()> {
@@ -1296,7 +1557,7 @@ fn write_cover_if_missing(
     }
     conn.execute(
         "UPDATE albums SET cover_path = ?1 WHERE id = ?2",
-        params![cover_file.to_string_lossy().to_string(), album_id],
+        params![relativize(&cover_file, base_dir), album_id],
     )?;
     Ok(())
 }
@@ -1320,8 +1581,12 @@ mod tests {
         let tmp = TempDir::new().expect("tempdir");
         let db_path = tmp.path().join("library.db");
         let covers_dir = tmp.path().join("covers");
-        let store = Store::open(&db_path.to_string_lossy(), &covers_dir.to_string_lossy())
-            .expect("open store");
+        let store = Store::open(
+            &db_path.to_string_lossy(),
+            &covers_dir.to_string_lossy(),
+            &tmp.path().to_string_lossy(),
+        )
+        .expect("open store");
         (store, tmp)
     }
 
@@ -1723,5 +1988,85 @@ mod tests {
                 .unwrap();
         }
         assert!(store.get_songs_in_playlist(&pid).is_empty());
+    }
+
+    #[test]
+    fn pin_item_roundtrip() {
+        let (store, _tmp) = new_store();
+        insert_basic_song(&store, "/tmp/pin.mp3", "Pinned", "Album", "Artist", &[]);
+        let song_id: String = {
+            let conn = store.conn.lock().unwrap();
+            conn.query_row("SELECT id FROM songs LIMIT 1", [], |r| r.get(0))
+                .unwrap()
+        };
+
+        assert!(store.get_pinned_items().is_empty());
+
+        store.pin_item(&song_id, "song").expect("pin song");
+        let pins = store.get_pinned_items();
+        assert_eq!(pins.len(), 1);
+        assert_eq!(pins[0].item_id, song_id);
+        assert_eq!(pins[0].kind, "song");
+
+        // Re-pinning the same item updates rather than duplicates.
+        store.pin_item(&song_id, "song").expect("re-pin song");
+        assert_eq!(store.get_pinned_items().len(), 1);
+
+        store.unpin_item(&song_id, "song").expect("unpin song");
+        assert!(store.get_pinned_items().is_empty());
+    }
+
+    #[test]
+    fn move_pinned_item_reorders() {
+        let (store, _tmp) = new_store();
+        insert_basic_song(&store, "/tmp/a.mp3", "A", "Album", "Artist", &[]);
+        insert_basic_song(&store, "/tmp/b.mp3", "B", "Album", "Artist", &[]);
+        insert_basic_song(&store, "/tmp/c.mp3", "C", "Album", "Artist", &[]);
+
+        let conn = store.conn.lock().unwrap();
+        let ids: Vec<String> = conn
+            .prepare("SELECT id FROM songs ORDER BY title")
+            .unwrap()
+            .query_map([], |r| r.get::<_, String>(0))
+            .unwrap()
+            .filter_map(|r| r.ok())
+            .collect();
+        drop(conn);
+
+        for id in &ids {
+            store.pin_item(id, "song").expect("pin");
+        }
+
+        // Initial order: a, b, c
+        assert_eq!(
+            store
+                .get_pinned_items()
+                .iter()
+                .map(|p| &p.item_id)
+                .collect::<Vec<_>>(),
+            vec![&ids[0], &ids[1], &ids[2]]
+        );
+
+        // Move last to first.
+        store.move_pinned_item(&ids[2], "song", 0).expect("move");
+        assert_eq!(
+            store
+                .get_pinned_items()
+                .iter()
+                .map(|p| &p.item_id)
+                .collect::<Vec<_>>(),
+            vec![&ids[2], &ids[0], &ids[1]]
+        );
+
+        // Move first to second.
+        store.move_pinned_item(&ids[2], "song", 1).expect("move");
+        assert_eq!(
+            store
+                .get_pinned_items()
+                .iter()
+                .map(|p| &p.item_id)
+                .collect::<Vec<_>>(),
+            vec![&ids[0], &ids[2], &ids[1]]
+        );
     }
 }

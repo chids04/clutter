@@ -190,6 +190,33 @@ class PlaylistDetailView extends StatelessWidget {
           ),
         ),
         actions: [
+          Consumer<MusicLibrary>(
+            builder: (context, lib, _) {
+              final pinned = lib.isPinned(
+                id: playlist.id,
+                kind: QuickPlayKind.playlist,
+              );
+              return IconButton(
+                tooltip: pinned ? "Unpin from quick play" : "Pin to quick play",
+                icon: Icon(
+                  pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                ),
+                onPressed: () async {
+                  if (pinned) {
+                    await lib.unpinItem(
+                      id: playlist.id,
+                      kind: QuickPlayKind.playlist,
+                    );
+                  } else {
+                    await lib.pinItem(
+                      id: playlist.id,
+                      kind: QuickPlayKind.playlist,
+                    );
+                  }
+                },
+              );
+            },
+          ),
           if (!playlist.isSystem)
             IconButton(
               icon: const Icon(Icons.delete_outline),

@@ -72,11 +72,22 @@ CREATE TABLE IF NOT EXISTS recently_played (
 
 CREATE INDEX IF NOT EXISTS recently_played_time ON recently_played(played_at DESC);
 
+CREATE TABLE IF NOT EXISTS pinned_items (
+    item_id   TEXT NOT NULL,
+    kind      TEXT NOT NULL CHECK (kind IN ('song', 'album', 'playlist')),
+    position  INTEGER NOT NULL DEFAULT 0,
+    pinned_at INTEGER NOT NULL,
+    PRIMARY KEY (item_id, kind)
+);
+
+CREATE INDEX IF NOT EXISTS pinned_items_position ON pinned_items(position, pinned_at DESC);
+
 -- Singleton (id must be 1) so the MediaBar can restore on relaunch.
 CREATE TABLE IF NOT EXISTS playback_state (
     id          INTEGER PRIMARY KEY CHECK (id = 1),
     song_id     TEXT,
     position_ms INTEGER NOT NULL DEFAULT 0,
+    loop_one    INTEGER NOT NULL DEFAULT 0,
     updated_at  INTEGER NOT NULL,
     FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE SET NULL
 );

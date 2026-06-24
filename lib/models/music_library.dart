@@ -1,26 +1,32 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:audioplayers/audioplayers.dart';
 
+import 'package:clutter/services/audio_handler.dart';
 import 'package:clutter/utils/log.dart';
 import 'package:clutter/src/rust/api/scanner.dart';
 
+enum QuickPlayKind { song, album, playlist }
+
 /// Thin Dart-side state container. Storage and metadata extraction all live
-/// on the Rust side; this class owns the audio player, the scan lifecycle,
-/// a cached paginated view over the SQLite-backed library, and the
-/// now-playing queue + history.
+/// on the Rust side; this class owns the scan lifecycle, a cached paginated
+/// view over the SQLite-backed library, and the now-playing queue + history.
+/// Audio playback itself is delegated to the platform audio service via
+/// [ClutterAudioHandler].
 class MusicLibrary extends ChangeNotifier {
-  MusicLibrary({required this.library}) {
-    _initPlaybackEvents();
+  MusicLibrary({required this.library, required ClutterAudioHandler handler})
+    : _handler = handler {
+    _initHandlerEvents();
     _refreshTotal();
     unawaited(hydrate());
   }
 
   final CLibrary library;
+  final ClutterAudioHandler _handler;
 
   final List<String> _directories = [];
   final Set<String> _directorySet = {};
@@ -36,19 +42,24 @@ class MusicLibrary extends ChangeNotifier {
   Set<String> _likedSongIds = <String>{};
   bool _isScanning = false;
   bool _isPlaying = false;
+  bool _isFinished = false;
   SongViewData? _currentSong;
+
+  // quick-play sidebar pins
+  List<PinnedItemData> _pinnedItems = [];
 
   // toast pill state (shown above MediaBar)
   String? _toastMessage;
   Timer? _toastTimer;
 
   // audio player state
-  final AudioPlayer _player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
   final List<SongViewData> _queue = [];
   final List<SongViewData> _history = [];
   final List<StreamSubscription> _subs = [];
   Duration? _duration;
   Duration? _position;
+  bool _isScrubbing = false;
+  bool _loopOne = false;
   double _volume = 1.0;
 
   // When non-null, a pending saved playback position that hasn't been loaded
@@ -75,11 +86,16 @@ class MusicLibrary extends ChangeNotifier {
   int get totalArtists => _totalArtists;
   bool get isScanning => _isScanning;
   bool get isPlaying => _isPlaying;
+  bool get isScrubbing => _isScrubbing;
+  bool get isFinished => _isFinished;
+  bool get loopOne => _loopOne;
   SongViewData? get currentSong => _currentSong;
   Duration? get playerDuration => _duration;
   Duration? get playerPosition => _position;
   double get volume => _volume;
   String? get toastMessage => _toastMessage;
+  UnmodifiableListView<PinnedItemData> get pinnedItems =>
+      UnmodifiableListView(_pinnedItems);
 
   bool isLiked(String songId) => _likedSongIds.contains(songId);
   bool get canPlayPrevious => _currentSong != null || _history.isNotEmpty;
@@ -110,8 +126,20 @@ class MusicLibrary extends ChangeNotifier {
       _currentSong = saved.song;
       _savedPositionMs = saved.positionMs;
       _position = Duration(milliseconds: saved.positionMs);
+      _loopOne = saved.loopOne;
     }
+    await _reloadPins();
     await _reloadSongs();
+  }
+
+  Future<void> _reloadPins() async {
+    try {
+      _pinnedItems = await library.getPinnedItems();
+    } catch (e) {
+      Log.e("reload pins failed", e);
+      _pinnedItems = [];
+    }
+    notifyListeners();
   }
 
   Future<void> _reloadSongs() async {
@@ -152,6 +180,67 @@ class MusicLibrary extends ChangeNotifier {
     final ids = await library.getLikedSongIds();
     _likedSongIds = ids.toSet();
     notifyListeners();
+  }
+
+  static String _kindString(QuickPlayKind kind) {
+    return switch (kind) {
+      QuickPlayKind.song => 'song',
+      QuickPlayKind.album => 'album',
+      QuickPlayKind.playlist => 'playlist',
+    };
+  }
+
+  bool isPinned({required String id, required QuickPlayKind kind}) {
+    final k = _kindString(kind);
+    return _pinnedItems.any((p) => p.itemId == id && p.kind == k);
+  }
+
+  Future<void> pinItem({
+    required String id,
+    required QuickPlayKind kind,
+  }) async {
+    final k = _kindString(kind);
+    try {
+      await library.pinItem(itemId: id, kind: k);
+      await _reloadPins();
+    } catch (e) {
+      Log.e("pin item $id ($k)", e);
+    }
+  }
+
+  Future<void> unpinItem({
+    required String id,
+    required QuickPlayKind kind,
+  }) async {
+    final k = _kindString(kind);
+    try {
+      await library.unpinItem(itemId: id, kind: k);
+      await _reloadPins();
+    } catch (e) {
+      Log.e("unpin item $id ($k)", e);
+    }
+  }
+
+  Future<void> movePinnedItem(int from, int to) async {
+    final pins = List<PinnedItemData>.from(_pinnedItems);
+    if (from < 0 || from >= pins.length || to < 0 || to >= pins.length) {
+      return;
+    }
+    final item = pins.removeAt(from);
+    pins.insert(to, item);
+    _pinnedItems = pins;
+    notifyListeners();
+    try {
+      await library.movePinnedItem(
+        itemId: item.itemId,
+        kind: item.kind,
+        newIndex: to,
+      );
+      await _reloadPins();
+    } catch (e) {
+      Log.e("move pinned item $from -> $to", e);
+      await _reloadPins();
+    }
   }
 
   /// Fetch all songs for a single album, ordered by disc/track. Live query —
@@ -380,14 +469,18 @@ class MusicLibrary extends ChangeNotifier {
   }
 
   Future<void> _stopPlayback() async {
-    await _player.release();
+    await _handler.stop();
     _currentSong = null;
     _isPlaying = false;
     _position = null;
     _duration = null;
     _savedPositionMs = null;
     try {
-      await library.savePlaybackState(songId: null, positionMs: 0);
+      await library.savePlaybackState(
+        songId: null,
+        positionMs: 0,
+        loopOne: _loopOne,
+      );
     } catch (e) {
       Log.e("clear playback state", e);
     }
@@ -403,8 +496,10 @@ class MusicLibrary extends ChangeNotifier {
   Future<void> _playNow(SongViewData song) async {
     _currentSong = song;
     _isPlaying = true;
+    _isFinished = false;
     _savedPositionMs = null;
-    await _player.play(DeviceFileSource(song.filePath));
+    await _handler.loadAndPlay(song);
+    await _handler.setLoopOne(_loopOne);
     notifyListeners();
     unawaited(_recordPlay(song.id));
     unawaited(_saveState());
@@ -429,22 +524,44 @@ class MusicLibrary extends ChangeNotifier {
     await _playNow(song);
   }
 
-  /// Advance to the next queued song. Stops playback if the queue is empty.
+  Future<void> playSongsFromStart(List<SongViewData> songs) async {
+    if (songs.isEmpty) return;
+    if (_currentSong != null) _history.add(_currentSong!);
+    _queue.clear();
+    _queue.addAll(songs.skip(1));
+    await _playNow(songs.first);
+  }
+
+  /// Advance to the next queued song. If the queue is empty, mark the current
+  /// song as finished but keep the audio-service session alive so headset
+  /// controls remain available.
   Future<void> playNext() async {
     if (_currentSong == null) return;
+
     if (_queue.isEmpty) {
-      await _stopPlayback();
+      _isPlaying = false;
+      _isFinished = true;
+
+      _handler.seek(_duration ?? Duration(microseconds: 0));
       notifyListeners();
+      unawaited(_saveState());
       return;
     }
+
     if (_currentSong != null) _history.add(_currentSong!);
     await _playNow(_queue.removeAt(0));
   }
 
+  void loopSong() {
+    if (_currentSong == null) return;
+    _isPlaying = true;
+  }
+
   /// If less than 3 s into the current song, go back one in history. Otherwise
-  /// restart the current song.
+  /// restart the current song. When the current song has finished naturally,
+  /// always go back to history.
   Future<void> playPrevious() async {
-    if (_currentSong == null) {
+    if (_currentSong == null || _isFinished) {
       if (_history.isEmpty) return;
       await _playNow(_history.removeLast());
       return;
@@ -459,9 +576,10 @@ class MusicLibrary extends ChangeNotifier {
         unawaited(_saveState());
         return;
       }
-      await _player.seek(Duration.zero);
+      await _handler.seek(Duration.zero);
+      _position = Duration.zero;
       if (!_isPlaying) {
-        await _player.resume();
+        await _handler.play();
         _isPlaying = true;
       }
       notifyListeners();
@@ -474,7 +592,7 @@ class MusicLibrary extends ChangeNotifier {
 
   Future<void> togglePlay() async {
     if (_isPlaying) {
-      await _player.pause();
+      await _handler.pause();
       _isPlaying = false;
       notifyListeners();
       unawaited(_saveState());
@@ -487,7 +605,8 @@ class MusicLibrary extends ChangeNotifier {
       final startPos = Duration(milliseconds: _savedPositionMs!);
       _savedPositionMs = null;
       _isPlaying = true;
-      await _player.play(DeviceFileSource(song.filePath), position: startPos);
+      await _handler.loadAndPlay(song, startPosition: startPos);
+      await _handler.setLoopOne(_loopOne);
       notifyListeners();
       unawaited(_recordPlay(song.id));
       unawaited(_saveState());
@@ -499,7 +618,20 @@ class MusicLibrary extends ChangeNotifier {
       return;
     }
 
-    await _player.resume();
+    if (_isFinished) {
+      final song = _currentSong!;
+      _isFinished = false;
+      _isPlaying = true;
+      await _handler.loadAndPlay(song, startPosition: Duration.zero);
+      await _handler.setLoopOne(_loopOne);
+      notifyListeners();
+      unawaited(_recordPlay(song.id));
+      unawaited(_saveState());
+      _ensureStateTimer();
+      return;
+    }
+
+    await _handler.play();
     _isPlaying = true;
     notifyListeners();
     unawaited(_saveState());
@@ -508,7 +640,7 @@ class MusicLibrary extends ChangeNotifier {
 
   void pause() {
     if (_currentSong == null) return;
-    _player.pause();
+    _handler.pause();
     _isPlaying = false;
     notifyListeners();
     unawaited(_saveState());
@@ -516,7 +648,7 @@ class MusicLibrary extends ChangeNotifier {
 
   void resume() {
     if (_currentSong == null) return;
-    _player.resume();
+    _handler.play();
     _isPlaying = true;
     notifyListeners();
     unawaited(_saveState());
@@ -527,27 +659,56 @@ class MusicLibrary extends ChangeNotifier {
     final clamped = v.clamp(0.0, 1.0);
     if (clamped == _volume) return;
     _volume = clamped;
-    await _player.setVolume(clamped);
+    await _handler.setVolume(clamped);
     notifyListeners();
+  }
+
+  Future<void> toggleLoopOne() async {
+    _loopOne = !_loopOne;
+    await _handler.setLoopOne(_loopOne);
+    notifyListeners();
+    unawaited(_saveState());
   }
 
   void setPlayerPosition(double value) {
     if (_currentSong == null) return;
     final newPos = Duration(milliseconds: value.toInt());
-    // User scrubbed while we're still in restored-but-not-yet-played state:
-    // update the pending seek target without touching the (empty) player.
     if (_savedPositionMs != null) {
       _savedPositionMs = newPos.inMilliseconds;
-      _position = newPos;
-      notifyListeners();
-      unawaited(_saveState());
+    }
+    _position = newPos;
+    notifyListeners();
+  }
+
+  /// Called when the user begins dragging the position slider. Pauses playback
+  /// and suppresses AudioService.position updates until [endScrub] so the thumb
+  /// does not snap back to stale positions.
+  void startScrub() {
+    if (_currentSong == null) return;
+    _isScrubbing = true;
+    _handler.pause();
+    _isPlaying = false;
+    notifyListeners();
+    unawaited(_saveState());
+  }
+
+  /// Called when the user releases the position slider. Commits the seek and
+  /// resumes playback.
+  void endScrub() {
+    if (_currentSong == null) {
+      _isScrubbing = false;
       return;
     }
-    _player.seek(newPos).then((_) {
-      _position = newPos;
-      notifyListeners();
+    _isScrubbing = false;
+    if (_savedPositionMs == null && _position != null) {
+      _handler.seek(_position!).then((_) => unawaited(_saveState()));
+    } else {
       unawaited(_saveState());
-    });
+    }
+    _handler.play();
+    _isPlaying = true;
+    notifyListeners();
+    _ensureStateTimer();
   }
 
   Future<void> _saveState() async {
@@ -555,6 +716,7 @@ class MusicLibrary extends ChangeNotifier {
       await library.savePlaybackState(
         songId: _currentSong?.id,
         positionMs: _savedPositionMs ?? _position?.inMilliseconds ?? 0,
+        loopOne: _loopOne,
       );
     } catch (e) {
       Log.e("save playback state", e);
@@ -606,27 +768,34 @@ class MusicLibrary extends ChangeNotifier {
     }
   }
 
-  void _initPlaybackEvents() {
+  void _initHandlerEvents() {
+    _handler
+      ..onSkipToNext = playNext
+      ..onSkipToPrevious = playPrevious;
+
     _subs.add(
-      _player.onPlayerComplete.listen((_) async {
-        if (_currentSong != null) _history.add(_currentSong!);
-        if (_queue.isNotEmpty) {
-          await _playNow(_queue.removeAt(0));
-        } else {
-          await _stopPlayback();
+      _handler.playbackState.listen((state) {
+        _isPlaying = state.playing;
+        if (state.processingState == AudioProcessingState.completed! &&
+            _loopOne) {
+          _isFinished = true;
+        }
+        notifyListeners();
+      }),
+    );
+    _subs.add(
+      _handler.mediaItem.listen((item) {
+        final duration = item?.duration;
+        if (duration != null && duration > Duration.zero) {
+          _duration = duration;
           notifyListeners();
         }
       }),
     );
     _subs.add(
-      _player.onDurationChanged.listen((Duration d) {
-        _duration = d;
-        notifyListeners();
-      }),
-    );
-    _subs.add(
-      _player.onPositionChanged.listen((Duration d) {
-        _position = d;
+      AudioService.position.listen((position) {
+        if (_isScrubbing) return;
+        _position = position;
         notifyListeners();
       }),
     );
@@ -642,7 +811,7 @@ class MusicLibrary extends ChangeNotifier {
     // Best-effort final flush. `dispose()` isn't guaranteed to run on a hard
     // kill — the 5 s periodic timer covers that case.
     unawaited(_saveState());
-    _player.dispose();
+    // The handler lifecycle is managed by AudioService; do not dispose it here.
     super.dispose();
   }
 }

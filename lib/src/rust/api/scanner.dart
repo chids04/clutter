@@ -6,7 +6,7 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CLibrary>>
 abstract class CLibrary implements RustOpaqueInterface {
@@ -49,6 +49,8 @@ abstract class CLibrary implements RustOpaqueInterface {
 
   Future<String?> getLikedSongsPlaylistId();
 
+  Future<List<PinnedItemData>> getPinnedItems();
+
   Future<List<PlaylistViewData>> getPlaylistsPaginated({
     required int offset,
     required int limit,
@@ -86,12 +88,22 @@ abstract class CLibrary implements RustOpaqueInterface {
   static Future<CLibrary> init({
     required String dbPath,
     required String coversDir,
+    required String baseDir,
   }) => RustLib.instance.api.crateApiScannerCLibraryInit(
     dbPath: dbPath,
     coversDir: coversDir,
+    baseDir: baseDir,
   );
 
   Future<PlaybackStateData?> loadPlaybackState();
+
+  Future<void> movePinnedItem({
+    required String itemId,
+    required String kind,
+    required int newIndex,
+  });
+
+  Future<void> pinItem({required String itemId, required String kind});
 
   Future<void> recordPlay({required String songId});
 
@@ -105,6 +117,7 @@ abstract class CLibrary implements RustOpaqueInterface {
   Future<void> savePlaybackState({
     String? songId,
     required PlatformInt64 positionMs,
+    required bool loopOne,
   });
 
   /// Recursively scan `path` for audio files and write their metadata into
@@ -135,6 +148,8 @@ abstract class CLibrary implements RustOpaqueInterface {
   /// Returns the new artist's id. Used by the UI to resolve ambiguity when
   /// the scanner merged two distinct same-named artists into one row.
   Future<String> splitAlbumToNewArtist({required String albumId});
+
+  Future<void> unpinItem({required String itemId, required String kind});
 }
 
 /// UI-ready album shape. `artist` is the resolved album-artist name.
@@ -226,15 +241,45 @@ class Config {
           isDeezer == other.isDeezer;
 }
 
+/// UI-ready pinned item for the quick-play sidebar.
+class PinnedItemData {
+  final String itemId;
+  final String kind;
+  final PlatformInt64 position;
+
+  const PinnedItemData({
+    required this.itemId,
+    required this.kind,
+    required this.position,
+  });
+
+  @override
+  int get hashCode => itemId.hashCode ^ kind.hashCode ^ position.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PinnedItemData &&
+          runtimeType == other.runtimeType &&
+          itemId == other.itemId &&
+          kind == other.kind &&
+          position == other.position;
+}
+
 /// UI-ready playback state used to resume the MediaBar on relaunch.
 class PlaybackStateData {
   final SongViewData song;
   final PlatformInt64 positionMs;
+  final bool loopOne;
 
-  const PlaybackStateData({required this.song, required this.positionMs});
+  const PlaybackStateData({
+    required this.song,
+    required this.positionMs,
+    required this.loopOne,
+  });
 
   @override
-  int get hashCode => song.hashCode ^ positionMs.hashCode;
+  int get hashCode => song.hashCode ^ positionMs.hashCode ^ loopOne.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -242,7 +287,8 @@ class PlaybackStateData {
       other is PlaybackStateData &&
           runtimeType == other.runtimeType &&
           song == other.song &&
-          positionMs == other.positionMs;
+          positionMs == other.positionMs &&
+          loopOne == other.loopOne;
 }
 
 /// UI-ready playlist shape.

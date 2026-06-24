@@ -22,7 +22,7 @@ stack_trace_max_frames = 3
 icons = "nerd_fonts"
 
 [devtools]
-auto_open = false
+auto_open = true
 browser = ""                          # Empty = system default
 default_panel = "inspector"           # "inspector", "performance", or "network"
 performance_refresh_ms = 2000         # Memory polling interval (min 500ms)

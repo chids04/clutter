@@ -48,6 +48,7 @@ Future<void> showSongContextMenu(
 }) async {
   final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
   final liked = musicLibrary.isLiked(song.id);
+  final pinned = musicLibrary.isPinned(id: song.id, kind: QuickPlayKind.song);
   final v = await showMenu<String>(
     context: context,
     position: RelativeRect.fromLTRB(
@@ -64,6 +65,19 @@ Future<void> showSongContextMenu(
             Icon(Icons.playlist_add, size: 18),
             SizedBox(width: 8),
             Text("Add to queue"),
+          ],
+        ),
+      ),
+      PopupMenuItem<String>(
+        value: 'toggle_pin',
+        child: Row(
+          children: [
+            Icon(
+              pinned ? Icons.push_pin : Icons.push_pin_outlined,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Text(pinned ? "Unpin from quick play" : "Pin to quick play"),
           ],
         ),
       ),
@@ -120,6 +134,12 @@ Future<void> showSongContextMenu(
 
   if (v == 'queue') {
     musicLibrary.queueSong(song);
+  } else if (v == 'toggle_pin') {
+    if (pinned) {
+      await musicLibrary.unpinItem(id: song.id, kind: QuickPlayKind.song);
+    } else {
+      await musicLibrary.pinItem(id: song.id, kind: QuickPlayKind.song);
+    }
   } else if (v == 'toggle_like') {
     musicLibrary.toggleLiked(song);
   } else if (v == 'add_to_playlist') {

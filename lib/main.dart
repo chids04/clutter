@@ -9,6 +9,8 @@ import 'package:clutter/ui/views/library_view.dart';
 import 'package:clutter/ui/views/settings_view.dart';
 import 'package:clutter/ui/views/playlist_view.dart';
 import 'package:clutter/ui/views/mediabar.dart';
+import 'package:clutter/ui/views/quick_play_sidebar.dart';
+import 'package:clutter/services/audio_service_helper.dart';
 
 import 'package:clutter/src/rust/api/scanner.dart';
 import 'package:clutter/src/rust/frb_generated.dart';
@@ -17,16 +19,22 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
 
+  final audioHandler = await initAudioService();
+
   final appDir = await getApplicationDocumentsDirectory();
   final clutterDir = p.join(appDir.path, 'clutter');
   final dbPath = p.join(clutterDir, 'library.db');
   final coversDir = p.join(clutterDir, 'covers');
 
-  final library = await CLibrary.init(dbPath: dbPath, coversDir: coversDir);
+  final library = await CLibrary.init(
+    dbPath: dbPath,
+    coversDir: coversDir,
+    baseDir: appDir.path,
+  );
 
   runApp(
     ChangeNotifierProvider(
-      create: (context) => MusicLibrary(library: library),
+      create: (context) => MusicLibrary(library: library, handler: audioHandler),
       child: const MyApp(),
     ),
   );
@@ -125,7 +133,9 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _widgetOptions),
+      body: QuickPlaySidebar(
+        child: IndexedStack(index: _selectedIndex, children: _widgetOptions),
+      ),
 
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,

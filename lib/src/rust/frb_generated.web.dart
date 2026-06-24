@@ -82,6 +82,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<ArtistViewData> dco_decode_list_artist_view_data(dynamic raw);
 
   @protected
+  List<PinnedItemData> dco_decode_list_pinned_item_data(dynamic raw);
+
+  @protected
   List<PlaylistViewData> dco_decode_list_playlist_view_data(dynamic raw);
 
   @protected
@@ -103,6 +106,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   SongViewData? dco_decode_opt_box_autoadd_song_view_data(dynamic raw);
+
+  @protected
+  PinnedItemData dco_decode_pinned_item_data(dynamic raw);
 
   @protected
   PlaybackStateData dco_decode_playback_state_data(dynamic raw);
@@ -193,6 +199,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<PinnedItemData> sse_decode_list_pinned_item_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<PlaylistViewData> sse_decode_list_playlist_view_data(
     SseDeserializer deserializer,
   );
@@ -222,6 +233,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SongViewData? sse_decode_opt_box_autoadd_song_view_data(
     SseDeserializer deserializer,
   );
+
+  @protected
+  PinnedItemData sse_decode_pinned_item_data(SseDeserializer deserializer);
 
   @protected
   PlaybackStateData sse_decode_playback_state_data(
@@ -328,6 +342,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_pinned_item_data(
+    List<PinnedItemData> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_playlist_view_data(
     List<PlaylistViewData> self,
     SseSerializer serializer,
@@ -363,6 +383,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_song_view_data(
     SongViewData? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pinned_item_data(
+    PinnedItemData self,
     SseSerializer serializer,
   );
 

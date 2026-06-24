@@ -2,7 +2,7 @@ use flutter_rust_bridge::frb;
 use log::{info, warn};
 use walkdir::WalkDir;
 
-use super::db::{AlbumRow, ArtistRow, PlaybackStateRow, PlaylistRow, SongRow, Store};
+use super::db::{AlbumRow, ArtistRow, PinnedItemRow, PlaybackStateRow, PlaylistRow, SongRow, Store};
 use super::metadata::{extract_raw_metadata, parse_artist_string, MISSING_ARTIST};
 
 const SUPPORTED_EXTENSIONS: &[&str] = &["mp3", "flac", "m4a", "mp4", "ogg", "opus", "wav"];
@@ -113,6 +113,7 @@ impl From<ArtistRow> for ArtistViewData {
 pub struct PlaybackStateData {
     pub song: SongViewData,
     pub position_ms: i64,
+    pub loop_one: bool,
 }
 
 impl From<PlaybackStateRow> for PlaybackStateData {
@@ -120,6 +121,25 @@ impl From<PlaybackStateRow> for PlaybackStateData {
         PlaybackStateData {
             song: row.song.into(),
             position_ms: row.position_ms,
+            loop_one: row.loop_one,
+        }
+    }
+}
+
+/// UI-ready pinned item for the quick-play sidebar.
+#[derive(Debug, Clone)]
+pub struct PinnedItemData {
+    pub item_id: String,
+    pub kind: String,
+    pub position: i64,
+}
+
+impl From<PinnedItemRow> for PinnedItemData {
+    fn from(row: PinnedItemRow) -> Self {
+        PinnedItemData {
+            item_id: row.item_id,
+            kind: row.kind,
+            position: row.position,
         }
     }
 }
@@ -132,9 +152,13 @@ pub struct CLibrary {
 impl CLibrary {
     /// Open (or create) the SQLite database at `db_path` and ensure the covers
     /// directory exists. Must be called once from Dart before any other method.
-    pub fn init(db_path: String, covers_dir: String) -> Result<CLibrary, String> {
-        let store = Store::open(&db_path, &covers_dir)?;
-        info!("CLibrary initialised at {db_path} (covers: {covers_dir})");
+    pub fn init(
+        db_path: String,
+        covers_dir: String,
+        base_dir: String,
+    ) -> Result<CLibrary, String> {
+        let store = Store::open(&db_path, &covers_dir, &base_dir)?;
+        info!("CLibrary initialised at {db_path} (covers: {covers_dir}, base: {base_dir})");
         Ok(CLibrary { store })
     }
 
@@ -408,13 +432,40 @@ impl CLibrary {
         &self,
         song_id: Option<String>,
         position_ms: i64,
+        loop_one: bool,
     ) -> Result<(), String> {
         self.store
-            .save_playback_state(song_id.as_deref(), position_ms)
+            .save_playback_state(song_id.as_deref(), position_ms, loop_one)
     }
 
     pub fn load_playback_state(&self) -> Option<PlaybackStateData> {
         self.store.load_playback_state().map(PlaybackStateData::from)
+    }
+
+    pub fn pin_item(&self, item_id: String, kind: String) -> Result<(), String> {
+        self.store.pin_item(&item_id, &kind)
+    }
+
+    pub fn unpin_item(&self, item_id: String, kind: String) -> Result<(), String> {
+        self.store.unpin_item(&item_id, &kind)
+    }
+
+    pub fn get_pinned_items(&self) -> Vec<PinnedItemData> {
+        self.store
+            .get_pinned_items()
+            .into_iter()
+            .map(PinnedItemData::from)
+            .collect()
+    }
+
+    pub fn move_pinned_item(
+        &self,
+        item_id: String,
+        kind: String,
+        new_index: u32,
+    ) -> Result<(), String> {
+        self.store
+            .move_pinned_item(&item_id, &kind, new_index as usize)
     }
 
     pub fn reset_library(&self) -> Result<(), String> {
@@ -435,6 +486,19 @@ mod tests {
             .join("Playboi Carti - Whole Lotta Red")
     }
 
+    fn copy_dir_all(src: &Path, dst: &Path) {
+        std::fs::create_dir_all(dst).expect("create dst");
+        for entry in std::fs::read_dir(src).expect("read src") {
+            let entry = entry.expect("entry");
+            let to = dst.join(entry.file_name());
+            if entry.file_type().expect("file type").is_dir() {
+                copy_dir_all(&entry.path(), &to);
+            } else {
+                std::fs::copy(entry.path(), &to).expect("copy file");
+            }
+        }
+    }
+
     fn new_library() -> (CLibrary, TempDir) {
         let tmp = TempDir::new().expect("tempdir");
         let db_path = tmp.path().join("library.db");
@@ -442,6 +506,7 @@ mod tests {
         let lib = CLibrary::init(
             db_path.to_string_lossy().to_string(),
             covers_dir.to_string_lossy().to_string(),
+            tmp.path().to_string_lossy().to_string(),
         )
         .expect("init library");
         (lib, tmp)
@@ -532,7 +597,7 @@ mod tests {
         seed_scan(&lib);
         let song = lib.get_songs_paginated(0, 1).pop().expect("a song");
         lib.record_play(song.id.clone()).expect("record play");
-        lib.save_playback_state(Some(song.id.clone()), 12_345)
+        lib.save_playback_state(Some(song.id.clone()), 12_345, false)
             .expect("save state");
 
         lib.delete_song(song.id.clone()).expect("delete song");
@@ -591,15 +656,17 @@ mod tests {
     #[test]
     fn scan_paths_persist_across_reopen() {
         let tmp = TempDir::new().expect("tempdir");
+        let base_dir = tmp.path().to_string_lossy().to_string();
         let db_path = tmp.path().join("library.db").to_string_lossy().to_string();
         let covers_dir = tmp.path().join("covers").to_string_lossy().to_string();
         let scan_path = test_album_dir().to_string_lossy().to_string();
         {
-            let lib = CLibrary::init(db_path.clone(), covers_dir.clone()).expect("init");
+            let lib = CLibrary::init(db_path.clone(), covers_dir.clone(), base_dir.clone())
+                .expect("init");
             lib.scan_directory(scan_path.clone(), Config { is_deezer: true })
                 .expect("scan");
         }
-        let lib2 = CLibrary::init(db_path, covers_dir).expect("reopen");
+        let lib2 = CLibrary::init(db_path, covers_dir, base_dir).expect("reopen");
         assert_eq!(lib2.get_scan_paths(), vec![scan_path]);
     }
 
@@ -608,11 +675,106 @@ mod tests {
         let (lib, _tmp) = new_library();
         seed_scan(&lib);
         let song = lib.get_songs_paginated(0, 1).pop().expect("a song");
-        lib.save_playback_state(Some(song.id.clone()), 42_000)
+        lib.save_playback_state(Some(song.id.clone()), 42_000, true)
             .expect("save");
         let loaded = lib.load_playback_state().expect("loaded");
         assert_eq!(loaded.song.id, song.id);
         assert_eq!(loaded.position_ms, 42_000);
+        assert!(loaded.loop_one);
+    }
+
+    /// Reproduces the iOS bug: the app's sandbox container (which holds the
+    /// music, covers, and DB) moves to a new path between launches. Stored
+    /// paths must resolve against the *current* base, not the stale one.
+    #[test]
+    fn paths_survive_base_dir_rotation() {
+        use std::fs;
+
+        // ----- launch #1: container A is the current base -----
+        let container_a = TempDir::new().expect("container a");
+        let base_a = container_a.path();
+        let music_a = base_a.join("Music");
+        fs::create_dir_all(&music_a).expect("music dir");
+        // Copy the album into the app's own folder (i.e. under the base), the
+        // way music is imported into Clutter on iOS.
+        for entry in fs::read_dir(test_album_dir()).expect("read album") {
+            let entry = entry.expect("entry");
+            if entry.path().extension().and_then(|e| e.to_str()) == Some("mp3") {
+                fs::copy(entry.path(), music_a.join(entry.file_name())).expect("copy mp3");
+            }
+        }
+
+        let db_a = base_a.join("clutter").join("library.db");
+        let covers_a = base_a.join("clutter").join("covers");
+        {
+            let lib = CLibrary::init(
+                db_a.to_string_lossy().to_string(),
+                covers_a.to_string_lossy().to_string(),
+                base_a.to_string_lossy().to_string(),
+            )
+            .expect("init a");
+            lib.scan_directory(
+                music_a.to_string_lossy().to_string(),
+                Config { is_deezer: true },
+            )
+            .expect("scan a");
+            let songs = lib.get_songs_paginated(0, 100);
+            assert!(!songs.is_empty(), "scanned some songs");
+            for s in &songs {
+                assert!(Path::new(&s.file_path).exists(), "song missing: {}", s.file_path);
+            }
+            assert!(
+                songs.iter().any(|s| s
+                    .cover_path
+                    .as_deref()
+                    .map(|c| Path::new(c).exists())
+                    .unwrap_or(false)),
+                "expected at least one cover on disk"
+            );
+        }
+
+        // ----- relaunch: container UUID rotated, everything moved to base B -----
+        let container_b = TempDir::new().expect("container b");
+        let base_b = container_b.path();
+        copy_dir_all(base_a, base_b);
+        let base_a_str = base_a.to_string_lossy().to_string();
+        let base_b_str = base_b.to_string_lossy().to_string();
+
+        let lib2 = CLibrary::init(
+            base_b.join("clutter").join("library.db").to_string_lossy().to_string(),
+            base_b.join("clutter").join("covers").to_string_lossy().to_string(),
+            base_b_str.clone(),
+        )
+        .expect("init b");
+
+        let songs = lib2.get_songs_paginated(0, 100);
+        assert!(!songs.is_empty(), "songs reload after rotation");
+        for s in &songs {
+            assert!(
+                s.file_path.starts_with(&base_b_str),
+                "file_path not rebased onto B: {}",
+                s.file_path
+            );
+            assert!(
+                !s.file_path.contains(&base_a_str),
+                "file_path still carries stale base A: {}",
+                s.file_path
+            );
+            assert!(
+                Path::new(&s.file_path).exists(),
+                "song unresolved after rotation: {}",
+                s.file_path
+            );
+        }
+        let cover = songs
+            .iter()
+            .find_map(|s| s.cover_path.clone())
+            .expect("a cover path");
+        assert!(cover.starts_with(&base_b_str), "cover not rebased onto B: {cover}");
+        assert!(
+            Path::new(&cover).exists(),
+            "cover unresolved after rotation: {cover}"
+        );
     }
 
     #[test]

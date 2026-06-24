@@ -180,6 +180,33 @@ class AlbumDetailView extends StatelessWidget {
           ),
         ),
         actions: [
+          Consumer<MusicLibrary>(
+            builder: (context, lib, _) {
+              final pinned = lib.isPinned(
+                id: album.id,
+                kind: QuickPlayKind.album,
+              );
+              return IconButton(
+                tooltip: pinned ? "Unpin from quick play" : "Pin to quick play",
+                icon: Icon(
+                  pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                ),
+                onPressed: () async {
+                  if (pinned) {
+                    await lib.unpinItem(
+                      id: album.id,
+                      kind: QuickPlayKind.album,
+                    );
+                  } else {
+                    await lib.pinItem(
+                      id: album.id,
+                      kind: QuickPlayKind.album,
+                    );
+                  }
+                },
+              );
+            },
+          ),
           IconButton(
             tooltip: "Delete album",
             icon: const Icon(Icons.delete_outline, color: Colors.redAccent),

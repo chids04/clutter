@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:clutter/models/music_library.dart';
 import 'package:clutter/src/rust/api/scanner.dart';
 import 'package:clutter/ui/widgets/song_context_menu.dart';
+import 'package:clutter/services/cover_img_loader.dart';
 
 class SongDelegate extends StatelessWidget {
   final SongViewData song;
@@ -67,7 +68,7 @@ class SongDelegate extends StatelessWidget {
         child: InkWell(
           onTap: () => musicLibrary.onPlaySong(song.id),
           child: ListTile(
-            leading: _buildCoverImg(song),
+            leading: coverImg(song.coverPath, 50, cacheSize: 150),
             title: Text(
               song.title,
               maxLines: 1,
@@ -90,31 +91,14 @@ class SongDelegate extends StatelessWidget {
                     onPressed: () => musicLibrary.toggleLiked(song),
                     padding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
-                    constraints:
-                        const BoxConstraints(minWidth: 36, minHeight: 36),
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
+                    ),
                   ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildCoverImg(SongViewData song) {
-    final coverPath = song.coverPath;
-    if (coverPath == null) {
-      return const SizedBox(
-        width: 50,
-        height: 50,
-        child: Placeholder(color: Colors.red),
-      );
-    }
-    return Image.file(
-      File(coverPath),
-      width: 50,
-      height: 50,
-      fit: BoxFit.cover,
-      cacheWidth: 150,
-      cacheHeight: 150,
     );
   }
 }
