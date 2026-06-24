@@ -9,18 +9,6 @@ import 'package:clutter/ui/views/playlists_view.dart';
 import 'package:clutter/ui/views/songs_view.dart';
 import 'package:clutter/ui/widgets/song_delegate.dart';
 
-enum LibraryPage {
-  songs("songs"),
-  albums("albums"),
-  artists("artists"),
-  playlists("playlists"),
-  recentlyPlayed("recently played");
-
-  final String label;
-
-  const LibraryPage(this.label);
-}
-
 class LibraryView extends StatefulWidget {
   const LibraryView({super.key});
 
@@ -186,10 +174,8 @@ class RecentlyPlayedView extends StatelessWidget {
             return ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               itemCount: songs.length,
-              itemBuilder: (context, i) => SongDelegate(
-                song: songs[i],
-                musicLibrary: musicLibrary,
-              ),
+              itemBuilder: (context, i) =>
+                  SongDelegate(song: songs[i], musicLibrary: musicLibrary),
               separatorBuilder: (_, _) => const Divider(),
             );
           },

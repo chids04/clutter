@@ -9,8 +9,9 @@ Future<void> _pickPlaylistAndAdd(
   MusicLibrary musicLibrary,
   SongViewData song,
 ) async {
-  final userPlaylists =
-      musicLibrary.playlists.where((p) => !p.isSystem).toList();
+  final userPlaylists = musicLibrary.playlists
+      .where((p) => !p.isSystem)
+      .toList();
   if (userPlaylists.isEmpty) {
     musicLibrary.showToast("no playlists yet — create one first");
     return;
@@ -69,13 +70,20 @@ Future<void> showSongContextMenu(
         ),
       ),
       PopupMenuItem<String>(
+        value: "go_to_album",
+        child: Row(
+          children: [
+            Icon(Icons.album, size: 18),
+            SizedBox(width: 8),
+            Text("Go to album"),
+          ],
+        ),
+      ),
+      PopupMenuItem<String>(
         value: 'toggle_pin',
         child: Row(
           children: [
-            Icon(
-              pinned ? Icons.push_pin : Icons.push_pin_outlined,
-              size: 18,
-            ),
+            Icon(pinned ? Icons.push_pin : Icons.push_pin_outlined, size: 18),
             const SizedBox(width: 8),
             Text(pinned ? "Unpin from quick play" : "Pin to quick play"),
           ],
@@ -156,5 +164,5 @@ Future<void> showSongContextMenu(
       actionLabel: "Delete",
     );
     if (ok) await musicLibrary.deleteSong(song.id);
-  }
+  } else if (v == "go_to_album") {}
 }

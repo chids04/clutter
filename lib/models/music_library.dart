@@ -12,6 +12,18 @@ import 'package:clutter/src/rust/api/scanner.dart';
 
 enum QuickPlayKind { song, album, playlist }
 
+enum LibraryPage {
+  songs("songs"),
+  albums("albums"),
+  artists("artists"),
+  playlists("playlists"),
+  recentlyPlayed("recently played");
+
+  final String label;
+
+  const LibraryPage(this.label);
+}
+
 /// Thin Dart-side state container. Storage and metadata extraction all live
 /// on the Rust side; this class owns the scan lifecycle, a cached paginated
 /// view over the SQLite-backed library, and the now-playing queue + history.
@@ -61,6 +73,8 @@ class MusicLibrary extends ChangeNotifier {
   bool _isScrubbing = false;
   bool _loopOne = false;
   double _volume = 1.0;
+
+  // hold the current state of the views
 
   // When non-null, a pending saved playback position that hasn't been loaded
   // into the audio player yet. Set by hydrate() on app relaunch; consumed on
@@ -776,8 +790,8 @@ class MusicLibrary extends ChangeNotifier {
     _subs.add(
       _handler.playbackState.listen((state) {
         _isPlaying = state.playing;
-        if (state.processingState == AudioProcessingState.completed! &&
-            _loopOne) {
+        if (state.processingState == AudioProcessingState.completed &&
+            !_loopOne) {
           _isFinished = true;
         }
         notifyListeners();

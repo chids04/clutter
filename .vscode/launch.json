@@ -9,9 +9,9 @@
     },
      {
       "name": "Flutter Demon (TCP)",
-      "type": "pwa-node",
+      "type": "",
       "request": "attach",
-      "debugServer": 52732
+      "debugServer": 55641
     }
   ]
 }
