@@ -8,8 +8,8 @@ import 'package:clutter/models/music_library.dart';
 import 'package:clutter/src/rust/api/scanner.dart';
 
 const double _kPanelWidth = 280.0;
-const double _kHandleWidth = 16.0;
-const double _kHandleHeight = 64.0;
+const double _kHandleWidth = 40.0;
+const double _kHandleHeight = 80.0;
 const Duration _kOpenDelay = Duration(milliseconds: 120);
 const Duration _kCloseDelay = Duration(milliseconds: 250);
 const Duration _kAnimationDuration = Duration(milliseconds: 220);
@@ -102,36 +102,82 @@ class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        widget.child,
-        if (_isOpen)
-          GestureDetector(
-            onTap: _close,
-            child: Container(color: Colors.black.withValues(alpha: 0.35)),
-          ),
-        AnimatedPositioned(
-          duration: _kAnimationDuration,
-          curve: Curves.easeOutCubic,
-          right: _isOpen ? 0 : -_kPanelWidth,
-          top: 0,
-          bottom: 0,
-          width: _kPanelWidth + _kHandleWidth,
-          child: Row(
-            children: [
-              // Half-circle trigger handle attached to the panel's left edge.
-              GestureDetector(
-                onLongPressStart: _onMobileLongPress,
-                child: MouseRegion(
-                  onEnter: _onTriggerEnter,
-                  onExit: _onTriggerExit,
-                  child: Container(
-                    width: _kHandleWidth,
-                    height: _kHandleHeight,
-                    margin: const EdgeInsets.only(
-                      top: _kHandleHeight,
-                      bottom: _kHandleHeight,
+    return SafeArea(
+      child: Stack(
+        children: [
+          widget.child,
+          if (_isOpen)
+            GestureDetector(
+              onTap: _close,
+              child: Container(color: Colors.black.withValues(alpha: 0.35)),
+            ),
+          AnimatedPositioned(
+            duration: _kAnimationDuration,
+            curve: Curves.easeOutCubic,
+            right: _isOpen ? 0 : -_kPanelWidth,
+            top: 0,
+            bottom: 0,
+            width: _kPanelWidth + _kHandleWidth,
+            child: Row(
+              children: [
+                // Half-circle trigger handle attached to the panel's left edge.
+                GestureDetector(
+                  onTap: _isDesktop ? null : _open,
+                  onLongPressStart: _onMobileLongPress,
+                  child: MouseRegion(
+                    onEnter: _onTriggerEnter,
+                    onExit: _onTriggerExit,
+                    child: Container(
+                      width: _kHandleWidth,
+                      height: _kHandleHeight,
+                      margin: const EdgeInsets.only(
+                        top: _kHandleHeight,
+                        bottom: _kHandleHeight,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        border: Border(
+                          left: BorderSide(
+                            color:
+                                Theme.of(context).dividerTheme.color ??
+                                Colors.transparent,
+                          ),
+                          top: BorderSide(
+                            color:
+                                Theme.of(context).dividerTheme.color ??
+                                Colors.transparent,
+                          ),
+                          bottom: BorderSide(
+                            color:
+                                Theme.of(context).dividerTheme.color ??
+                                Colors.transparent,
+                          ),
+                        ),
+                        borderRadius: const BorderRadius.horizontal(
+                          left: Radius.circular(_kHandleWidth / 2),
+                        ),
+                      ),
+                      child: Center(
+                        child: Container(
+                          width: 3,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(1.5),
+                          ),
+                        ),
+                      ),
                     ),
+                  ),
+                ),
+                // Main panel
+                MouseRegion(
+                  onEnter: _onPanelEnter,
+                  onExit: _onPanelExit,
+                  child: Container(
+                    width: _kPanelWidth,
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       border: Border(
@@ -140,63 +186,20 @@ class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
                               Theme.of(context).dividerTheme.color ??
                               Colors.transparent,
                         ),
-                        top: BorderSide(
-                          color:
-                              Theme.of(context).dividerTheme.color ??
-                              Colors.transparent,
-                        ),
-                        bottom: BorderSide(
-                          color:
-                              Theme.of(context).dividerTheme.color ??
-                              Colors.transparent,
-                        ),
-                      ),
-                      borderRadius: const BorderRadius.horizontal(
-                        left: Radius.circular(_kHandleWidth / 2),
                       ),
                     ),
-                    child: Center(
-                      child: Container(
-                        width: 3,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(1.5),
-                        ),
-                      ),
+                    child: _SidebarContent(
+                      onClose: _close,
+                      onDragStart: _onDragStart,
+                      onDragEnd: _onDragEnd,
                     ),
                   ),
                 ),
-              ),
-              // Main panel
-              MouseRegion(
-                onEnter: _onPanelEnter,
-                onExit: _onPanelExit,
-                child: Container(
-                  width: _kPanelWidth,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    border: Border(
-                      left: BorderSide(
-                        color:
-                            Theme.of(context).dividerTheme.color ??
-                            Colors.transparent,
-                      ),
-                    ),
-                  ),
-                  child: _SidebarContent(
-                    onClose: _close,
-                    onDragStart: _onDragStart,
-                    onDragEnd: _onDragEnd,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

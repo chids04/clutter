@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -23,8 +25,11 @@ Future<void> main() async {
 
   final appDir = await getApplicationDocumentsDirectory();
   final clutterDir = p.join(appDir.path, 'clutter');
+  final musicDir = p.join(appDir.path, 'Music');
   final dbPath = p.join(clutterDir, 'library.db');
   final coversDir = p.join(clutterDir, 'covers');
+
+  await Directory(musicDir).create(recursive: true);
 
   final library = await CLibrary.init(
     dbPath: dbPath,
@@ -34,7 +39,11 @@ Future<void> main() async {
 
   runApp(
     ChangeNotifierProvider(
-      create: (context) => MusicLibrary(library: library, handler: audioHandler),
+      create: (context) => MusicLibrary(
+        library: library,
+        handler: audioHandler,
+        musicDir: musicDir,
+      ),
       child: const MyApp(),
     ),
   );
@@ -214,17 +223,20 @@ class _ToastPill extends StatelessWidget {
               ? const SizedBox(key: ValueKey('toast-empty'), height: 0)
               : Padding(
                   key: const ValueKey('toast-visible'),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   child: Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
                         border: Border.all(
-                          color: theme.dividerTheme.color ??
-                              Colors.transparent,
+                          color: theme.dividerTheme.color ?? Colors.transparent,
                         ),
                         borderRadius: BorderRadius.circular(20),
                       ),

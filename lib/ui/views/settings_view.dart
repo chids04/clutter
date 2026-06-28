@@ -53,15 +53,24 @@ class _DirectoriesViewState extends State<DirectoriesView> {
         ),
         SizedBox(
           width: double.infinity,
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.add),
-            label: const Text("Add Directory"),
-            onPressed: () {
-              var library = Provider.of<MusicLibrary>(context, listen: false);
-              library.openFilePicker();
-            },
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Consumer<MusicLibrary>(
+            builder: (context, musicLibrary, _) => ElevatedButton.icon(
+              icon: Icon(
+                musicLibrary.usesSandboxMusicFolder
+                    ? Icons.refresh
+                    : Icons.folder_open,
+              ),
+              label: Text(
+                musicLibrary.usesSandboxMusicFolder
+                    ? "scan music folder"
+                    : "choose music folder",
+              ),
+              onPressed: musicLibrary.isScanning
+                  ? null
+                  : () => musicLibrary.chooseOrScanMusicFolder(),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
             ),
           ),
         ),
@@ -70,7 +79,14 @@ class _DirectoriesViewState extends State<DirectoriesView> {
           child: Consumer<MusicLibrary>(
             builder: (context, musicLibrary, child) {
               if (musicLibrary.directories.isEmpty) {
-                return const Center(child: Text("No directories added yet."));
+                return Center(
+                  child: Text(
+                    musicLibrary.usesSandboxMusicFolder
+                        ? "copy songs into the Music directory of the app's application directroy, then scan."
+                        : "choose one music folder to scan.",
+                    textAlign: TextAlign.center,
+                  ),
+                );
               }
               return ListView.separated(
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -95,37 +111,39 @@ class _DirectoriesViewState extends State<DirectoriesView> {
                               : () => musicLibrary.rescanDirectory(dir),
                         ),
                         IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: Colors.redAccent,
-                      ),
-                      onPressed: () async {
-                        final ok = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text("Remove directory"),
-                            content: Text(
-                              "Remove \"$dir\" from the library? All songs indexed from this path will be removed. Files on disk will not be deleted.",
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(false),
-                                child: const Text("cancel"),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(true),
-                                child: const Text(
-                                  "Remove",
-                                  style: TextStyle(color: Colors.redAccent),
-                                ),
-                              ),
-                            ],
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
                           ),
-                        );
-                        if (ok == true) {
-                          await musicLibrary.removeDirectory(dir);
-                        }
-                      },
+                          onPressed: () async {
+                            final ok = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text("Remove directory"),
+                                content: Text(
+                                  "Remove \"$dir\" from the library? All songs indexed from this path will be removed. Files on disk will not be deleted.",
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(false),
+                                    child: const Text("cancel"),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(true),
+                                    child: const Text(
+                                      "Remove",
+                                      style: TextStyle(color: Colors.redAccent),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (ok == true) {
+                              await musicLibrary.removeDirectory(dir);
+                            }
+                          },
                         ),
                       ],
                     ),

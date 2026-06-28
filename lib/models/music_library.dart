@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:file_picker/file_picker.dart';
 
 import 'package:clutter/services/audio_handler.dart';
 import 'package:clutter/utils/log.dart';
@@ -30,8 +30,12 @@ enum LibraryPage {
 /// Audio playback itself is delegated to the platform audio service via
 /// [ClutterAudioHandler].
 class MusicLibrary extends ChangeNotifier {
-  MusicLibrary({required this.library, required ClutterAudioHandler handler})
-    : _handler = handler {
+  MusicLibrary({
+    required this.library,
+    required ClutterAudioHandler handler,
+    required String musicDir,
+  }) : _handler = handler,
+       _musicDir = musicDir {
     _initHandlerEvents();
     _refreshTotal();
     unawaited(hydrate());
@@ -39,6 +43,7 @@ class MusicLibrary extends ChangeNotifier {
 
   final CLibrary library;
   final ClutterAudioHandler _handler;
+  final String _musicDir;
 
   final List<String> _directories = [];
   final Set<String> _directorySet = {};
@@ -110,6 +115,9 @@ class MusicLibrary extends ChangeNotifier {
   String? get toastMessage => _toastMessage;
   UnmodifiableListView<PinnedItemData> get pinnedItems =>
       UnmodifiableListView(_pinnedItems);
+  String get musicDir => _musicDir;
+  bool get usesSandboxMusicFolder =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
   bool isLiked(String songId) => _likedSongIds.contains(songId);
   bool get canPlayPrevious => _currentSong != null || _history.isNotEmpty;
@@ -366,7 +374,7 @@ class MusicLibrary extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addDirectory(String directory) async {
+  Future<void> addDirectory(String directory) async {
     if (!_directorySet.add(directory)) return;
     _directories.add(directory);
     _isScanning = true;
@@ -378,12 +386,37 @@ class MusicLibrary extends ChangeNotifier {
         config: const Config(isDeezer: true),
       );
       await _reloadSongs();
+      showToast("scanned $directory");
     } catch (e) {
       Log.e("scan failed for $directory", e);
+      showToast("scan failed");
     } finally {
       _isScanning = false;
       notifyListeners();
     }
+  }
+
+  Future<void> setScanDirectory(String directory) async {
+    if (_isScanning) return;
+
+    final oldDirectories = List<String>.from(_directories);
+    for (final oldDirectory in oldDirectories) {
+      if (oldDirectory == directory) continue;
+      try {
+        await library.deleteScanPath(path: oldDirectory);
+      } catch (e) {
+        Log.e("delete old scan path failed for $oldDirectory", e);
+      }
+    }
+    _directories
+      ..clear()
+      ..add(directory);
+    _directorySet
+      ..clear()
+      ..add(directory);
+    await _purgeAfterDelete();
+
+    await rescanDirectory(directory);
   }
 
   Future<void> rescanDirectory(String directory) async {
@@ -771,14 +804,20 @@ class MusicLibrary extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> openFilePicker() async {
+  Future<void> chooseOrScanMusicFolder() async {
+    if (usesSandboxMusicFolder) {
+      await setScanDirectory(_musicDir);
+      return;
+    }
+
     try {
       final directory = await FilePicker.platform.getDirectoryPath(
         dialogTitle: "select directory to scan for music",
       );
-      if (directory != null) addDirectory(directory);
+      if (directory != null) await setScanDirectory(directory);
     } on PlatformException catch (e) {
       Log.e("unsupported file picker op", e);
+      showToast("folder picker unavailable");
     }
   }
 
