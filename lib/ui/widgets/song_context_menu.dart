@@ -2,7 +2,31 @@ import 'package:flutter/material.dart';
 
 import 'package:clutter/models/music_library.dart';
 import 'package:clutter/src/rust/api/scanner.dart';
+import 'package:clutter/ui/views/albums_view.dart';
+import 'package:clutter/ui/views/artists_view.dart';
 import 'package:clutter/ui/widgets/confirm_dialog.dart';
+
+AlbumViewData? _albumForSong(MusicLibrary musicLibrary, SongViewData song) {
+  for (final album in musicLibrary.albums) {
+    if (album.title == song.album && album.artist == song.primaryArtist) {
+      return album;
+    }
+  }
+  for (final album in musicLibrary.albums) {
+    if (album.title == song.album) return album;
+  }
+  return null;
+}
+
+ArtistViewData? _leadingArtistForSong(
+  MusicLibrary musicLibrary,
+  SongViewData song,
+) {
+  for (final artist in musicLibrary.artists) {
+    if (artist.name == song.primaryArtist) return artist;
+  }
+  return null;
+}
 
 Future<void> _pickPlaylistAndAdd(
   BuildContext context,
@@ -76,6 +100,16 @@ Future<void> showSongContextMenu(
             Icon(Icons.album, size: 18),
             SizedBox(width: 8),
             Text("Go to album"),
+          ],
+        ),
+      ),
+      PopupMenuItem<String>(
+        value: "go_to_artist",
+        child: Row(
+          children: [
+            Icon(Icons.person, size: 18),
+            SizedBox(width: 8),
+            Text("Go to artist"),
           ],
         ),
       ),
@@ -164,5 +198,25 @@ Future<void> showSongContextMenu(
       actionLabel: "Delete",
     );
     if (ok) await musicLibrary.deleteSong(song.id);
-  } else if (v == "go_to_album") {}
+  } else if (v == "go_to_album") {
+    if (!context.mounted) return;
+    final album = _albumForSong(musicLibrary, song);
+    if (album == null) {
+      musicLibrary.showToast("album not found");
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => AlbumDetailView(album: album)),
+    );
+  } else if (v == "go_to_artist") {
+    if (!context.mounted) return;
+    final artist = _leadingArtistForSong(musicLibrary, song);
+    if (artist == null) {
+      musicLibrary.showToast("artist not found");
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ArtistDetailView(artist: artist)),
+    );
+  }
 }

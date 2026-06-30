@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'package:clutter/models/music_library.dart';
 import 'package:clutter/src/rust/api/scanner.dart';
+import 'package:clutter/ui/widgets/collection_context_menu.dart';
 import 'package:clutter/ui/widgets/search_sliver_app_bar.dart';
 import 'package:clutter/ui/widgets/song_delegate.dart';
 
@@ -74,7 +75,10 @@ class _PlaylistsViewState extends State<PlaylistsView> {
                     childAspectRatio: 0.78,
                   ),
                   delegate: SliverChildBuilderDelegate(
-                    (context, i) => _PlaylistTile(playlist: playlists[i]),
+                    (context, i) => _PlaylistTile(
+                      playlist: playlists[i],
+                      musicLibrary: musicLibrary,
+                    ),
                     childCount: playlists.length,
                   ),
                 ),
@@ -88,45 +92,60 @@ class _PlaylistsViewState extends State<PlaylistsView> {
 
 class _PlaylistTile extends StatelessWidget {
   final PlaylistViewData playlist;
+  final MusicLibrary musicLibrary;
 
-  const _PlaylistTile({required this.playlist});
+  const _PlaylistTile({required this.playlist, required this.musicLibrary});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => PlaylistDetailView(playlist: playlist),
-        ),
+    return GestureDetector(
+      onLongPressStart: (details) => showPlaylistContextMenu(
+        context,
+        globalPosition: details.globalPosition,
+        playlist: playlist,
+        musicLibrary: musicLibrary,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: 1,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: _PlaylistCover(playlist: playlist),
+      onSecondaryTapDown: (details) => showPlaylistContextMenu(
+        context,
+        globalPosition: details.globalPosition,
+        playlist: playlist,
+        musicLibrary: musicLibrary,
+      ),
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PlaylistDetailView(playlist: playlist),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AspectRatio(
+              aspectRatio: 1,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: _PlaylistCover(playlist: playlist),
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            playlist.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-          Text(
-            "${playlist.songCount} songs",
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 11,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            const SizedBox(height: 6),
+            Text(
+              playlist.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
-          ),
-        ],
+            Text(
+              "${playlist.songCount} songs",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -181,8 +200,11 @@ class PlaylistDetailView extends StatelessWidget {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(playlist.name,
-            maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(
+          playlist.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         shape: Border(
           bottom: BorderSide(
             color: theme.dividerTheme.color ?? Colors.transparent,
@@ -198,9 +220,7 @@ class PlaylistDetailView extends StatelessWidget {
               );
               return IconButton(
                 tooltip: pinned ? "Unpin from quick play" : "Pin to quick play",
-                icon: Icon(
-                  pinned ? Icons.push_pin : Icons.push_pin_outlined,
-                ),
+                icon: Icon(pinned ? Icons.push_pin : Icons.push_pin_outlined),
                 onPressed: () async {
                   if (pinned) {
                     await lib.unpinItem(
@@ -242,7 +262,9 @@ class PlaylistDetailView extends StatelessWidget {
                   ),
                 );
                 if (ok == true && context.mounted) {
-                  await context.read<MusicLibrary>().deletePlaylist(playlist.id);
+                  await context.read<MusicLibrary>().deletePlaylist(
+                    playlist.id,
+                  );
                   if (context.mounted) Navigator.of(context).pop();
                 }
               },
@@ -265,15 +287,16 @@ class PlaylistDetailView extends StatelessWidget {
                 if (index == 0) {
                   return _PlaylistHeader(
                     playlist: playlist,
-                    songCount: songs.length,
+                    songs: songs,
+                    musicLibrary: musicLibrary,
                   );
                 }
                 final song = songs[index - 1];
                 return SongDelegate(
                   song: song,
                   musicLibrary: musicLibrary,
-                  onRemoveFromPlaylist: () => musicLibrary
-                      .removeSongFromPlaylist(playlist.id, song.id),
+                  onRemoveFromPlaylist: () =>
+                      musicLibrary.removeSongFromPlaylist(playlist.id, song.id),
                 );
               },
               separatorBuilder: (context, index) =>
@@ -288,13 +311,19 @@ class PlaylistDetailView extends StatelessWidget {
 
 class _PlaylistHeader extends StatelessWidget {
   final PlaylistViewData playlist;
-  final int songCount;
+  final List<SongViewData> songs;
+  final MusicLibrary musicLibrary;
 
-  const _PlaylistHeader({required this.playlist, required this.songCount});
+  const _PlaylistHeader({
+    required this.playlist,
+    required this.songs,
+    required this.musicLibrary,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final songCount = songs.length;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       child: Row(
@@ -329,6 +358,30 @@ class _PlaylistHeader extends StatelessWidget {
                     fontSize: 12,
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: songs.isEmpty
+                          ? null
+                          : () => musicLibrary.playSongsFromStart(songs),
+                      icon: const Icon(Icons.play_arrow, size: 18),
+                      label: const Text("Play now"),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: songs.isEmpty
+                          ? null
+                          : () => musicLibrary.queueSongs(
+                              songs,
+                              label: playlist.name,
+                            ),
+                      icon: const Icon(Icons.playlist_add, size: 18),
+                      label: const Text("Add to queue"),
+                    ),
+                  ],
                 ),
               ],
             ),

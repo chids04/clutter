@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -9,23 +10,17 @@ import 'package:clutter/ui/views/playlists_view.dart';
 import 'package:clutter/ui/views/songs_view.dart';
 import 'package:clutter/ui/widgets/song_delegate.dart';
 
-class LibraryView extends StatefulWidget {
-  const LibraryView({super.key});
+class LibraryView extends StatelessWidget {
+  final ValueListenable<LibraryPage> currentPageListenable;
+  final ValueChanged<LibraryPage> onPageChanged;
 
-  @override
-  State<LibraryView> createState() => _LibraryViewState();
-}
+  const LibraryView({
+    super.key,
+    required this.currentPageListenable,
+    required this.onPageChanged,
+  });
 
-class _LibraryViewState extends State<LibraryView> {
-  LibraryPage currentPage = LibraryPage.songs;
-
-  void updateState(LibraryPage newPage) {
-    setState(() {
-      currentPage = newPage;
-    });
-  }
-
-  Future<void> _promptCreatePlaylist() async {
+  Future<void> _promptCreatePlaylist(BuildContext context) async {
     final controller = TextEditingController();
     final name = await showDialog<String>(
       context: context,
@@ -49,56 +44,62 @@ class _LibraryViewState extends State<LibraryView> {
         ],
       ),
     );
-    if (name != null && name.isNotEmpty && mounted) {
+    if (name != null && name.isNotEmpty && context.mounted) {
       await context.read<MusicLibrary>().createPlaylist(name);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Text(currentPage.label),
-            const Spacer(),
-            Row(
-              spacing: 5,
+    return ValueListenableBuilder<LibraryPage>(
+      valueListenable: currentPageListenable,
+      builder: (context, currentPage, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Row(
               children: [
-                const Text("list as", style: TextStyle(fontSize: 12)),
-                DisplayOptDropdown(
-                  onPageChanged: updateState,
-                  currentPage: currentPage,
+                Text(currentPage.label),
+                const Spacer(),
+                Row(
+                  spacing: 5,
+                  children: [
+                    const Text("list as", style: TextStyle(fontSize: 12)),
+                    DisplayOptDropdown(
+                      onPageChanged: onPageChanged,
+                      currentPage: currentPage,
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-        centerTitle: false,
-        elevation: 0.0,
-        shape: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).dividerTheme.color ?? Colors.transparent,
-            width: 1.0,
+            centerTitle: false,
+            elevation: 0.0,
+            shape: Border(
+              bottom: BorderSide(
+                color:
+                    Theme.of(context).dividerTheme.color ?? Colors.transparent,
+                width: 1.0,
+              ),
+            ),
           ),
-        ),
-      ),
-      floatingActionButton: currentPage == LibraryPage.playlists
-          ? FloatingActionButton(
-              tooltip: "new playlist",
-              onPressed: _promptCreatePlaylist,
-              child: const Icon(Icons.add),
-            )
-          : null,
-      body: SafeArea(
-        child: switch (currentPage) {
-          LibraryPage.songs => const SongView(),
-          LibraryPage.albums => const AlbumsView(),
-          LibraryPage.artists => const ArtistsView(),
-          LibraryPage.playlists => const PlaylistsView(),
-          LibraryPage.recentlyPlayed => const RecentlyPlayedView(),
-        },
-      ),
+          floatingActionButton: currentPage == LibraryPage.playlists
+              ? FloatingActionButton(
+                  tooltip: "new playlist",
+                  onPressed: () => _promptCreatePlaylist(context),
+                  child: const Icon(Icons.add),
+                )
+              : null,
+          body: SafeArea(
+            child: switch (currentPage) {
+              LibraryPage.songs => const SongView(),
+              LibraryPage.albums => const AlbumsView(),
+              LibraryPage.artists => const ArtistsView(),
+              LibraryPage.playlists => const PlaylistsView(),
+              LibraryPage.recentlyPlayed => const RecentlyPlayedView(),
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -111,7 +112,7 @@ class DisplayOptDropdown extends StatefulWidget {
   });
 
   final LibraryPage currentPage;
-  final Function(LibraryPage) onPageChanged;
+  final ValueChanged<LibraryPage> onPageChanged;
 
   @override
   State<DisplayOptDropdown> createState() => _DisplayOptDropdownState();
@@ -126,11 +127,9 @@ class _DisplayOptDropdownState extends State<DisplayOptDropdown> {
       elevation: 16,
       style: const TextStyle(fontSize: 12),
       onChanged: (LibraryPage? value) {
-        setState(() {
-          if (value != null) {
-            widget.onPageChanged(value);
-          }
-        });
+        if (value != null) {
+          widget.onPageChanged(value);
+        }
       },
       items: LibraryPage.values.map<DropdownMenuItem<LibraryPage>>((
         LibraryPage page,

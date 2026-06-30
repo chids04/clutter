@@ -132,18 +132,40 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
+  final ValueNotifier<LibraryPage> _libraryPage = ValueNotifier(
+    LibraryPage.songs,
+  );
 
-  static final List<Widget> _widgetOptions = <Widget>[
-    _TabNavigator(child: const LibraryView()),
-    _TabNavigator(child: const SearchView()),
-    _TabNavigator(child: const SettingsView()),
-  ];
+  void _openLibraryPage(LibraryPage page) {
+    _libraryPage.value = page;
+    if (_selectedIndex == 0) return;
+    setState(() {
+      _selectedIndex = 0;
+    });
+  }
+
+  @override
+  void dispose() {
+    _libraryPage.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final widgetOptions = <Widget>[
+      _TabNavigator(
+        child: LibraryView(
+          currentPageListenable: _libraryPage,
+          onPageChanged: _openLibraryPage,
+        ),
+      ),
+      _TabNavigator(child: const SearchView()),
+      _TabNavigator(child: const SettingsView()),
+    ];
+
     return Scaffold(
       body: QuickPlaySidebar(
-        child: IndexedStack(index: _selectedIndex, children: _widgetOptions),
+        child: IndexedStack(index: _selectedIndex, children: widgetOptions),
       ),
 
       bottomNavigationBar: Column(
@@ -161,7 +183,10 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           const _ToastPill(),
-          const MediaBar(),
+          MediaBar(
+            activeLibraryPageListenable: _libraryPage,
+            onLibraryPageSelected: _openLibraryPage,
+          ),
 
           BottomNavigationBar(
             items: const <BottomNavigationBarItem>[

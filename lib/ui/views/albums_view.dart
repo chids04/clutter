@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:clutter/models/music_library.dart';
 import 'package:clutter/src/rust/api/scanner.dart';
 import 'package:clutter/ui/widgets/confirm_dialog.dart';
+import 'package:clutter/ui/widgets/collection_context_menu.dart';
 import 'package:clutter/ui/widgets/search_sliver_app_bar.dart';
 import 'package:clutter/ui/widgets/song_delegate.dart';
 
@@ -103,37 +104,51 @@ class _AlbumTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => AlbumDetailView(album: album)),
+    return GestureDetector(
+      onLongPressStart: (details) => showAlbumContextMenu(
+        context,
+        globalPosition: details.globalPosition,
+        album: album,
+        musicLibrary: musicLibrary,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: 1,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: _AlbumCover(coverPath: album.coverPath),
+      onSecondaryTapDown: (details) => showAlbumContextMenu(
+        context,
+        globalPosition: details.globalPosition,
+        album: album,
+        musicLibrary: musicLibrary,
+      ),
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => AlbumDetailView(album: album)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AspectRatio(
+              aspectRatio: 1,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: _AlbumCover(coverPath: album.coverPath),
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            album.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-          Text(
-            album.artist,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 11,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            const SizedBox(height: 6),
+            Text(
+              album.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
-          ),
-        ],
+            Text(
+              album.artist,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -188,9 +203,7 @@ class AlbumDetailView extends StatelessWidget {
               );
               return IconButton(
                 tooltip: pinned ? "Unpin from quick play" : "Pin to quick play",
-                icon: Icon(
-                  pinned ? Icons.push_pin : Icons.push_pin_outlined,
-                ),
+                icon: Icon(pinned ? Icons.push_pin : Icons.push_pin_outlined),
                 onPressed: () async {
                   if (pinned) {
                     await lib.unpinItem(
@@ -198,10 +211,7 @@ class AlbumDetailView extends StatelessWidget {
                       kind: QuickPlayKind.album,
                     );
                   } else {
-                    await lib.pinItem(
-                      id: album.id,
-                      kind: QuickPlayKind.album,
-                    );
+                    await lib.pinItem(id: album.id, kind: QuickPlayKind.album);
                   }
                 },
               );
@@ -237,11 +247,14 @@ class AlbumDetailView extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               itemCount: songs.length + 1,
               itemBuilder: (context, index) {
-                if (index == 0) return _AlbumHeader(album: album);
-                return SongDelegate(
-                  song: songs[index - 1],
-                  musicLibrary: lib,
-                );
+                if (index == 0) {
+                  return _AlbumHeader(
+                    album: album,
+                    songs: songs,
+                    musicLibrary: lib,
+                  );
+                }
+                return SongDelegate(song: songs[index - 1], musicLibrary: lib);
               },
               separatorBuilder: (context, index) =>
                   index == 0 ? const SizedBox.shrink() : const Divider(),
@@ -255,8 +268,14 @@ class AlbumDetailView extends StatelessWidget {
 
 class _AlbumHeader extends StatelessWidget {
   final AlbumViewData album;
+  final List<SongViewData> songs;
+  final MusicLibrary musicLibrary;
 
-  const _AlbumHeader({required this.album});
+  const _AlbumHeader({
+    required this.album,
+    required this.songs,
+    required this.musicLibrary,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -305,6 +324,30 @@ class _AlbumHeader extends StatelessWidget {
                     fontSize: 11,
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: songs.isEmpty
+                          ? null
+                          : () => musicLibrary.playSongsFromStart(songs),
+                      icon: const Icon(Icons.play_arrow, size: 18),
+                      label: const Text("Play now"),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: songs.isEmpty
+                          ? null
+                          : () => musicLibrary.queueSongs(
+                              songs,
+                              label: album.title,
+                            ),
+                      icon: const Icon(Icons.playlist_add, size: 18),
+                      label: const Text("Add to queue"),
+                    ),
+                  ],
                 ),
               ],
             ),

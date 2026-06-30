@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -10,7 +11,14 @@ import 'package:clutter/services/cover_img_loader.dart';
 const double _kControlSize = 40.0;
 
 class MediaBar extends StatefulWidget {
-  const MediaBar({super.key});
+  final ValueListenable<LibraryPage> activeLibraryPageListenable;
+  final ValueChanged<LibraryPage> onLibraryPageSelected;
+
+  const MediaBar({
+    super.key,
+    required this.activeLibraryPageListenable,
+    required this.onLibraryPageSelected,
+  });
 
   @override
   State<MediaBar> createState() => _MediaBarState();
@@ -234,12 +242,77 @@ class _MediaBarState extends State<MediaBar> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildBar(musicLibrary, current),
+            if (!_isDesktop)
+              _LibraryQuickNav(
+                activePageListenable: widget.activeLibraryPageListenable,
+                onPageSelected: widget.onLibraryPageSelected,
+              ),
             if (_showQueue)
               _QueuePanel(
                 musicLibrary: musicLibrary,
                 buildCover: (path) => coverImg(path, 36, cacheSize: 108),
+                showEmptyMessage: _isDesktop,
               ),
           ],
+        );
+      },
+    );
+  }
+}
+
+class _LibraryQuickNav extends StatelessWidget {
+  final ValueListenable<LibraryPage> activePageListenable;
+  final ValueChanged<LibraryPage> onPageSelected;
+
+  const _LibraryQuickNav({
+    required this.activePageListenable,
+    required this.onPageSelected,
+  });
+
+  IconData _iconFor(LibraryPage page) {
+    return switch (page) {
+      LibraryPage.songs => Icons.music_note,
+      LibraryPage.albums => Icons.album,
+      LibraryPage.artists => Icons.person,
+      LibraryPage.playlists => Icons.queue_music,
+      LibraryPage.recentlyPlayed => Icons.history,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final inactive = theme.colorScheme.onSurface.withValues(alpha: 0.58);
+    return ValueListenableBuilder<LibraryPage>(
+      valueListenable: activePageListenable,
+      builder: (context, activePage, _) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: theme.dividerTheme.color ?? Colors.transparent,
+              ),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: LibraryPage.values.map((page) {
+              final active = page == activePage;
+              return IconButton(
+                icon: Icon(_iconFor(page), size: 22),
+                tooltip: page.label,
+                color: active ? theme.colorScheme.primary : inactive,
+                onPressed: () => onPageSelected(page),
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints(
+                  minWidth: _kControlSize,
+                  minHeight: 34,
+                ),
+              );
+            }).toList(),
+          ),
         );
       },
     );
@@ -349,54 +422,102 @@ class _LoopButton extends StatelessWidget {
 class _QueuePanel extends StatelessWidget {
   final MusicLibrary musicLibrary;
   final Widget Function(String?) buildCover;
+  final bool showEmptyMessage;
 
-  const _QueuePanel({required this.musicLibrary, required this.buildCover});
+  const _QueuePanel({
+    required this.musicLibrary,
+    required this.buildCover,
+    required this.showEmptyMessage,
+  });
 
   @override
   Widget build(BuildContext context) {
     final q = musicLibrary.queue;
-    if (q.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 10),
-        child: Center(
-          child: Text(
-            "queue is empty",
-            style: TextStyle(fontSize: 12, color: Colors.grey),
+    final theme = Theme.of(context);
+    final loopQueue = musicLibrary.loopQueue;
+    final header = Padding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 4, 2),
+      child: Row(
+        children: [
+          Text("queue", style: theme.textTheme.labelLarge),
+          const Spacer(),
+          TextButton.icon(
+            icon: Icon(
+              Icons.repeat,
+              size: 18,
+              color: loopQueue ? theme.colorScheme.primary : null,
+            ),
+            label: const Text("Loop queue"),
+            style: TextButton.styleFrom(
+              foregroundColor: loopQueue
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.72),
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            onPressed: musicLibrary.toggleLoopQueue,
           ),
-        ),
+        ],
+      ),
+    );
+
+    if (q.isEmpty) {
+      if (!showEmptyMessage) return const SizedBox.shrink();
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          header,
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Center(
+              child: Text(
+                "queue is empty",
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ),
+          ),
+        ],
       );
     }
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 280),
-      child: ReorderableListView.builder(
-        shrinkWrap: true,
-        buildDefaultDragHandles: true,
-        itemCount: q.length,
-        onReorder: (from, to) {
-          if (to > from) to -= 1;
-          musicLibrary.moveQueueItem(from, to);
-        },
-        itemBuilder: (context, i) {
-          final song = q[i];
-          return ListTile(
-            key: ValueKey("queue-${song.id}-$i"),
-            leading: buildCover(song.coverPath),
-            title: Text(
-              song.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+      constraints: const BoxConstraints(maxHeight: 320),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          header,
+          Flexible(
+            child: ReorderableListView.builder(
+              shrinkWrap: true,
+              buildDefaultDragHandles: true,
+              itemCount: q.length,
+              onReorder: (from, to) {
+                if (to > from) to -= 1;
+                musicLibrary.moveQueueItem(from, to);
+              },
+              itemBuilder: (context, i) {
+                final song = q[i];
+                return ListTile(
+                  key: ValueKey("queue-${song.id}-$i"),
+                  leading: buildCover(song.coverPath),
+                  title: Text(
+                    song.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    musicLibrary.artistsDisplay(song),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: () => musicLibrary.removeFromQueue(i),
+                  ),
+                );
+              },
             ),
-            subtitle: Text(
-              musicLibrary.artistsDisplay(song),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: IconButton(
-              icon: const Icon(Icons.close, size: 18),
-              onPressed: () => musicLibrary.removeFromQueue(i),
-            ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }

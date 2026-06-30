@@ -72,11 +72,13 @@ class MusicLibrary extends ChangeNotifier {
   // audio player state
   final List<SongViewData> _queue = [];
   final List<SongViewData> _history = [];
+  final List<SongViewData> _queueLoopSnapshot = [];
   final List<StreamSubscription> _subs = [];
   Duration? _duration;
   Duration? _position;
   bool _isScrubbing = false;
   bool _loopOne = false;
+  bool _loopQueue = false;
   double _volume = 1.0;
 
   // hold the current state of the views
@@ -108,6 +110,7 @@ class MusicLibrary extends ChangeNotifier {
   bool get isScrubbing => _isScrubbing;
   bool get isFinished => _isFinished;
   bool get loopOne => _loopOne;
+  bool get loopQueue => _loopQueue;
   SongViewData? get currentSong => _currentSong;
   Duration? get playerDuration => _duration;
   Duration? get playerPosition => _position;
@@ -472,6 +475,7 @@ class MusicLibrary extends ChangeNotifier {
     _albums = const [];
     _queue.clear();
     _history.clear();
+    _setQueueLoopSnapshot(const []);
     await library.resetLibrary();
     await _reloadSongs();
   }
@@ -487,6 +491,7 @@ class MusicLibrary extends ChangeNotifier {
     }
     _queue.removeWhere((s) => s.id == id);
     _history.removeWhere((s) => s.id == id);
+    _removeFromQueueLoopSnapshot({id});
     if (_currentSong?.id == id) {
       await _stopPlayback();
     }
@@ -505,6 +510,7 @@ class MusicLibrary extends ChangeNotifier {
     }
     _queue.removeWhere((s) => ids.contains(s.id));
     _history.removeWhere((s) => ids.contains(s.id));
+    _removeFromQueueLoopSnapshot(ids);
     if (_currentSong != null && ids.contains(_currentSong!.id)) {
       await _stopPlayback();
     }
@@ -522,6 +528,7 @@ class MusicLibrary extends ChangeNotifier {
     _position = null;
     _duration = null;
     _savedPositionMs = null;
+    _setQueueLoopSnapshot(const []);
     try {
       await library.savePlaybackState(
         songId: null,
@@ -535,6 +542,22 @@ class MusicLibrary extends ChangeNotifier {
 
   Future<void> _purgeAfterDelete() async {
     await _reloadSongs();
+  }
+
+  void _setQueueLoopSnapshot(Iterable<SongViewData> songs) {
+    _queueLoopSnapshot
+      ..clear()
+      ..addAll(songs);
+    if (_queueLoopSnapshot.isEmpty) _loopQueue = false;
+  }
+
+  void _syncQueueLoopSnapshotFromPlayback() {
+    _setQueueLoopSnapshot([?_currentSong, ..._queue]);
+  }
+
+  void _removeFromQueueLoopSnapshot(Set<String> songIds) {
+    _queueLoopSnapshot.removeWhere((s) => songIds.contains(s.id));
+    if (_queueLoopSnapshot.isEmpty) _loopQueue = false;
   }
 
   /// Start playing [song] immediately. All public playback entry points
@@ -569,6 +592,8 @@ class MusicLibrary extends ChangeNotifier {
     }
     if (_currentSong != null) _history.add(_currentSong!);
     await _playNow(song);
+    _syncQueueLoopSnapshotFromPlayback();
+    notifyListeners();
   }
 
   Future<void> playSongsFromStart(List<SongViewData> songs) async {
@@ -576,6 +601,7 @@ class MusicLibrary extends ChangeNotifier {
     if (_currentSong != null) _history.add(_currentSong!);
     _queue.clear();
     _queue.addAll(songs.skip(1));
+    _setQueueLoopSnapshot(songs);
     await _playNow(songs.first);
   }
 
@@ -586,6 +612,14 @@ class MusicLibrary extends ChangeNotifier {
     if (_currentSong == null) return;
 
     if (_queue.isEmpty) {
+      if (_loopQueue && _queueLoopSnapshot.isNotEmpty) {
+        if (_currentSong != null) _history.add(_currentSong!);
+        _queue.clear();
+        _queue.addAll(_queueLoopSnapshot.skip(1));
+        await _playNow(_queueLoopSnapshot.first);
+        return;
+      }
+
       _isPlaying = false;
       _isFinished = true;
 
@@ -717,6 +751,14 @@ class MusicLibrary extends ChangeNotifier {
     unawaited(_saveState());
   }
 
+  void toggleLoopQueue() {
+    _loopQueue = !_loopQueue;
+    if (_loopQueue && _queueLoopSnapshot.isEmpty) {
+      _syncQueueLoopSnapshotFromPlayback();
+    }
+    notifyListeners();
+  }
+
   void setPlayerPosition(double value) {
     if (_currentSong == null) return;
     final newPos = Duration(milliseconds: value.toInt());
@@ -778,12 +820,26 @@ class MusicLibrary extends ChangeNotifier {
 
   void queueSong(SongViewData song) {
     _queue.add(song);
+    _syncQueueLoopSnapshotFromPlayback();
     notifyListeners();
+  }
+
+  void queueSongs(List<SongViewData> songs, {required String label}) {
+    if (songs.isEmpty) {
+      showToast("$label has no songs");
+      return;
+    }
+    _queue.addAll(songs);
+    _syncQueueLoopSnapshotFromPlayback();
+    showToast(
+      "Added ${songs.length} ${songs.length == 1 ? 'song' : 'songs'} to queue",
+    );
   }
 
   /// Insert [song] at the front of the queue — "play next" semantics.
   void queueSongNext(SongViewData song) {
     _queue.insert(0, song);
+    _syncQueueLoopSnapshotFromPlayback();
     notifyListeners();
   }
 
@@ -791,16 +847,19 @@ class MusicLibrary extends ChangeNotifier {
     if (from == to) return;
     final item = _queue.removeAt(from);
     _queue.insert(to, item);
+    _syncQueueLoopSnapshotFromPlayback();
     notifyListeners();
   }
 
   void removeFromQueue(int index) {
     _queue.removeAt(index);
+    _syncQueueLoopSnapshotFromPlayback();
     notifyListeners();
   }
 
   void clearQueue() {
     _queue.clear();
+    _setQueueLoopSnapshot(const []);
     notifyListeners();
   }
 
