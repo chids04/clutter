@@ -132,15 +132,21 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
+  final GlobalKey<NavigatorState> _libraryNavigatorKey =
+      GlobalKey<NavigatorState>();
   final ValueNotifier<LibraryPage> _libraryPage = ValueNotifier(
     LibraryPage.songs,
   );
 
   void _openLibraryPage(LibraryPage page) {
     _libraryPage.value = page;
-    if (_selectedIndex == 0) return;
-    setState(() {
-      _selectedIndex = 0;
+    if (_selectedIndex != 0) {
+      setState(() {
+        _selectedIndex = 0;
+      });
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _libraryNavigatorKey.currentState?.popUntil((route) => route.isFirst);
     });
   }
 
@@ -154,6 +160,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     final widgetOptions = <Widget>[
       _TabNavigator(
+        navigatorKey: _libraryNavigatorKey,
         child: LibraryView(
           currentPageListenable: _libraryPage,
           onPageChanged: _openLibraryPage,
@@ -220,12 +227,14 @@ class _MyHomePageState extends State<MyHomePage> {
 /// a tab (e.g., into `AlbumDetailView`) stack inside the tab's body and leave
 /// the MediaBar + BottomNavigationBar from the root `Scaffold` visible.
 class _TabNavigator extends StatelessWidget {
+  final GlobalKey<NavigatorState>? navigatorKey;
   final Widget child;
-  const _TabNavigator({required this.child});
+  const _TabNavigator({this.navigatorKey, required this.child});
 
   @override
   Widget build(BuildContext context) {
     return Navigator(
+      key: navigatorKey,
       onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => child),
     );
   }

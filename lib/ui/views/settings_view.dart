@@ -104,7 +104,7 @@ class _DirectoriesViewState extends State<DirectoriesView> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          tooltip: "Rescan",
+                          tooltip: "rescan",
                           icon: const Icon(Icons.refresh),
                           onPressed: musicLibrary.isScanning
                               ? null
@@ -119,7 +119,7 @@ class _DirectoriesViewState extends State<DirectoriesView> {
                             final ok = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(
-                                title: const Text("Remove directory"),
+                                title: const Text("remove directory"),
                                 content: Text(
                                   "Remove \"$dir\" from the library? All songs indexed from this path will be removed. Files on disk will not be deleted.",
                                 ),
@@ -133,7 +133,7 @@ class _DirectoriesViewState extends State<DirectoriesView> {
                                     onPressed: () =>
                                         Navigator.of(ctx).pop(true),
                                     child: const Text(
-                                      "Remove",
+                                      "remove",
                                       style: TextStyle(color: Colors.redAccent),
                                     ),
                                   ),
@@ -162,7 +162,7 @@ class _DirectoriesViewState extends State<DirectoriesView> {
             builder: (context, musicLibrary, _) => ElevatedButton.icon(
               icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
               label: const Text(
-                "Reset Database",
+                "reset database",
                 style: TextStyle(color: Colors.redAccent),
               ),
               style: ElevatedButton.styleFrom(
@@ -171,10 +171,10 @@ class _DirectoriesViewState extends State<DirectoriesView> {
               onPressed: () async {
                 final ok = await confirmDestructive(
                   context,
-                  title: "Reset database",
+                  title: "reset database",
                   message:
                       "All songs, albums, playlists, and scan history will be removed from the library. Files on disk will not be deleted.",
-                  actionLabel: "Reset",
+                  actionLabel: "reset",
                 );
                 if (ok && context.mounted) {
                   await musicLibrary.resetLibrary();

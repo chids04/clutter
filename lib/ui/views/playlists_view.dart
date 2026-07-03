@@ -219,7 +219,7 @@ class PlaylistDetailView extends StatelessWidget {
                 kind: QuickPlayKind.playlist,
               );
               return IconButton(
-                tooltip: pinned ? "Unpin from quick play" : "Pin to quick play",
+                tooltip: pinned ? "unpin from quick play" : "pin to quick play",
                 icon: Icon(pinned ? Icons.push_pin : Icons.push_pin_outlined),
                 onPressed: () async {
                   if (pinned) {
@@ -369,7 +369,7 @@ class _PlaylistHeader extends StatelessWidget {
                           ? null
                           : () => musicLibrary.playSongsFromStart(songs),
                       icon: const Icon(Icons.play_arrow, size: 18),
-                      label: const Text("Play now"),
+                      label: const Text("play now"),
                     ),
                     OutlinedButton.icon(
                       onPressed: songs.isEmpty
@@ -379,7 +379,7 @@ class _PlaylistHeader extends StatelessWidget {
                               label: playlist.name,
                             ),
                       icon: const Icon(Icons.playlist_add, size: 18),
-                      label: const Text("Add to queue"),
+                      label: const Text("add to queue"),
                     ),
                   ],
                 ),

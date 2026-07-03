@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:clutter/models/music_library.dart';
+import 'package:clutter/services/cover_img_loader.dart';
 import 'package:clutter/src/rust/api/scanner.dart';
 import 'package:clutter/ui/views/albums_view.dart';
 import 'package:clutter/ui/widgets/search_sliver_app_bar.dart';
@@ -134,8 +134,7 @@ class _ArtistTile extends StatelessWidget {
   }
 
   static String _subtitle(ArtistViewData a) {
-    final albums =
-        "${a.albumCount} album${a.albumCount == 1 ? '' : 's'}";
+    final albums = "${a.albumCount} album${a.albumCount == 1 ? '' : 's'}";
     final songs = "${a.songCount} song${a.songCount == 1 ? '' : 's'}";
     return "$albums • $songs";
   }
@@ -149,17 +148,15 @@ class _ArtistCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (coverPath == null) {
-      return Container(
+    return coverImg(
+      coverPath,
+      120,
+      cacheSize: 360,
+      expand: true,
+      fallback: Container(
         color: Theme.of(context).colorScheme.surface,
         child: Icon(Icons.person, size: iconSize, color: Colors.grey),
-      );
-    }
-    return Image.file(
-      File(coverPath!),
-      fit: BoxFit.cover,
-      cacheWidth: 360,
-      cacheHeight: 360,
+      ),
     );
   }
 }
@@ -409,17 +406,15 @@ class _AlbumCoverThumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (coverPath == null) {
-      return Container(
+    return coverImg(
+      coverPath,
+      72,
+      cacheSize: 280,
+      expand: true,
+      fallback: Container(
         color: Theme.of(context).colorScheme.surface,
         child: const Icon(Icons.album, size: 36, color: Colors.grey),
-      );
-    }
-    return Image.file(
-      File(coverPath!),
-      fit: BoxFit.cover,
-      cacheWidth: 280,
-      cacheHeight: 280,
+      ),
     );
   }
 }

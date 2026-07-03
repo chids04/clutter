@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:clutter/models/music_library.dart';
+import 'package:clutter/services/cover_img_loader.dart';
 import 'package:clutter/src/rust/api/scanner.dart';
 import 'package:clutter/ui/widgets/confirm_dialog.dart';
 import 'package:clutter/ui/widgets/collection_context_menu.dart';
@@ -161,17 +161,15 @@ class _AlbumCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (coverPath == null) {
-      return Container(
+    return coverImg(
+      coverPath,
+      120,
+      cacheSize: 360,
+      expand: true,
+      fallback: Container(
         color: Theme.of(context).colorScheme.surface,
         child: const Icon(Icons.album, size: 48, color: Colors.grey),
-      );
-    }
-    return Image.file(
-      File(coverPath!),
-      fit: BoxFit.cover,
-      cacheWidth: 360,
-      cacheHeight: 360,
+      ),
     );
   }
 }
@@ -202,7 +200,7 @@ class AlbumDetailView extends StatelessWidget {
                 kind: QuickPlayKind.album,
               );
               return IconButton(
-                tooltip: pinned ? "Unpin from quick play" : "Pin to quick play",
+                tooltip: pinned ? "unpin from quick play" : "pin to quick play",
                 icon: Icon(pinned ? Icons.push_pin : Icons.push_pin_outlined),
                 onPressed: () async {
                   if (pinned) {
@@ -218,15 +216,15 @@ class AlbumDetailView extends StatelessWidget {
             },
           ),
           IconButton(
-            tooltip: "Delete album",
+            tooltip: "delete album",
             icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
             onPressed: () async {
               final ok = await confirmDestructive(
                 context,
-                title: "Delete album",
+                title: "delete album",
                 message:
                     "Remove \"${album.title}\" and all ${album.songCount} song${album.songCount == 1 ? '' : 's'} from the library? Files on disk will not be deleted.",
-                actionLabel: "Delete",
+                actionLabel: "delete",
               );
               if (!ok) return;
               await musicLibrary.deleteAlbum(album.id);
@@ -335,7 +333,7 @@ class _AlbumHeader extends StatelessWidget {
                           ? null
                           : () => musicLibrary.playSongsFromStart(songs),
                       icon: const Icon(Icons.play_arrow, size: 18),
-                      label: const Text("Play now"),
+                      label: const Text("play now"),
                     ),
                     OutlinedButton.icon(
                       onPressed: songs.isEmpty
@@ -345,7 +343,7 @@ class _AlbumHeader extends StatelessWidget {
                               label: album.title,
                             ),
                       icon: const Icon(Icons.playlist_add, size: 18),
-                      label: const Text("Add to queue"),
+                      label: const Text("add to queue"),
                     ),
                   ],
                 ),

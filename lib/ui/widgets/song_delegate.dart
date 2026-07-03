@@ -26,6 +26,7 @@ class SongDelegate extends StatelessWidget {
     return Dismissible(
       key: ValueKey("song-${song.id}"),
       direction: DismissDirection.startToEnd,
+      dismissThresholds: const {DismissDirection.startToEnd: 0.18},
       background: Container(
         color: colors.primary,
         alignment: Alignment.centerLeft,
@@ -35,7 +36,7 @@ class SongDelegate extends StatelessWidget {
             Icon(Icons.playlist_play, color: colors.onPrimary),
             const SizedBox(width: 8),
             Text(
-              "Queue next",
+              "queue next",
               style: TextStyle(
                 color: colors.onPrimary,
                 fontWeight: FontWeight.w500,

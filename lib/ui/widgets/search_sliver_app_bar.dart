@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Floating search bar that tucks away on scroll-down and snaps back on
-/// scroll-up. Sized to fit the search field plus breathing room.
+/// Sticky search bar shared by library list views.
 class SearchSliverAppBar extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
@@ -18,9 +17,9 @@ class SearchSliverAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SliverAppBar(
-      floating: true,
-      snap: true,
-      pinned: false,
+      floating: false,
+      snap: false,
+      pinned: true,
       elevation: 0,
       backgroundColor: theme.scaffoldBackgroundColor,
       automaticallyImplyLeading: false,
@@ -35,8 +34,10 @@ class SearchSliverAppBar extends StatelessWidget {
             hintText: hint,
             prefixIcon: const Icon(Icons.search, size: 20),
             isDense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 10,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(

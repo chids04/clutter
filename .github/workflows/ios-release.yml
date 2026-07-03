@@ -1,0 +1,63 @@
+name: ios release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-ios:
+    name: build ipa
+    runs-on: macos-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: set up flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: set up rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - name: install flutter dependencies
+        run: flutter pub get
+
+      - name: build ios release
+        run: flutter build ios --release
+
+      - name: package ipa
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APP_PATH="build/ios/iphoneos/Runner.app"
+          IPA_DIR="build/ios/ipa"
+          IPA_PATH="build/ios/clutter-${GITHUB_REF_NAME}.ipa"
+
+          if [[ ! -d "$APP_PATH" ]]; then
+            echo "expected app bundle not found at $APP_PATH" >&2
+            exit 1
+          fi
+
+          rm -rf "$IPA_DIR" "$IPA_PATH"
+          mkdir -p "$IPA_DIR/Payload"
+          cp -R "$APP_PATH" "$IPA_DIR/Payload/Runner.app"
+
+          (
+            cd "$IPA_DIR"
+            zip -qry "../clutter-${GITHUB_REF_NAME}.ipa" Payload
+          )
+
+      - name: attach ipa to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/ios/clutter-${{ github.ref_name }}.ipa

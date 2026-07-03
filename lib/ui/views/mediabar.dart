@@ -41,7 +41,7 @@ class _MediaBarState extends State<MediaBar> {
   Widget _queueToggle() {
     return IconButton(
       icon: Icon(_showQueue ? Icons.queue_music : Icons.queue_music_outlined),
-      tooltip: _showQueue ? "Hide queue" : "Show queue",
+      tooltip: _showQueue ? "hide queue" : "show queue",
       onPressed: () => setState(() => _showQueue = !_showQueue),
       padding: EdgeInsets.zero,
       visualDensity: VisualDensity.compact,
@@ -378,7 +378,7 @@ class _VolumeControlState extends State<_VolumeControl> {
           ),
           IconButton(
             icon: Icon(_volumeIconFor(musicLibrary.volume)),
-            tooltip: "Volume",
+            tooltip: "volume",
             onPressed: () {},
             padding: EdgeInsets.zero,
             visualDensity: VisualDensity.compact,
@@ -404,7 +404,7 @@ class _LoopButton extends StatelessWidget {
     final active = musicLibrary.loopOne;
     return IconButton(
       icon: Icon(active ? Icons.repeat_one : Icons.repeat, size: 21),
-      tooltip: active ? "Disable loop" : "Loop current track",
+      tooltip: active ? "disable loop" : "loop current track",
       color: active ? theme.colorScheme.primary : null,
       onPressed: musicLibrary.currentSong == null
           ? null
@@ -447,7 +447,7 @@ class _QueuePanel extends StatelessWidget {
               size: 18,
               color: loopQueue ? theme.colorScheme.primary : null,
             ),
-            label: const Text("Loop queue"),
+            label: const Text("loop queue"),
             style: TextButton.styleFrom(
               foregroundColor: loopQueue
                   ? theme.colorScheme.primary
@@ -456,6 +456,18 @@ class _QueuePanel extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8),
             ),
             onPressed: musicLibrary.toggleLoopQueue,
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.clear_all, size: 18),
+            label: const Text("clear queue"),
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.onSurface.withValues(
+                alpha: q.isEmpty ? 0.38 : 0.72,
+              ),
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            onPressed: q.isEmpty ? null : musicLibrary.clearQueue,
           ),
         ],
       ),

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:clutter/models/music_library.dart';
+import 'package:clutter/services/cover_img_loader.dart';
 import 'package:clutter/src/rust/api/scanner.dart';
 
 const double _kPanelWidth = 280.0;
@@ -430,15 +431,11 @@ class _PinnedTile extends StatelessWidget {
         if (song.id.isEmpty) {
           return _PlaceholderIcon(theme: theme, icon: Icons.music_note);
         }
-        if (song.coverPath case final path?) {
-          return Image.file(
-            File(path),
-            width: 44,
-            height: 44,
-            fit: BoxFit.cover,
-          );
-        }
-        return _PlaceholderIcon(theme: theme, icon: Icons.music_note);
+        return coverImg(
+          song.coverPath,
+          44,
+          fallback: _PlaceholderIcon(theme: theme, icon: Icons.music_note),
+        );
       case 'album':
         final album = musicLibrary.albums.firstWhere(
           (a) => a.id == pin.itemId,
@@ -448,15 +445,11 @@ class _PinnedTile extends StatelessWidget {
         if (album.id.isEmpty) {
           return _PlaceholderIcon(theme: theme, icon: Icons.album);
         }
-        if (album.coverPath case final path?) {
-          return Image.file(
-            File(path),
-            width: 44,
-            height: 44,
-            fit: BoxFit.cover,
-          );
-        }
-        return _PlaceholderIcon(theme: theme, icon: Icons.album);
+        return coverImg(
+          album.coverPath,
+          44,
+          fallback: _PlaceholderIcon(theme: theme, icon: Icons.album),
+        );
       case 'playlist':
         final playlist = musicLibrary.playlists.firstWhere(
           (p) => p.id == pin.itemId,

@@ -89,7 +89,7 @@ Future<void> showSongContextMenu(
           children: [
             Icon(Icons.playlist_add, size: 18),
             SizedBox(width: 8),
-            Text("Add to queue"),
+            Text("add to queue"),
           ],
         ),
       ),
@@ -99,7 +99,7 @@ Future<void> showSongContextMenu(
           children: [
             Icon(Icons.album, size: 18),
             SizedBox(width: 8),
-            Text("Go to album"),
+            Text("go to album"),
           ],
         ),
       ),
@@ -109,7 +109,7 @@ Future<void> showSongContextMenu(
           children: [
             Icon(Icons.person, size: 18),
             SizedBox(width: 8),
-            Text("Go to artist"),
+            Text("go to artist"),
           ],
         ),
       ),
@@ -119,7 +119,7 @@ Future<void> showSongContextMenu(
           children: [
             Icon(pinned ? Icons.push_pin : Icons.push_pin_outlined, size: 18),
             const SizedBox(width: 8),
-            Text(pinned ? "Unpin from quick play" : "Pin to quick play"),
+            Text(pinned ? "unpin from quick play" : "pin to quick play"),
           ],
         ),
       ),
@@ -133,7 +133,7 @@ Future<void> showSongContextMenu(
               color: liked ? Colors.redAccent : null,
             ),
             const SizedBox(width: 8),
-            Text(liked ? "Unlike" : "Like"),
+            Text(liked ? "unlike" : "like"),
           ],
         ),
       ),
@@ -143,7 +143,7 @@ Future<void> showSongContextMenu(
           children: [
             Icon(Icons.library_add, size: 18),
             SizedBox(width: 8),
-            Text("Add to playlist…"),
+            Text("add to playlist…"),
           ],
         ),
       ),
@@ -154,7 +154,7 @@ Future<void> showSongContextMenu(
             children: [
               Icon(Icons.playlist_remove, size: 18),
               SizedBox(width: 8),
-              Text("Remove from playlist"),
+              Text("remove from playlist"),
             ],
           ),
         ),
@@ -165,7 +165,7 @@ Future<void> showSongContextMenu(
             Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
             SizedBox(width: 8),
             Text(
-              "Delete from library",
+              "delete from library",
               style: TextStyle(color: Colors.redAccent),
             ),
           ],
@@ -192,10 +192,10 @@ Future<void> showSongContextMenu(
     if (!context.mounted) return;
     final ok = await confirmDestructive(
       context,
-      title: "Delete song",
+      title: "delete song",
       message:
           "Remove \"${song.title}\" from the library? The file on disk will not be deleted.",
-      actionLabel: "Delete",
+      actionLabel: "delete",
     );
     if (ok) await musicLibrary.deleteSong(song.id);
   } else if (v == "go_to_album") {
@@ -205,9 +205,9 @@ Future<void> showSongContextMenu(
       musicLibrary.showToast("album not found");
       return;
     }
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => AlbumDetailView(album: album)),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => AlbumDetailView(album: album)));
   } else if (v == "go_to_artist") {
     if (!context.mounted) return;
     final artist = _leadingArtistForSong(musicLibrary, song);
@@ -215,8 +215,8 @@ Future<void> showSongContextMenu(
       musicLibrary.showToast("artist not found");
       return;
     }
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ArtistDetailView(artist: artist)),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => ArtistDetailView(artist: artist)));
   }
 }

@@ -21,13 +21,15 @@ class ClutterAudioHandler extends BaseAudioHandler
   final AudioPlayer _player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
   final List<StreamSubscription<void>> _subs = [];
   Duration _position = Duration.zero;
-  bool _loopOne = false;
 
   /// Called when the user activates "next" from system media controls.
   Future<void> Function()? onSkipToNext;
 
   /// Called when the user activates "previous" from system media controls.
   Future<void> Function()? onSkipToPrevious;
+
+  /// Called when the current audio source finishes naturally.
+  Future<void> Function()? onTrackComplete;
 
   @override
   Future<void> play() async {
@@ -77,10 +79,9 @@ class ClutterAudioHandler extends BaseAudioHandler
   /// Set the player volume in the range [0.0, 1.0].
   Future<void> setVolume(double volume) => _player.setVolume(volume);
 
-  /// Enable or disable single-track loop. Looping is implemented manually so
-  /// that position/duration streams stay alive across iterations.
+  /// Keep the player in stop mode; `MusicLibrary` owns repeat policy so manual
+  /// skip and natural completion can behave differently.
   Future<void> setLoopOne(bool loopOne) async {
-    _loopOne = loopOne;
     await _player.setReleaseMode(ReleaseMode.stop);
   }
 
@@ -124,27 +125,8 @@ class ClutterAudioHandler extends BaseAudioHandler
     );
     _subs.add(
       _player.onPlayerComplete.listen((_) async {
-        if (_loopOne) {
-          // Manually restart the track so audioplayers' position/duration
-          // streams stay alive. ReleaseMode.loop can cause those streams to
-          // stop firing after the first iteration.
-          _position = Duration.zero;
-          playbackState.add(
-            playbackState.value.copyWith(
-              processingState: AudioProcessingState.ready,
-              playing: true,
-              updatePosition: Duration.zero,
-              bufferedPosition: Duration.zero,
-            ),
-          );
-
-          await _player.seek(Duration.zero);
-          await _player.resume();
-
-          return;
-        }
         _broadcastPlaybackState();
-        await onSkipToNext?.call();
+        await onTrackComplete?.call();
       }),
     );
   }

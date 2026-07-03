@@ -24,7 +24,7 @@ Future<void> _showQueueMenu(
           children: [
             Icon(Icons.playlist_add, size: 18),
             SizedBox(width: 8),
-            Text("Add to queue"),
+            Text("add to queue"),
           ],
         ),
       ),

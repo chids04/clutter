@@ -633,6 +633,28 @@ class MusicLibrary extends ChangeNotifier {
     await _playNow(_queue.removeAt(0));
   }
 
+  Future<void> _restartCurrentSong() async {
+    final song = _currentSong;
+    if (song == null) return;
+    _isPlaying = true;
+    _isFinished = false;
+    _position = Duration.zero;
+    _savedPositionMs = null;
+    await _handler.loadAndPlay(song, startPosition: Duration.zero);
+    await _handler.setLoopOne(_loopOne);
+    notifyListeners();
+    unawaited(_saveState());
+    _ensureStateTimer();
+  }
+
+  Future<void> _handleTrackComplete() async {
+    if (_loopOne) {
+      await _restartCurrentSong();
+      return;
+    }
+    await playNext();
+  }
+
   void loopSong() {
     if (_currentSong == null) return;
     _isPlaying = true;
@@ -821,6 +843,7 @@ class MusicLibrary extends ChangeNotifier {
   void queueSong(SongViewData song) {
     _queue.add(song);
     _syncQueueLoopSnapshotFromPlayback();
+    showToast("${song.title} added to queue");
     notifyListeners();
   }
 
@@ -840,6 +863,7 @@ class MusicLibrary extends ChangeNotifier {
   void queueSongNext(SongViewData song) {
     _queue.insert(0, song);
     _syncQueueLoopSnapshotFromPlayback();
+    showToast("${song.title} queued next");
     notifyListeners();
   }
 
@@ -883,7 +907,8 @@ class MusicLibrary extends ChangeNotifier {
   void _initHandlerEvents() {
     _handler
       ..onSkipToNext = playNext
-      ..onSkipToPrevious = playPrevious;
+      ..onSkipToPrevious = playPrevious
+      ..onTrackComplete = _handleTrackComplete;
 
     _subs.add(
       _handler.playbackState.listen((state) {
