@@ -4,9 +4,18 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build and attach to'
+        required: true
+        type: string
 
 permissions:
   contents: write
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
 jobs:
   build-ios:
@@ -41,7 +50,7 @@ jobs:
 
           APP_PATH="build/ios/iphoneos/Runner.app"
           IPA_DIR="build/ios/ipa"
-          IPA_PATH="build/ios/clutter-${GITHUB_REF_NAME}.ipa"
+          IPA_PATH="build/ios/clutter-${RELEASE_TAG}.ipa"
 
           if [[ ! -d "$APP_PATH" ]]; then
             echo "expected app bundle not found at $APP_PATH" >&2
@@ -54,10 +63,11 @@ jobs:
 
           (
             cd "$IPA_DIR"
-            zip -qry "../clutter-${GITHUB_REF_NAME}.ipa" Payload
+            zip -qry "../clutter-${RELEASE_TAG}.ipa" Payload
           )
 
       - name: attach ipa to release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/ios/clutter-${{ github.ref_name }}.ipa
+          tag_name: ${{ env.RELEASE_TAG }}
+          files: build/ios/clutter-${{ env.RELEASE_TAG }}.ipa
