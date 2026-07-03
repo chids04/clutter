@@ -32,7 +32,7 @@ jobs:
         run: flutter pub get
 
       - name: build ios release
-        run: flutter build ios --release
+        run: flutter build ios --release --no-codesign
 
       - name: package ipa
         shell: bash
