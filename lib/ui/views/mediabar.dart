@@ -58,7 +58,7 @@ class _MediaBarState extends State<MediaBar> {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: const Icon(Icons.skip_previous, size: 21),
+          icon: const Icon(Icons.skip_previous, size: 25),
           onPressed: musicLibrary.canPlayPrevious
               ? () => musicLibrary.playPrevious()
               : null,
@@ -69,7 +69,7 @@ class _MediaBarState extends State<MediaBar> {
         IconButton(
           icon: Icon(
             musicLibrary.isPlaying ? Icons.pause : Icons.play_arrow,
-            size: 24,
+            size: 29,
           ),
           onPressed: hasSong ? () => musicLibrary.togglePlay() : null,
           padding: EdgeInsets.zero,
@@ -77,7 +77,7 @@ class _MediaBarState extends State<MediaBar> {
           constraints: const BoxConstraints(minWidth: 35, minHeight: 29),
         ),
         IconButton(
-          icon: const Icon(Icons.skip_next, size: 21),
+          icon: const Icon(Icons.skip_next, size: 25),
           onPressed: hasSong ? () => musicLibrary.playNext() : null,
           padding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,
@@ -168,61 +168,72 @@ class _MediaBarState extends State<MediaBar> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final coverSize = _coverSizeFor(constraints.maxWidth);
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            return Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                coverImg(current?.coverPath, coverSize),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    coverImg(current?.coverPath, coverSize),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              current?.title ?? "nothing playing",
+                          Row(children: [_playbackControls(musicLibrary)]),
+                          const SizedBox(height: 4),
+                          Text(
+                            current?.title ?? "nothing playing",
+                            textAlign: TextAlign.left,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: current == null
+                                  ? Colors.grey
+                                  : theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          if (current != null)
+                            Text(
+                              musicLibrary.artistsDisplay(current),
                               textAlign: TextAlign.left,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: current == null
-                                    ? Colors.grey
-                                    : theme.colorScheme.onSurface,
+                                fontSize: 12,
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.6,
+                                ),
                               ),
                             ),
-                          ),
-                          _playbackControls(musicLibrary),
-                          const Expanded(child: SizedBox()),
                         ],
                       ),
-                      if (current != null)
-                        Text(
-                          musicLibrary.artistsDisplay(current),
-                          textAlign: TextAlign.left,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.6,
-                            ),
-                          ),
-                        ),
-                      _sliderRow(musicLibrary, 11),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (_isDesktop)
+                          _VolumeControl(musicLibrary: musicLibrary),
+                        _LoopButton(musicLibrary: musicLibrary),
+                      ],
+                    ),
+                  ],
                 ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
+                const SizedBox(height: 2),
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    if (_isDesktop) _VolumeControl(musicLibrary: musicLibrary),
-                    _LoopButton(musicLibrary: musicLibrary),
-                    _queueToggle(),
+                    SizedBox(width: coverSize + 10),
+                    Expanded(child: _sliderRow(musicLibrary, 11)),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8, bottom: 2),
+                      child: _queueToggle(),
+                    ),
                   ],
                 ),
               ],
