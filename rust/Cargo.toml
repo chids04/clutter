@@ -13,7 +13,11 @@ log = "0.4.29"
 rusqlite = { version = "0.31", features = ["bundled"] }
 symphonia = { version = "0.5.5", features = ["all"] }
 uuid = { version = "1.11.0", features = ["v4"] }
+russh = { version = "0.62.0", features = ["aws-lc-rs"]}
 walkdir = "2.5"
+anyhow = "1"
+tokio = { version = "1.17.0" }
+russh-sftp = "2.3.0"
 
 [dev-dependencies]
 tempfile = "3.10"
