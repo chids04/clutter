@@ -252,6 +252,11 @@ class _MediaBarState extends State<MediaBar> {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (_isDesktop)
+              _LibraryQuickNav(
+                activePageListenable: widget.activeLibraryPageListenable,
+                onPageSelected: widget.onLibraryPageSelected,
+              ),
             _buildBar(musicLibrary, current),
             if (!_isDesktop)
               _LibraryQuickNav(
