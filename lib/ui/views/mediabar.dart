@@ -26,9 +26,11 @@ class MediaBar extends StatefulWidget {
 
 class _MediaBarState extends State<MediaBar> {
   bool _showQueue = false;
+  bool _mobileMinimalMode = true;
 
   bool get _isDesktop =>
       Platform.isLinux || Platform.isMacOS || Platform.isWindows;
+  bool get _isMobile => !_isDesktop;
 
   String _formatDuration(Duration? duration) {
     if (duration == null) return "";
@@ -140,9 +142,109 @@ class _MediaBarState extends State<MediaBar> {
     return 44;
   }
 
+  Widget _buildMinimalBar(MusicLibrary musicLibrary, SongViewData? current) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: () => setState(() => _mobileMinimalMode = false),
+      onLongPressStart: current == null
+          ? null
+          : (d) => showSongContextMenu(
+              context,
+              globalPosition: d.globalPosition,
+              song: current,
+              musicLibrary: musicLibrary,
+            ),
+      onSecondaryTapDown: current == null
+          ? null
+          : (d) => showSongContextMenu(
+              context,
+              globalPosition: d.globalPosition,
+              song: current,
+              musicLibrary: musicLibrary,
+            ),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: theme.dividerColor, width: 1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final coverSize = constraints.maxWidth < 360 ? 58.0 : 64.0;
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                coverImg(current?.coverPath, coverSize),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SizedBox(
+                    height: coverSize,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      current?.title ?? "nothing playing",
+                                      textAlign: TextAlign.left,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: current == null
+                                            ? Colors.grey
+                                            : theme.colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    if (current != null)
+                                      Text(
+                                        musicLibrary.artistsDisplay(current),
+                                        textAlign: TextAlign.left,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: theme.colorScheme.onSurface
+                                              .withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              _playbackControls(musicLibrary),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 18, child: _slimSlider(musicLibrary)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildBar(MusicLibrary musicLibrary, SongViewData? current) {
     final theme = Theme.of(context);
     return GestureDetector(
+      onTap: _isMobile
+          ? () => setState(() {
+              _showQueue = false;
+              _mobileMinimalMode = true;
+            })
+          : null,
       onLongPressStart: current == null
           ? null
           : (d) => showSongContextMenu(
@@ -249,6 +351,7 @@ class _MediaBarState extends State<MediaBar> {
     return Consumer<MusicLibrary>(
       builder: (context, musicLibrary, _) {
         final current = musicLibrary.currentSong;
+        final useMinimalBar = _isMobile && _mobileMinimalMode;
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -257,13 +360,15 @@ class _MediaBarState extends State<MediaBar> {
                 activePageListenable: widget.activeLibraryPageListenable,
                 onPageSelected: widget.onLibraryPageSelected,
               ),
-            _buildBar(musicLibrary, current),
+            useMinimalBar
+                ? _buildMinimalBar(musicLibrary, current)
+                : _buildBar(musicLibrary, current),
             if (!_isDesktop)
               _LibraryQuickNav(
                 activePageListenable: widget.activeLibraryPageListenable,
                 onPageSelected: widget.onLibraryPageSelected,
               ),
-            if (_showQueue)
+            if (_showQueue && !useMinimalBar)
               _QueuePanel(
                 musicLibrary: musicLibrary,
                 buildCover: (path) => coverImg(path, 36, cacheSize: 108),

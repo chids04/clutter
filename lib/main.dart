@@ -134,6 +134,10 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+class _OpenOmniSearchIntent extends Intent {
+  const _OpenOmniSearchIntent();
+}
+
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
   bool _isOmniSearchOpen = false;
@@ -147,14 +151,14 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _requestShortcutFocus();
-    });
+    _scheduleShortcutFocus();
   }
 
-  void _requestShortcutFocus() {
-    if (!mounted || _selectedIndex != 0) return;
-    _shortcutFocusNode.requestFocus();
+  void _scheduleShortcutFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _selectedIndex != 0 || _isOmniSearchOpen) return;
+      _shortcutFocusNode.requestFocus();
+    });
   }
 
   void _openLibraryPage(LibraryPage page) {
@@ -166,8 +170,8 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _libraryNavigatorKey.currentState?.popUntil((route) => route.isFirst);
-      _requestShortcutFocus();
     });
+    _scheduleShortcutFocus();
   }
 
   Future<void> _openOmniSearch() async {
@@ -180,9 +184,7 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     } finally {
       _isOmniSearchOpen = false;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _requestShortcutFocus();
-      });
+      _scheduleShortcutFocus();
     }
   }
 
@@ -199,28 +201,8 @@ class _MyHomePageState extends State<MyHomePage> {
       _selectedIndex = index;
     });
     if (index == 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _requestShortcutFocus();
-      });
+      _scheduleShortcutFocus();
     }
-  }
-
-  KeyEventResult _handleShortcutKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent || event.logicalKey != LogicalKeyboardKey.keyS) {
-      return KeyEventResult.ignored;
-    }
-    final hardwareKeyboard = HardwareKeyboard.instance;
-    final isMacShortcut = Platform.isMacOS && hardwareKeyboard.isMetaPressed;
-    final isNonMacShortcut =
-        !Platform.isMacOS && hardwareKeyboard.isControlPressed;
-    if (!isMacShortcut && !isNonMacShortcut) {
-      return KeyEventResult.ignored;
-    }
-    if (_selectedIndex != 0 || _isOmniSearchOpen) {
-      return KeyEventResult.ignored;
-    }
-    unawaited(_openOmniSearch());
-    return KeyEventResult.handled;
   }
 
   @override
@@ -244,72 +226,95 @@ class _MyHomePageState extends State<MyHomePage> {
       _TabNavigator(child: const SettingsView()),
     ];
 
-    return Focus(
-      focusNode: _shortcutFocusNode,
-      autofocus: true,
-      onKeyEvent: _handleShortcutKey,
-      child: Scaffold(
-        body: QuickPlaySidebar(
-          child: IndexedStack(index: _selectedIndex, children: widgetOptions),
-        ),
+    final shortcutActivator = SingleActivator(
+      LogicalKeyboardKey.keyS,
+      meta: Platform.isMacOS,
+      control: !Platform.isMacOS,
+    );
 
-        bottomNavigationBar: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color:
-                        Theme.of(context).dividerTheme.color ??
-                        Colors.transparent,
-                  ),
-                ),
+    return Shortcuts(
+      shortcuts: <ShortcutActivator, Intent>{
+        shortcutActivator: const _OpenOmniSearchIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _OpenOmniSearchIntent: CallbackAction<_OpenOmniSearchIntent>(
+            onInvoke: (_) {
+              unawaited(_openOmniSearch());
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          focusNode: _shortcutFocusNode,
+          autofocus: true,
+          skipTraversal: true,
+          child: Scaffold(
+            body: QuickPlaySidebar(
+              child: IndexedStack(
+                index: _selectedIndex,
+                children: widgetOptions,
               ),
             ),
-            const _ToastPill(),
-            MediaBar(
-              activeLibraryPageListenable: _libraryPage,
-              onLibraryPageSelected: _openLibraryPage,
-            ),
 
-            BottomNavigationBar(
-              items: <BottomNavigationBarItem>[
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.library_music),
-                  label: 'library',
-                ),
-                BottomNavigationBarItem(
-                  icon: _FastLongPressIcon(
-                    onLongPress: _openOmniSearchFromLongPress,
-                    child: const Icon(Icons.search),
+            bottomNavigationBar: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color:
+                            Theme.of(context).dividerTheme.color ??
+                            Colors.transparent,
+                      ),
+                    ),
                   ),
-                  activeIcon: _FastLongPressIcon(
-                    onLongPress: _openOmniSearchFromLongPress,
-                    child: const Icon(Icons.search),
-                  ),
-                  label: 'search',
                 ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.settings),
-                  label: 'settings',
+                const _ToastPill(),
+                MediaBar(
+                  activeLibraryPageListenable: _libraryPage,
+                  onLibraryPageSelected: _openLibraryPage,
+                ),
+
+                _SearchLongPressBottomNav(
+                  onSearchLongPress: _openOmniSearchFromLongPress,
+                  child: BottomNavigationBar(
+                    items: const <BottomNavigationBarItem>[
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.library_music),
+                        label: 'library',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.search),
+                        label: 'search',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.settings),
+                        label: 'settings',
+                      ),
+                    ],
+                    currentIndex: _selectedIndex,
+                    onTap: _selectTab,
+                  ),
                 ),
               ],
-              currentIndex: _selectedIndex,
-              onTap: _selectTab,
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _FastLongPressIcon extends StatelessWidget {
+class _SearchLongPressBottomNav extends StatelessWidget {
   final Widget child;
-  final VoidCallback onLongPress;
+  final VoidCallback onSearchLongPress;
 
-  const _FastLongPressIcon({required this.child, required this.onLongPress});
+  const _SearchLongPressBottomNav({
+    required this.child,
+    required this.onSearchLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -322,7 +327,16 @@ class _FastLongPressIcon extends StatelessWidget {
                 duration: const Duration(milliseconds: 350),
               ),
               (recognizer) {
-                recognizer.onLongPress = onLongPress;
+                recognizer.onLongPressStart = (details) {
+                  final box = context.findRenderObject() as RenderBox?;
+                  if (box == null || !box.hasSize) return;
+                  final itemWidth = box.size.width / 3;
+                  final pressedIndex = (details.localPosition.dx / itemWidth)
+                      .floor();
+                  if (pressedIndex == 1) {
+                    onSearchLongPress();
+                  }
+                };
               },
             ),
       },

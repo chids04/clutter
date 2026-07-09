@@ -139,12 +139,46 @@ class _OmniSearchDialogState extends State<_OmniSearchDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
+    final mediaQuery = MediaQuery.of(context);
+    final size = mediaQuery.size;
     final theme = Theme.of(context);
-    final maxWidth = size.width < 640 ? size.width - 28 : 580.0;
-    final maxHeight = math.min(
-      size.height * (size.width < 640 ? 0.82 : 0.72),
-      680.0,
+    final isMobile = size.width < 640;
+    final horizontalInset = isMobile ? 14.0 : 24.0;
+    final topInset = mediaQuery.padding.top + (isMobile ? 12.0 : 24.0);
+    final bottomInset =
+        mediaQuery.padding.bottom +
+        mediaQuery.viewInsets.bottom +
+        (isMobile ? 12.0 : 24.0);
+    final maxWidth = isMobile ? size.width - (horizontalInset * 2) : 580.0;
+    final availableHeight = size.height - topInset - bottomInset;
+    final maxHeight = isMobile
+        ? math.max(180.0, math.min(availableHeight, 560.0))
+        : math.min(size.height * 0.72, 680.0);
+
+    final resultsBody = Consumer<MusicLibrary>(
+      builder: (context, musicLibrary, _) {
+        final body = _ResultsBody(
+          query: _controller.text.trim(),
+          results: _results,
+          isLoading: _isLoading,
+          error: _error,
+          musicLibrary: musicLibrary,
+          onSongTap: (song) => _playSong(musicLibrary, song),
+          onAlbumTap: _openAlbum,
+          onPlaylistTap: _openPlaylist,
+        );
+        return Column(
+          mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
+          children: [
+            _SearchField(controller: _controller, onChanged: _onQueryChanged),
+            Divider(
+              height: 1,
+              color: theme.dividerTheme.color ?? Colors.transparent,
+            ),
+            if (isMobile) Expanded(child: body) else Flexible(child: body),
+          ],
+        );
+      },
     );
 
     return Shortcuts(
@@ -160,13 +194,25 @@ class _OmniSearchDialogState extends State<_OmniSearchDialog> {
             },
           ),
         },
-        child: SafeArea(
-          child: Center(
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.fromLTRB(
+            horizontalInset,
+            topInset,
+            horizontalInset,
+            bottomInset,
+          ),
+          child: Align(
+            alignment: isMobile ? Alignment.topCenter : Alignment.center,
             child: Material(
               color: Colors.transparent,
               child: Container(
                 width: maxWidth,
-                constraints: BoxConstraints(maxHeight: maxHeight),
+                height: isMobile ? maxHeight : null,
+                constraints: isMobile
+                    ? null
+                    : BoxConstraints(maxHeight: maxHeight),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(8),
@@ -182,35 +228,7 @@ class _OmniSearchDialogState extends State<_OmniSearchDialog> {
                   ],
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: Consumer<MusicLibrary>(
-                  builder: (context, musicLibrary, _) {
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _SearchField(
-                          controller: _controller,
-                          onChanged: _onQueryChanged,
-                        ),
-                        Divider(
-                          height: 1,
-                          color: theme.dividerTheme.color ?? Colors.transparent,
-                        ),
-                        Flexible(
-                          child: _ResultsBody(
-                            query: _controller.text.trim(),
-                            results: _results,
-                            isLoading: _isLoading,
-                            error: _error,
-                            musicLibrary: musicLibrary,
-                            onSongTap: (song) => _playSong(musicLibrary, song),
-                            onAlbumTap: _openAlbum,
-                            onPlaylistTap: _openPlaylist,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
+                child: resultsBody,
               ),
             ),
           ),
