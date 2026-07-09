@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +15,7 @@ import 'package:clutter/ui/views/settings_view.dart';
 import 'package:clutter/ui/views/playlist_view.dart';
 import 'package:clutter/ui/views/mediabar.dart';
 import 'package:clutter/ui/views/quick_play_sidebar.dart';
+import 'package:clutter/ui/widgets/omni_search_overlay.dart';
 import 'package:clutter/services/audio_service_helper.dart';
 
 import 'package:clutter/src/rust/api/scanner.dart';
@@ -132,11 +136,26 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
+  bool _isOmniSearchOpen = false;
+  final FocusNode _shortcutFocusNode = FocusNode(debugLabel: 'root-shortcuts');
   final GlobalKey<NavigatorState> _libraryNavigatorKey =
       GlobalKey<NavigatorState>();
   final ValueNotifier<LibraryPage> _libraryPage = ValueNotifier(
     LibraryPage.songs,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _requestShortcutFocus();
+    });
+  }
+
+  void _requestShortcutFocus() {
+    if (!mounted || _selectedIndex != 0) return;
+    _shortcutFocusNode.requestFocus();
+  }
 
   void _openLibraryPage(LibraryPage page) {
     _libraryPage.value = page;
@@ -147,11 +166,66 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _libraryNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+      _requestShortcutFocus();
     });
+  }
+
+  Future<void> _openOmniSearch() async {
+    if (_selectedIndex != 0 || _isOmniSearchOpen) return;
+    _isOmniSearchOpen = true;
+    try {
+      await showOmniSearchOverlay(
+        context: context,
+        libraryNavigatorKey: _libraryNavigatorKey,
+      );
+    } finally {
+      _isOmniSearchOpen = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _requestShortcutFocus();
+      });
+    }
+  }
+
+  Future<void> _openOmniSearchFromLongPress() async {
+    if (_selectedIndex != 0 || _isOmniSearchOpen) return;
+    if (Platform.isIOS || Platform.isMacOS) {
+      await HapticFeedback.mediumImpact();
+    }
+    await _openOmniSearch();
+  }
+
+  void _selectTab(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    if (index == 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _requestShortcutFocus();
+      });
+    }
+  }
+
+  KeyEventResult _handleShortcutKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent || event.logicalKey != LogicalKeyboardKey.keyS) {
+      return KeyEventResult.ignored;
+    }
+    final hardwareKeyboard = HardwareKeyboard.instance;
+    final isMacShortcut = Platform.isMacOS && hardwareKeyboard.isMetaPressed;
+    final isNonMacShortcut =
+        !Platform.isMacOS && hardwareKeyboard.isControlPressed;
+    if (!isMacShortcut && !isNonMacShortcut) {
+      return KeyEventResult.ignored;
+    }
+    if (_selectedIndex != 0 || _isOmniSearchOpen) {
+      return KeyEventResult.ignored;
+    }
+    unawaited(_openOmniSearch());
+    return KeyEventResult.handled;
   }
 
   @override
   void dispose() {
+    _shortcutFocusNode.dispose();
     _libraryPage.dispose();
     super.dispose();
   }
@@ -170,55 +244,89 @@ class _MyHomePageState extends State<MyHomePage> {
       _TabNavigator(child: const SettingsView()),
     ];
 
-    return Scaffold(
-      body: QuickPlaySidebar(
-        child: IndexedStack(index: _selectedIndex, children: widgetOptions),
-      ),
+    return Focus(
+      focusNode: _shortcutFocusNode,
+      autofocus: true,
+      onKeyEvent: _handleShortcutKey,
+      child: Scaffold(
+        body: QuickPlaySidebar(
+          child: IndexedStack(index: _selectedIndex, children: widgetOptions),
+        ),
 
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color:
-                      Theme.of(context).dividerTheme.color ??
-                      Colors.transparent,
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color:
+                        Theme.of(context).dividerTheme.color ??
+                        Colors.transparent,
+                  ),
                 ),
               ),
             ),
-          ),
-          const _ToastPill(),
-          MediaBar(
-            activeLibraryPageListenable: _libraryPage,
-            onLibraryPageSelected: _openLibraryPage,
-          ),
+            const _ToastPill(),
+            MediaBar(
+              activeLibraryPageListenable: _libraryPage,
+              onLibraryPageSelected: _openLibraryPage,
+            ),
 
-          BottomNavigationBar(
-            items: const <BottomNavigationBarItem>[
-              BottomNavigationBarItem(
-                icon: Icon(Icons.library_music),
-                label: 'library',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.search),
-                label: 'search',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.settings),
-                label: 'settings',
-              ),
-            ],
-            currentIndex: _selectedIndex,
-            onTap: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
-          ),
-        ],
+            BottomNavigationBar(
+              items: <BottomNavigationBarItem>[
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.library_music),
+                  label: 'library',
+                ),
+                BottomNavigationBarItem(
+                  icon: _FastLongPressIcon(
+                    onLongPress: _openOmniSearchFromLongPress,
+                    child: const Icon(Icons.search),
+                  ),
+                  activeIcon: _FastLongPressIcon(
+                    onLongPress: _openOmniSearchFromLongPress,
+                    child: const Icon(Icons.search),
+                  ),
+                  label: 'search',
+                ),
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.settings),
+                  label: 'settings',
+                ),
+              ],
+              currentIndex: _selectedIndex,
+              onTap: _selectTab,
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _FastLongPressIcon extends StatelessWidget {
+  final Widget child;
+  final VoidCallback onLongPress;
+
+  const _FastLongPressIcon({required this.child, required this.onLongPress});
+
+  @override
+  Widget build(BuildContext context) {
+    return RawGestureDetector(
+      behavior: HitTestBehavior.translucent,
+      gestures: {
+        LongPressGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+              () => LongPressGestureRecognizer(
+                duration: const Duration(milliseconds: 350),
+              ),
+              (recognizer) {
+                recognizer.onLongPress = onLongPress;
+              },
+            ),
+      },
+      child: child,
     );
   }
 }

@@ -3,6 +3,7 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+import 'api/db.dart';
 import 'api/scanner.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -66,7 +67,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 1735166617;
+  int get rustContentHash => 1099894650;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -282,6 +283,8 @@ abstract class RustLibApi extends BaseApi {
   });
 
   Future<void> crateApiSimpleInitApp();
+
+  Future<PlaylistBackup> crateApiDbPlaylistBackupDefault();
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_CLibrary;
@@ -1870,6 +1873,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiSimpleInitAppConstMeta =>
       const TaskConstMeta(debugName: "init_app", argNames: []);
 
+  @override
+  Future<PlaylistBackup> crateApiDbPlaylistBackupDefault() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 43,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_playlist_backup,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiDbPlaylistBackupDefaultConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDbPlaylistBackupDefaultConstMeta =>
+      const TaskConstMeta(debugName: "playlist_backup_default", argNames: []);
+
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_CLibrary => wire
       .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary;
@@ -2011,6 +2041,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<PlaylistBackupPlaylist> dco_decode_list_playlist_backup_playlist(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_playlist_backup_playlist)
+        .toList();
+  }
+
+  @protected
+  List<PlaylistBackupSong> dco_decode_list_playlist_backup_song(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_playlist_backup_song).toList();
+  }
+
+  @protected
   List<PlaylistViewData> dco_decode_list_playlist_view_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_playlist_view_data).toList();
@@ -2077,6 +2123,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       song: dco_decode_song_view_data(arr[0]),
       positionMs: dco_decode_i_64(arr[1]),
       loopOne: dco_decode_bool(arr[2]),
+    );
+  }
+
+  @protected
+  PlaylistBackup dco_decode_playlist_backup(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return PlaylistBackup(
+      playlists: dco_decode_list_playlist_backup_playlist(arr[0]),
+    );
+  }
+
+  @protected
+  PlaylistBackupPlaylist dco_decode_playlist_backup_playlist(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return PlaylistBackupPlaylist(
+      name: dco_decode_String(arr[0]),
+      songs: dco_decode_list_playlist_backup_song(arr[1]),
+    );
+  }
+
+  @protected
+  PlaylistBackupSong dco_decode_playlist_backup_song(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return PlaylistBackupSong(
+      title: dco_decode_String(arr[0]),
+      album: dco_decode_String(arr[1]),
     );
   }
 
@@ -2318,6 +2399,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<PlaylistBackupPlaylist> sse_decode_list_playlist_backup_playlist(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <PlaylistBackupPlaylist>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_playlist_backup_playlist(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<PlaylistBackupSong> sse_decode_list_playlist_backup_song(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <PlaylistBackupSong>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_playlist_backup_song(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<PlaylistViewData> sse_decode_list_playlist_view_data(
     SseDeserializer deserializer,
   ) {
@@ -2428,6 +2537,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       positionMs: var_positionMs,
       loopOne: var_loopOne,
     );
+  }
+
+  @protected
+  PlaylistBackup sse_decode_playlist_backup(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_playlists = sse_decode_list_playlist_backup_playlist(deserializer);
+    return PlaylistBackup(playlists: var_playlists);
+  }
+
+  @protected
+  PlaylistBackupPlaylist sse_decode_playlist_backup_playlist(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_name = sse_decode_String(deserializer);
+    var var_songs = sse_decode_list_playlist_backup_song(deserializer);
+    return PlaylistBackupPlaylist(name: var_name, songs: var_songs);
+  }
+
+  @protected
+  PlaylistBackupSong sse_decode_playlist_backup_song(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_title = sse_decode_String(deserializer);
+    var var_album = sse_decode_String(deserializer);
+    return PlaylistBackupSong(title: var_title, album: var_album);
   }
 
   @protected
@@ -2667,6 +2803,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_playlist_backup_playlist(
+    List<PlaylistBackupPlaylist> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_playlist_backup_playlist(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_playlist_backup_song(
+    List<PlaylistBackupSong> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_playlist_backup_song(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_playlist_view_data(
     List<PlaylistViewData> self,
     SseSerializer serializer,
@@ -2769,6 +2929,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_song_view_data(self.song, serializer);
     sse_encode_i_64(self.positionMs, serializer);
     sse_encode_bool(self.loopOne, serializer);
+  }
+
+  @protected
+  void sse_encode_playlist_backup(
+    PlaylistBackup self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_playlist_backup_playlist(self.playlists, serializer);
+  }
+
+  @protected
+  void sse_encode_playlist_backup_playlist(
+    PlaylistBackupPlaylist self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.name, serializer);
+    sse_encode_list_playlist_backup_song(self.songs, serializer);
+  }
+
+  @protected
+  void sse_encode_playlist_backup_song(
+    PlaylistBackupSong self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.album, serializer);
   }
 
   @protected

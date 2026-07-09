@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1735166617;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1099894650;
 
 // Section: executor
 
@@ -2248,6 +2248,38 @@ fn wire__crate__api__simple__init_app_impl(
         },
     )
 }
+fn wire__crate__api__db__playlist_backup_default_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "playlist_backup_default",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok(crate::api::db::PlaylistBackup::default())?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 
 // Section: related_funcs
 
@@ -2399,6 +2431,34 @@ impl SseDecode for Vec<crate::api::scanner::PinnedItemData> {
     }
 }
 
+impl SseDecode for Vec<crate::api::db::PlaylistBackupPlaylist> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::db::PlaylistBackupPlaylist>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::db::PlaylistBackupSong> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::db::PlaylistBackupSong>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::api::scanner::PlaylistViewData> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2513,6 +2573,41 @@ impl SseDecode for crate::api::scanner::PlaybackStateData {
             song: var_song,
             position_ms: var_positionMs,
             loop_one: var_loopOne,
+        };
+    }
+}
+
+impl SseDecode for crate::api::db::PlaylistBackup {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_playlists =
+            <Vec<crate::api::db::PlaylistBackupPlaylist>>::sse_decode(deserializer);
+        return crate::api::db::PlaylistBackup {
+            playlists: var_playlists,
+        };
+    }
+}
+
+impl SseDecode for crate::api::db::PlaylistBackupPlaylist {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_songs = <Vec<crate::api::db::PlaylistBackupSong>>::sse_decode(deserializer);
+        return crate::api::db::PlaylistBackupPlaylist {
+            name: var_name,
+            songs: var_songs,
+        };
+    }
+}
+
+impl SseDecode for crate::api::db::PlaylistBackupSong {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_album = <String>::sse_decode(deserializer);
+        return crate::api::db::PlaylistBackupSong {
+            title: var_title,
+            album: var_album,
         };
     }
 }
@@ -2799,6 +2894,7 @@ fn pde_ffi_dispatcher_primary_impl(
             wire__crate__api__scanner__CLibrary_unpin_item_impl(port, ptr, rust_vec_len, data_len)
         }
         42 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__db__playlist_backup_default_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -2947,6 +3043,65 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::scanner::PlaybackStateData>
     for crate::api::scanner::PlaybackStateData
 {
     fn into_into_dart(self) -> crate::api::scanner::PlaybackStateData {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::db::PlaylistBackup {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.playlists.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::db::PlaylistBackup
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::db::PlaylistBackup>
+    for crate::api::db::PlaylistBackup
+{
+    fn into_into_dart(self) -> crate::api::db::PlaylistBackup {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::db::PlaylistBackupPlaylist {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.name.into_into_dart().into_dart(),
+            self.songs.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::db::PlaylistBackupPlaylist
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::db::PlaylistBackupPlaylist>
+    for crate::api::db::PlaylistBackupPlaylist
+{
+    fn into_into_dart(self) -> crate::api::db::PlaylistBackupPlaylist {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::db::PlaylistBackupSong {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.title.into_into_dart().into_dart(),
+            self.album.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::db::PlaylistBackupSong
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::db::PlaylistBackupSong>
+    for crate::api::db::PlaylistBackupSong
+{
+    fn into_into_dart(self) -> crate::api::db::PlaylistBackupSong {
         self
     }
 }
@@ -3110,6 +3265,26 @@ impl SseEncode for Vec<crate::api::scanner::PinnedItemData> {
     }
 }
 
+impl SseEncode for Vec<crate::api::db::PlaylistBackupPlaylist> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::db::PlaylistBackupPlaylist>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::db::PlaylistBackupSong> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::db::PlaylistBackupSong>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::api::scanner::PlaylistViewData> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3195,6 +3370,29 @@ impl SseEncode for crate::api::scanner::PlaybackStateData {
         <crate::api::scanner::SongViewData>::sse_encode(self.song, serializer);
         <i64>::sse_encode(self.position_ms, serializer);
         <bool>::sse_encode(self.loop_one, serializer);
+    }
+}
+
+impl SseEncode for crate::api::db::PlaylistBackup {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::api::db::PlaylistBackupPlaylist>>::sse_encode(self.playlists, serializer);
+    }
+}
+
+impl SseEncode for crate::api::db::PlaylistBackupPlaylist {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.name, serializer);
+        <Vec<crate::api::db::PlaylistBackupSong>>::sse_encode(self.songs, serializer);
+    }
+}
+
+impl SseEncode for crate::api::db::PlaylistBackupSong {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.title, serializer);
+        <String>::sse_encode(self.album, serializer);
     }
 }
 

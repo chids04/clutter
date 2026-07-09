@@ -2,7 +2,9 @@ use flutter_rust_bridge::frb;
 use log::{info, warn};
 use walkdir::WalkDir;
 
-use super::db::{AlbumRow, ArtistRow, PinnedItemRow, PlaybackStateRow, PlaylistRow, SongRow, Store};
+use super::db::{
+    AlbumRow, ArtistRow, PinnedItemRow, PlaybackStateRow, PlaylistRow, SongRow, Store,
+};
 use super::metadata::{extract_raw_metadata, parse_artist_string, MISSING_ARTIST};
 
 const SUPPORTED_EXTENSIONS: &[&str] = &["mp3", "flac", "m4a", "mp4", "ogg", "opus", "wav"];
@@ -152,11 +154,7 @@ pub struct CLibrary {
 impl CLibrary {
     /// Open (or create) the SQLite database at `db_path` and ensure the covers
     /// directory exists. Must be called once from Dart before any other method.
-    pub fn init(
-        db_path: String,
-        covers_dir: String,
-        base_dir: String,
-    ) -> Result<CLibrary, String> {
+    pub fn init(db_path: String, covers_dir: String, base_dir: String) -> Result<CLibrary, String> {
         let store = Store::open(&db_path, &covers_dir, &base_dir)?;
         info!("CLibrary initialised at {db_path} (covers: {covers_dir}, base: {base_dir})");
         Ok(CLibrary { store })
@@ -216,6 +214,9 @@ impl CLibrary {
             }
         }
         info!("scan complete: {processed} songs indexed from {path}");
+        if let Err(e) = self.store.restore_user_playlists_from_backup() {
+            warn!("failed to restore playlists from backup after scan: {e}");
+        }
         Ok(())
     }
 
@@ -269,11 +270,7 @@ impl CLibrary {
         self.store.get_total_playlists()
     }
 
-    pub fn get_playlists_paginated(
-        &self,
-        offset: u32,
-        limit: u32,
-    ) -> Vec<PlaylistViewData> {
+    pub fn get_playlists_paginated(&self, offset: u32, limit: u32) -> Vec<PlaylistViewData> {
         self.store
             .get_playlists_paginated(offset, limit)
             .into_iter()
@@ -305,11 +302,7 @@ impl CLibrary {
         self.store.delete_playlist(&id)
     }
 
-    pub fn add_song_to_playlist(
-        &self,
-        playlist_id: String,
-        song_id: String,
-    ) -> Result<(), String> {
+    pub fn add_song_to_playlist(&self, playlist_id: String, song_id: String) -> Result<(), String> {
         self.store.add_song_to_playlist(&playlist_id, &song_id)
     }
 
@@ -386,11 +379,7 @@ impl CLibrary {
             .collect()
     }
 
-    pub fn search_playlists(
-        &self,
-        query: String,
-        limit: u32,
-    ) -> Vec<PlaylistViewData> {
+    pub fn search_playlists(&self, query: String, limit: u32) -> Vec<PlaylistViewData> {
         self.store
             .search_playlists(&query, limit)
             .into_iter()
@@ -439,7 +428,9 @@ impl CLibrary {
     }
 
     pub fn load_playback_state(&self) -> Option<PlaybackStateData> {
-        self.store.load_playback_state().map(PlaybackStateData::from)
+        self.store
+            .load_playback_state()
+            .map(PlaybackStateData::from)
     }
 
     pub fn pin_item(&self, item_id: String, kind: String) -> Result<(), String> {
@@ -627,10 +618,7 @@ mod tests {
         lib.delete_album(album.id.clone()).expect("delete album");
 
         assert_eq!(lib.get_total_albums(), 0, "album gone");
-        assert!(
-            lib.get_songs_by_album_id(album.id).is_empty(),
-            "songs gone"
-        );
+        assert!(lib.get_songs_by_album_id(album.id).is_empty(), "songs gone");
         assert!(
             !Path::new(&cover_path).exists(),
             "cover file should be unlinked"
@@ -721,7 +709,11 @@ mod tests {
             let songs = lib.get_songs_paginated(0, 100);
             assert!(!songs.is_empty(), "scanned some songs");
             for s in &songs {
-                assert!(Path::new(&s.file_path).exists(), "song missing: {}", s.file_path);
+                assert!(
+                    Path::new(&s.file_path).exists(),
+                    "song missing: {}",
+                    s.file_path
+                );
             }
             assert!(
                 songs.iter().any(|s| s
@@ -741,8 +733,16 @@ mod tests {
         let base_b_str = base_b.to_string_lossy().to_string();
 
         let lib2 = CLibrary::init(
-            base_b.join("clutter").join("library.db").to_string_lossy().to_string(),
-            base_b.join("clutter").join("covers").to_string_lossy().to_string(),
+            base_b
+                .join("clutter")
+                .join("library.db")
+                .to_string_lossy()
+                .to_string(),
+            base_b
+                .join("clutter")
+                .join("covers")
+                .to_string_lossy()
+                .to_string(),
             base_b_str.clone(),
         )
         .expect("init b");
@@ -770,7 +770,10 @@ mod tests {
             .iter()
             .find_map(|s| s.cover_path.clone())
             .expect("a cover path");
-        assert!(cover.starts_with(&base_b_str), "cover not rebased onto B: {cover}");
+        assert!(
+            cover.starts_with(&base_b_str),
+            "cover not rebased onto B: {cover}"
+        );
         assert!(
             Path::new(&cover).exists(),
             "cover unresolved after rotation: {cover}"

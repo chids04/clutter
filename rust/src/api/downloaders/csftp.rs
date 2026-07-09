@@ -9,6 +9,8 @@ use russh_sftp::protocol::OpenFlags;
 use russh_sftp::{client::SftpSession, protocol::FileType};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
+use anyhow::*;
+
 struct Csftp {
     session: SftpSession,
     init_dir: String,
@@ -52,30 +54,41 @@ impl client::Handler for Client {
     }
 }
 
-async fn init_session(ip_addr: &str, music_path: &str) -> Result<Csftp, ()> {
+async fn init_session(
+    ip_addr: &str,
+    music_path: &str,
+    username: &str,
+    password: &str,
+) -> Result<Csftp> {
     let config = russh::client::Config::default();
     let sh = Client {};
 
     let mut session = russh::client::connect(Arc::new(config), (ip_addr, 22), sh)
         .await
-        .unwrap();
+        .context("SSH Connection failed, check the IP")?;
 
-    if !session
-        .authenticate_password("root", "password")
+    session
+        .authenticate_password(username, password)
         .await
-        .unwrap()
-        .success()
-    {
-        error!("failed to authenticate sftp session");
-        return Err(());
-    }
+        .context("Incorrect username and password")?;
 
     // this can fail, send to ui needs to know about this
-    let channel = session.channel_open_session().await.unwrap();
-    channel.request_subsystem(true, "sftp").await.unwrap();
-    let sftp = SftpSession::new(channel.into_stream()).await.unwrap();
+    let channel = session.channel_open_session().await.map_err(|e| {
+        error!("Failed to open SSH session: {e}");
+        anyhow!("Failed to open SFTP session, please try again")
+    })?;
 
-    info!("current path: {:?}", sftp.canonicalize(".").await.unwrap());
+    channel.request_subsystem(true, "sftp").await.map_err(|e| {
+        error!("Failed to open request subsystem: {e}");
+        anyhow!("Failed to open SFTP session, please try again")
+    })?;
+
+    let sftp = SftpSession::new(channel.into_stream()).await.map_err(|e| {
+        error!("Failed to create SFTP session: {e}");
+        anyhow!("Failed to open SFTP session, please try again")
+    })?;
+
+    //info!("current path: {:?}", sftp.canonicalize(".").await.unwrap());
 
     // create dir and symlink
     // let path = "./some_kind_of_dir";
@@ -91,13 +104,10 @@ async fn init_session(ip_addr: &str, music_path: &str) -> Result<Csftp, ()> {
     // );
 
     // this can fail too
-    let music_dir = match sftp.read_dir(music_path).await {
-        Ok(dir) => dir,
-        Err(e) => {
-            error!("sftp: failed to read directory {music_path} reason: {e}");
-            return Err(());
-        }
-    };
+    let music_dir = sftp.read_dir(music_path).await.map_err(|e| {
+        error!("Failed to read directory: {e}");
+        anyhow!("Failed to read initial directroy, please try again later")
+    })?;
 
     let mut init_items = Vec::new();
 
@@ -164,4 +174,18 @@ async fn init_session(ip_addr: &str, music_path: &str) -> Result<Csftp, ()> {
     //
     // // should fail because handle was closed
     // error!("should fail: {:?}", file.read_u8().await);
+}
+
+mod test {
+    use super::init_session;
+
+    #[tokio::test]
+    async fn start_session() {
+        let ip_addr = "100.92.4.57";
+        let music_path = "/home/c/docker/deemix/downloads";
+
+        let cstfp = init_session(ip_addr, music_path, "test", "test").await;
+
+        assert!(cstfp.is_ok());
+    }
 }

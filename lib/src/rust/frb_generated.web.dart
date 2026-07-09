@@ -6,6 +6,7 @@
 // Static analysis wrongly picks the IO variant, thus ignore this
 // ignore_for_file: argument_type_not_assignable
 
+import 'api/db.dart';
 import 'api/scanner.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -85,6 +86,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<PinnedItemData> dco_decode_list_pinned_item_data(dynamic raw);
 
   @protected
+  List<PlaylistBackupPlaylist> dco_decode_list_playlist_backup_playlist(
+    dynamic raw,
+  );
+
+  @protected
+  List<PlaylistBackupSong> dco_decode_list_playlist_backup_song(dynamic raw);
+
+  @protected
   List<PlaylistViewData> dco_decode_list_playlist_view_data(dynamic raw);
 
   @protected
@@ -112,6 +121,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlaybackStateData dco_decode_playback_state_data(dynamic raw);
+
+  @protected
+  PlaylistBackup dco_decode_playlist_backup(dynamic raw);
+
+  @protected
+  PlaylistBackupPlaylist dco_decode_playlist_backup_playlist(dynamic raw);
+
+  @protected
+  PlaylistBackupSong dco_decode_playlist_backup_song(dynamic raw);
 
   @protected
   PlaylistViewData dco_decode_playlist_view_data(dynamic raw);
@@ -204,6 +222,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<PlaylistBackupPlaylist> sse_decode_list_playlist_backup_playlist(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<PlaylistBackupSong> sse_decode_list_playlist_backup_song(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<PlaylistViewData> sse_decode_list_playlist_view_data(
     SseDeserializer deserializer,
   );
@@ -239,6 +267,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlaybackStateData sse_decode_playback_state_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PlaylistBackup sse_decode_playlist_backup(SseDeserializer deserializer);
+
+  @protected
+  PlaylistBackupPlaylist sse_decode_playlist_backup_playlist(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PlaylistBackupSong sse_decode_playlist_backup_song(
     SseDeserializer deserializer,
   );
 
@@ -348,6 +389,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_playlist_backup_playlist(
+    List<PlaylistBackupPlaylist> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_playlist_backup_song(
+    List<PlaylistBackupSong> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_playlist_view_data(
     List<PlaylistViewData> self,
     SseSerializer serializer,
@@ -395,6 +448,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_playback_state_data(
     PlaybackStateData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_playlist_backup(
+    PlaylistBackup self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_playlist_backup_playlist(
+    PlaylistBackupPlaylist self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_playlist_backup_song(
+    PlaylistBackupSong self,
     SseSerializer serializer,
   );
 

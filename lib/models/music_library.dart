@@ -24,6 +24,20 @@ enum LibraryPage {
   const LibraryPage(this.label);
 }
 
+class OmniSearchResults {
+  final List<SongViewData> songs;
+  final List<AlbumViewData> albums;
+  final List<PlaylistViewData> playlists;
+
+  const OmniSearchResults({
+    required this.songs,
+    required this.albums,
+    required this.playlists,
+  });
+
+  bool get isEmpty => songs.isEmpty && albums.isEmpty && playlists.isEmpty;
+}
+
 /// Thin Dart-side state container. Storage and metadata extraction all live
 /// on the Rust side; this class owns the scan lifecycle, a cached paginated
 /// view over the SQLite-backed library, and the now-playing queue + history.
@@ -280,22 +294,49 @@ class MusicLibrary extends ChangeNotifier {
 
   // --- search passthroughs ---
 
-  Future<List<SongViewData>> searchSongs(String query) async {
+  Future<List<SongViewData>> searchSongs(
+    String query, {
+    int limit = 200,
+  }) async {
     final q = query.trim();
     if (q.isEmpty) return _songs;
-    return library.searchSongs(query: q, limit: 200);
+    return library.searchSongs(query: q, limit: limit);
   }
 
-  Future<List<AlbumViewData>> searchAlbums(String query) async {
+  Future<List<AlbumViewData>> searchAlbums(
+    String query, {
+    int limit = 200,
+  }) async {
     final q = query.trim();
     if (q.isEmpty) return _albums;
-    return library.searchAlbums(query: q, limit: 200);
+    return library.searchAlbums(query: q, limit: limit);
   }
 
-  Future<List<PlaylistViewData>> searchPlaylists(String query) async {
+  Future<List<PlaylistViewData>> searchPlaylists(
+    String query, {
+    int limit = 200,
+  }) async {
     final q = query.trim();
     if (q.isEmpty) return _playlists;
-    return library.searchPlaylists(query: q, limit: 200);
+    return library.searchPlaylists(query: q, limit: limit);
+  }
+
+  Future<OmniSearchResults> searchOmni(
+    String query, {
+    int perTypeLimit = 8,
+  }) async {
+    final q = query.trim();
+    if (q.isEmpty) {
+      return const OmniSearchResults(songs: [], albums: [], playlists: []);
+    }
+    final songsFuture = searchSongs(q, limit: perTypeLimit);
+    final albumsFuture = searchAlbums(q, limit: perTypeLimit);
+    final playlistsFuture = searchPlaylists(q, limit: perTypeLimit);
+    return OmniSearchResults(
+      songs: await songsFuture,
+      albums: await albumsFuture,
+      playlists: await playlistsFuture,
+    );
   }
 
   Future<List<ArtistViewData>> searchArtists(String query) async {

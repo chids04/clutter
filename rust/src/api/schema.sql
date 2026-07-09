@@ -22,10 +22,12 @@ CREATE TABLE IF NOT EXISTS songs (
     disc_num   INTEGER NOT NULL DEFAULT 1,
     album_id   TEXT,
     file_path  TEXT NOT NULL UNIQUE,
+    added_at   INTEGER NOT NULL,
     FOREIGN KEY (album_id) REFERENCES albums(id)
 );
 
 CREATE INDEX IF NOT EXISTS songs_album ON songs(album_id);
+CREATE INDEX IF NOT EXISTS songs_added_at ON songs(added_at DESC);
 
 CREATE TABLE IF NOT EXISTS song_artists (
     song_id     TEXT NOT NULL,

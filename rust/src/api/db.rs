@@ -6,6 +6,7 @@ use crate::api::metadata::{RawCover, RawMetadata, MISSING_ALBUM, MISSING_ARTIST,
 use flutter_rust_bridge::frb;
 use log::{debug, warn};
 use rusqlite::{params, Connection, OptionalExtension};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 // Group-concat separator for features in SQL projections. Using ASCII Unit
@@ -88,6 +89,7 @@ pub(crate) const LIKED_SONGS_NAME: &str = "Liked Songs";
 pub struct Store {
     pub conn: Mutex<Connection>,
     covers_dir: PathBuf,
+    playlist_backup_path: PathBuf,
     /// Base directory that every stored path is relativized against. On iOS the
     /// app's sandbox container path (and thus the documents dir) carries a UUID
     /// that rotates on every relaunch/reinstall, so absolute paths persisted in
@@ -117,19 +119,16 @@ impl Store {
         conn.execute_batch(include_str!("schema.sql"))
             .map_err(|e| format!("init schema: {e}"))?;
 
-        // Idempotent migration: add loop_one column to playback_state for
-        // databases created before this column existed.
-        //
-        let _ = conn.execute(
-            "ALTER TABLE playback_state ADD COLUMN loop_one INTEGER NOT NULL DEFAULT 0",
-            [],
-        );
-
         ensure_liked_songs_playlist(&conn).map_err(|e| format!("seed liked songs: {e}"))?;
+        let playlist_backup_path = Path::new(db_path)
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join("playlist_backup.json");
 
         Ok(Store {
             conn: Mutex::new(conn),
             covers_dir: covers_dir_buf,
+            playlist_backup_path,
             base_dir: PathBuf::from(base_dir),
         })
     }
@@ -377,6 +376,9 @@ impl Store {
             params![id, trimmed, now],
         )
         .map_err(|e| format!("insert playlist: {e}"))?;
+        if let Err(e) = backup_user_playlists(&conn, &self.playlist_backup_path) {
+            warn!("backup playlists after create failed: {e}");
+        }
         Ok(id)
     }
 
@@ -396,6 +398,9 @@ impl Store {
             Some(_) => {
                 conn.execute("DELETE FROM playlists WHERE id = ?1", params![id])
                     .map_err(|e| format!("delete: {e}"))?;
+                if let Err(e) = backup_user_playlists(&conn, &self.playlist_backup_path) {
+                    warn!("backup playlists after delete failed: {e}");
+                }
                 Ok(())
             }
         }
@@ -420,6 +425,15 @@ impl Store {
             params![playlist_id, song_id, next_pos, now],
         )
         .map_err(|e| format!("insert playlist_song: {e}"))?;
+        match playlist_is_user(&conn, playlist_id) {
+            Ok(true) => {
+                if let Err(e) = backup_user_playlists(&conn, &self.playlist_backup_path) {
+                    warn!("backup playlists after add song failed: {e}");
+                }
+            }
+            Ok(false) => {}
+            Err(e) => warn!("lookup playlist before add-song backup failed: {e}"),
+        }
         Ok(())
     }
 
@@ -434,7 +448,21 @@ impl Store {
             params![playlist_id, song_id],
         )
         .map_err(|e| format!("delete playlist_song: {e}"))?;
+        match playlist_is_user(&conn, playlist_id) {
+            Ok(true) => {
+                if let Err(e) = backup_user_playlists(&conn, &self.playlist_backup_path) {
+                    warn!("backup playlists after remove song failed: {e}");
+                }
+            }
+            Ok(false) => {}
+            Err(e) => warn!("lookup playlist before remove-song backup failed: {e}"),
+        }
         Ok(())
+    }
+
+    pub fn restore_user_playlists_from_backup(&self) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
+        restore_user_playlists_from_backup(&conn, &self.playlist_backup_path)
     }
 
     pub fn get_liked_songs_playlist_id(&self) -> Option<String> {
@@ -1090,7 +1118,7 @@ fn query_songs(conn: &Connection, filter: SongFilter) -> rusqlite::Result<Vec<So
     match filter {
         SongFilter::Page { offset, limit } => {
             let sql = format!(
-                "{base} ORDER BY COALESCE(al.title, ''), s.disc_num, s.track_num, s.title \
+                "{base} ORDER BY s.added_at DESC, s.rowid DESC, s.title COLLATE NOCASE \
                  LIMIT ?2 OFFSET ?3"
             );
             let mut stmt = conn.prepare(&sql)?;
@@ -1234,6 +1262,194 @@ fn like_escape(q: &str) -> String {
     q.replace('\\', "\\\\")
         .replace('%', "\\%")
         .replace('_', "\\_")
+}
+
+#[frb(ignore)]
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct PlaylistBackup {
+    pub playlists: Vec<PlaylistBackupPlaylist>,
+}
+
+#[frb(ignore)]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlaylistBackupPlaylist {
+    pub name: String,
+    pub songs: Vec<PlaylistBackupSong>,
+}
+
+#[frb(ignore)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlaylistBackupSong {
+    pub title: String,
+    pub album: String,
+}
+
+fn backup_user_playlists(conn: &Connection, path: &Path) -> Result<(), String> {
+    let mut playlists_stmt = conn
+        .prepare(
+            "SELECT id, name FROM playlists \
+             WHERE is_system = 0 \
+             ORDER BY created_at DESC, name COLLATE NOCASE",
+        )
+        .map_err(|e| format!("prepare playlists backup: {e}"))?;
+    let playlists = playlists_stmt
+        .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+        .map_err(|e| format!("query playlists backup: {e}"))?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| format!("collect playlists backup: {e}"))?;
+
+    let mut backup = PlaylistBackup::default();
+    for (playlist_id, name) in playlists {
+        let mut songs_stmt = conn
+            .prepare(
+                "SELECT s.title, COALESCE(al.title, ?1) \
+                 FROM playlist_songs ps \
+                 JOIN songs s ON s.id = ps.song_id \
+                 LEFT JOIN albums al ON s.album_id = al.id \
+                 WHERE ps.playlist_id = ?2 \
+                 ORDER BY ps.position",
+            )
+            .map_err(|e| format!("prepare playlist songs backup: {e}"))?;
+        let songs = songs_stmt
+            .query_map(params![MISSING_ALBUM, playlist_id], |r| {
+                Ok(PlaylistBackupSong {
+                    title: r.get(0)?,
+                    album: r.get(1)?,
+                })
+            })
+            .map_err(|e| format!("query playlist songs backup: {e}"))?
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(|e| format!("collect playlist songs backup: {e}"))?;
+        backup
+            .playlists
+            .push(PlaylistBackupPlaylist { name, songs });
+    }
+
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent).map_err(|e| format!("create backup dir: {e}"))?;
+        }
+    }
+    let json = serde_json::to_string_pretty(&backup).map_err(|e| format!("encode backup: {e}"))?;
+    fs::write(path, json).map_err(|e| format!("write backup: {e}"))
+}
+
+fn playlist_is_user(conn: &Connection, playlist_id: &str) -> Result<bool, String> {
+    conn.query_row(
+        "SELECT is_system FROM playlists WHERE id = ?1",
+        params![playlist_id],
+        |r| r.get::<_, i64>(0),
+    )
+    .optional()
+    .map(|value| value == Some(0))
+    .map_err(|e| format!("lookup playlist kind: {e}"))
+}
+
+fn restore_user_playlists_from_backup(conn: &Connection, path: &Path) -> Result<(), String> {
+    if !path.exists() {
+        return Ok(());
+    }
+    let raw = fs::read_to_string(path).map_err(|e| format!("read backup: {e}"))?;
+    let backup: PlaylistBackup =
+        serde_json::from_str(&raw).map_err(|e| format!("parse backup: {e}"))?;
+    if backup.playlists.is_empty() {
+        return Ok(());
+    }
+
+    let mut songs_stmt = conn
+        .prepare(
+            "SELECT s.id, s.title, COALESCE(al.title, ?1) \
+             FROM songs s \
+             LEFT JOIN albums al ON s.album_id = al.id \
+             ORDER BY s.rowid",
+        )
+        .map_err(|e| format!("prepare restore song index: {e}"))?;
+    let songs = songs_stmt
+        .query_map(params![MISSING_ALBUM], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+            ))
+        })
+        .map_err(|e| format!("query restore song index: {e}"))?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| format!("collect restore song index: {e}"))?;
+
+    let mut song_index = std::collections::HashMap::<(String, String), String>::new();
+    for (id, title, album) in songs {
+        song_index
+            .entry((normalize_match_value(&title), normalize_match_value(&album)))
+            .or_insert(id);
+    }
+
+    let mut restored = 0usize;
+    let mut skipped = 0usize;
+    for playlist in backup.playlists {
+        let name = playlist.name.trim();
+        if name.is_empty() || name == LIKED_SONGS_NAME {
+            continue;
+        }
+        let playlist_id = match conn
+            .query_row(
+                "SELECT id FROM playlists WHERE is_system = 0 AND name = ?1",
+                params![name],
+                |r| r.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(|e| format!("lookup restore playlist: {e}"))?
+        {
+            Some(id) => id,
+            None => {
+                let id = Uuid::new_v4().to_string();
+                conn.execute(
+                    "INSERT INTO playlists (id, name, is_system, created_at) VALUES (?1, ?2, 0, ?3)",
+                    params![id, name, now_secs()],
+                )
+                .map_err(|e| format!("insert restore playlist: {e}"))?;
+                id
+            }
+        };
+
+        for song in playlist.songs {
+            let key = (
+                normalize_match_value(&song.title),
+                normalize_match_value(&song.album),
+            );
+            let Some(song_id) = song_index.get(&key) else {
+                skipped += 1;
+                continue;
+            };
+            let next_pos: i64 = conn
+                .query_row(
+                    "SELECT COALESCE(MAX(position), 0) + 1 FROM playlist_songs WHERE playlist_id = ?1",
+                    params![playlist_id],
+                    |r| r.get(0),
+                )
+                .map_err(|e| format!("restore next position: {e}"))?;
+            let changed = conn
+                .execute(
+                    "INSERT OR IGNORE INTO playlist_songs (playlist_id, song_id, position, added_at) \
+                     VALUES (?1, ?2, ?3, ?4)",
+                    params![playlist_id, song_id, next_pos, now_secs()],
+                )
+                .map_err(|e| format!("restore playlist song: {e}"))?;
+            if changed > 0 {
+                restored += 1;
+            }
+        }
+    }
+
+    debug!("playlist backup restore complete: {restored} songs restored, {skipped} songs skipped");
+    Ok(())
+}
+
+fn normalize_match_value(value: &str) -> String {
+    value
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase()
 }
 
 /// Make `abs` relative to `base` for storage. Stored relative paths always use
@@ -1465,10 +1681,19 @@ fn insert_song(
     }
 
     let song_id = Uuid::new_v4().to_string();
+    let added_at = now_secs();
     conn.execute(
-        "INSERT INTO songs (id, title, track_num, disc_num, album_id, file_path) \
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![song_id, title, track_num, disc_num, album_id, file_path_str],
+        "INSERT INTO songs (id, title, track_num, disc_num, album_id, file_path, added_at) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![
+            song_id,
+            title,
+            track_num,
+            disc_num,
+            album_id,
+            file_path_str,
+            added_at
+        ],
     )?;
     conn.execute(
         "INSERT INTO song_artists (song_id, artist_id, is_featured, position) \
@@ -1666,6 +1891,31 @@ mod tests {
             |r| r.get::<_, String>(0),
         )
         .expect("find album")
+    }
+
+    #[test]
+    fn get_songs_paginated_orders_by_newest_added_first() {
+        let (store, _tmp) = new_store();
+        insert_basic_song(&store, "/tmp/old.mp3", "Old", "Album", "Artist", &[]);
+        insert_basic_song(&store, "/tmp/new.mp3", "New", "Album", "Artist", &[]);
+        insert_basic_song(&store, "/tmp/middle.mp3", "Middle", "Album", "Artist", &[]);
+
+        {
+            let conn = store.conn.lock().unwrap();
+            conn.execute(
+                "UPDATE songs SET added_at = CASE title \
+                    WHEN 'Old' THEN 10 \
+                    WHEN 'Middle' THEN 20 \
+                    WHEN 'New' THEN 30 \
+                 END",
+                [],
+            )
+            .unwrap();
+        }
+
+        let page = store.get_songs_paginated(0, 10);
+        let titles: Vec<&str> = page.iter().map(|s| s.title.as_str()).collect();
+        assert_eq!(titles, vec!["New", "Middle", "Old"]);
     }
 
     #[test]
@@ -1889,6 +2139,139 @@ mod tests {
             .remove_song_from_playlist(&pid, &song_id)
             .expect("remove");
         assert!(store.get_songs_in_playlist(&pid).is_empty());
+    }
+
+    #[test]
+    fn playlist_backup_tracks_user_playlist_changes() {
+        let (store, _tmp) = new_store();
+        insert_basic_song(
+            &store,
+            "/tmp/backup.mp3",
+            "Backup Track",
+            "Backup Album",
+            "Artist",
+            &[],
+        );
+        let song_id: String = {
+            let conn = store.conn.lock().unwrap();
+            conn.query_row("SELECT id FROM songs LIMIT 1", [], |r| r.get(0))
+                .unwrap()
+        };
+
+        let pid = store.create_playlist("Backup List").expect("create");
+        store.add_song_to_playlist(&pid, &song_id).expect("add");
+
+        let raw = fs::read_to_string(&store.playlist_backup_path).expect("backup json");
+        let backup: PlaylistBackup = serde_json::from_str(&raw).expect("parse backup");
+        assert_eq!(backup.playlists.len(), 1);
+        assert_eq!(backup.playlists[0].name, "Backup List");
+        assert_eq!(backup.playlists[0].songs[0].title, "Backup Track");
+        assert_eq!(backup.playlists[0].songs[0].album, "Backup Album");
+
+        store
+            .remove_song_from_playlist(&pid, &song_id)
+            .expect("remove");
+        let raw = fs::read_to_string(&store.playlist_backup_path).expect("backup json");
+        let backup: PlaylistBackup = serde_json::from_str(&raw).expect("parse backup");
+        assert!(backup.playlists[0].songs.is_empty());
+
+        store.delete_playlist(&pid).expect("delete");
+        let raw = fs::read_to_string(&store.playlist_backup_path).expect("backup json");
+        let backup: PlaylistBackup = serde_json::from_str(&raw).expect("parse backup");
+        assert!(backup.playlists.is_empty());
+    }
+
+    #[test]
+    fn reset_library_does_not_rewrite_playlist_backup() {
+        let (store, _tmp) = new_store();
+        insert_basic_song(&store, "/tmp/reset.mp3", "Track", "Album", "Artist", &[]);
+        let song_id: String = {
+            let conn = store.conn.lock().unwrap();
+            conn.query_row("SELECT id FROM songs LIMIT 1", [], |r| r.get(0))
+                .unwrap()
+        };
+        let pid = store.create_playlist("Persist Me").expect("create");
+        store.add_song_to_playlist(&pid, &song_id).expect("add");
+        let before = fs::read_to_string(&store.playlist_backup_path).expect("backup before");
+
+        store.reset_library().expect("reset");
+
+        let after = fs::read_to_string(&store.playlist_backup_path).expect("backup after");
+        assert_eq!(after, before);
+    }
+
+    #[test]
+    fn liked_songs_changes_do_not_rewrite_playlist_backup() {
+        let (store, _tmp) = new_store();
+        insert_basic_song(&store, "/tmp/liked.mp3", "Track", "Album", "Artist", &[]);
+        let song_id: String = {
+            let conn = store.conn.lock().unwrap();
+            conn.query_row("SELECT id FROM songs LIMIT 1", [], |r| r.get(0))
+                .unwrap()
+        };
+        let pid = store.create_playlist("Keep Backup").expect("create");
+        store.add_song_to_playlist(&pid, &song_id).expect("add");
+        let before = fs::read_to_string(&store.playlist_backup_path).expect("backup before");
+
+        let liked_id = store.get_liked_songs_playlist_id().expect("liked playlist");
+        store
+            .add_song_to_playlist(&liked_id, &song_id)
+            .expect("like");
+        store
+            .remove_song_from_playlist(&liked_id, &song_id)
+            .expect("unlike");
+
+        let after = fs::read_to_string(&store.playlist_backup_path).expect("backup after");
+        assert_eq!(after, before);
+    }
+
+    #[test]
+    fn restore_playlist_backup_matches_normalized_title_and_album() {
+        let (store, _tmp) = new_store();
+        insert_basic_song(
+            &store,
+            "/tmp/restore.mp3",
+            "A Restored Song",
+            "The Album",
+            "Artist",
+            &[],
+        );
+        let backup = PlaylistBackup {
+            playlists: vec![PlaylistBackupPlaylist {
+                name: "Restored".to_string(),
+                songs: vec![
+                    PlaylistBackupSong {
+                        title: "  a   restored SONG ".to_string(),
+                        album: " the album ".to_string(),
+                    },
+                    PlaylistBackupSong {
+                        title: "Missing".to_string(),
+                        album: "The Album".to_string(),
+                    },
+                ],
+            }],
+        };
+        fs::write(
+            &store.playlist_backup_path,
+            serde_json::to_string_pretty(&backup).unwrap(),
+        )
+        .expect("write backup");
+
+        store
+            .restore_user_playlists_from_backup()
+            .expect("restore first");
+        store
+            .restore_user_playlists_from_backup()
+            .expect("restore second");
+
+        let playlists = store.get_playlists_paginated(0, 10);
+        let restored = playlists
+            .iter()
+            .find(|p| p.name == "Restored")
+            .expect("restored playlist");
+        let songs = store.get_songs_in_playlist(&restored.id);
+        assert_eq!(songs.len(), 1);
+        assert_eq!(songs[0].title, "A Restored Song");
     }
 
     #[test]
