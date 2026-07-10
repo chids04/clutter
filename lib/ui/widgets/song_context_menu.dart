@@ -5,15 +5,12 @@ import 'package:clutter/src/rust/api/scanner.dart';
 import 'package:clutter/ui/views/albums_view.dart';
 import 'package:clutter/ui/views/artists_view.dart';
 import 'package:clutter/ui/widgets/confirm_dialog.dart';
+import 'package:clutter/ui/widgets/metadata_editors.dart';
+import 'package:clutter/services/cover_img_loader.dart';
 
 AlbumViewData? _albumForSong(MusicLibrary musicLibrary, SongViewData song) {
   for (final album in musicLibrary.albums) {
-    if (album.title == song.album && album.artist == song.primaryArtist) {
-      return album;
-    }
-  }
-  for (final album in musicLibrary.albums) {
-    if (album.title == song.album) return album;
+    if (album.id == song.albumId) return album;
   }
   return null;
 }
@@ -50,7 +47,9 @@ Future<void> _pickPlaylistAndAdd(
         itemBuilder: (_, i) {
           final p = userPlaylists[i];
           return ListTile(
-            leading: const Icon(Icons.queue_music),
+            leading: p.imagePath != null
+                ? coverImg(p.imagePath, 40)
+                : Icon(playlistIcons[p.iconKey] ?? Icons.queue_music),
             title: Text(p.name),
             subtitle: Text("${p.songCount} songs"),
             onTap: () => Navigator.of(ctx).pop(p),
@@ -159,6 +158,16 @@ Future<void> showSongContextMenu(
           ),
         ),
       const PopupMenuItem<String>(
+        value: 'edit_song',
+        child: Row(
+          children: [
+            Icon(Icons.edit_outlined, size: 18),
+            SizedBox(width: 8),
+            Text("edit song…"),
+          ],
+        ),
+      ),
+      const PopupMenuItem<String>(
         value: 'delete_song',
         child: Row(
           children: [
@@ -188,6 +197,8 @@ Future<void> showSongContextMenu(
     if (context.mounted) await _pickPlaylistAndAdd(context, musicLibrary, song);
   } else if (v == 'remove_from_playlist') {
     onRemoveFromPlaylist?.call();
+  } else if (v == 'edit_song') {
+    if (context.mounted) await showSongEditor(context, song, musicLibrary);
   } else if (v == 'delete_song') {
     if (!context.mounted) return;
     final ok = await confirmDestructive(

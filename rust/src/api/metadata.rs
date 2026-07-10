@@ -1,5 +1,10 @@
 use std::path::Path;
 
+use lofty::config::WriteOptions;
+use lofty::file::{AudioFile, TaggedFileExt};
+use lofty::picture::{Picture, PictureType};
+use lofty::tag::{Accessor, ItemKey, ItemValue, Tag as LoftyTag, TagItem};
+
 use flutter_rust_bridge::frb;
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
@@ -30,6 +35,74 @@ pub struct RawMetadata {
 pub struct RawCover {
     pub data: Vec<u8>,
     pub mime_type: String,
+}
+
+#[frb(ignore)]
+pub fn write_metadata(
+    path: &Path,
+    title: &str,
+    primary_artist: &str,
+    featured_artists: &[String],
+    album: &str,
+    album_artists: &[String],
+    track_num: i64,
+    disc_num: i64,
+    artwork_path: Option<&Path>,
+) -> Result<(), String> {
+    let mut tagged = lofty::read_from_path(path).map_err(|e| format!("read tags: {e}"))?;
+    if tagged.primary_tag().is_none() {
+        tagged.insert_tag(LoftyTag::new(tagged.primary_tag_type()));
+    }
+    let tag = tagged
+        .primary_tag_mut()
+        .ok_or_else(|| "audio format has no writable primary tag".to_string())?;
+    tag.set_title(title.to_string());
+    tag.set_artist(
+        std::iter::once(primary_artist)
+            .chain(featured_artists.iter().map(String::as_str))
+            .collect::<Vec<_>>()
+            .join(" / "),
+    );
+    tag.set_album(album.to_string());
+    tag.set_track(track_num as u32);
+    tag.set_disk(disc_num as u32);
+
+    for key in [
+        ItemKey::TrackArtists,
+        ItemKey::AlbumArtist,
+        ItemKey::AlbumArtists,
+    ] {
+        tag.remove_key(key);
+    }
+    for artist in std::iter::once(primary_artist).chain(featured_artists.iter().map(String::as_str))
+    {
+        tag.push(TagItem::new(
+            ItemKey::TrackArtists,
+            ItemValue::Text(artist.to_string()),
+        ));
+    }
+    tag.insert_text(ItemKey::AlbumArtist, album_artists.join(" / "));
+    for artist in album_artists {
+        tag.push(TagItem::new(
+            ItemKey::AlbumArtists,
+            ItemValue::Text(artist.clone()),
+        ));
+    }
+
+    while !tag.pictures().is_empty() {
+        tag.remove_picture(0);
+    }
+    if let Some(artwork_path) = artwork_path {
+        let mut file =
+            std::fs::File::open(artwork_path).map_err(|e| format!("open artwork: {e}"))?;
+        let mut picture =
+            Picture::from_reader(&mut file).map_err(|e| format!("decode artwork: {e}"))?;
+        picture.set_pic_type(PictureType::CoverFront);
+        tag.push_picture(picture);
+    }
+    tagged
+        .save_to_path(path, WriteOptions::default())
+        .map_err(|e| format!("write tags: {e}"))
 }
 
 /// Split a raw artist tag value into `(leading, features)`. When

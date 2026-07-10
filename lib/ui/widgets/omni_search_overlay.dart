@@ -417,7 +417,7 @@ class _AlbumResultTile extends StatelessWidget {
       ),
       title: Text(album.title, maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(
-        album.artist,
+        album.artists.join(', '),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),

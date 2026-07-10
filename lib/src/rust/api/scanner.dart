@@ -5,8 +5,10 @@
 
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+part 'scanner.freezed.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CLibrary>>
 abstract class CLibrary implements RustOpaqueInterface {
@@ -150,6 +152,59 @@ abstract class CLibrary implements RustOpaqueInterface {
   Future<String> splitAlbumToNewArtist({required String albumId});
 
   Future<void> unpinItem({required String itemId, required String kind});
+
+  Future<AlbumViewData> updateAlbum({required AlbumEditRequest request});
+
+  Future<ArtistViewData> updateArtistImage({
+    required String artistId,
+    required CoverArtEdit cover,
+  });
+
+  Future<PlaylistViewData> updatePlaylist({
+    required PlaylistEditRequest request,
+  });
+
+  Future<SongViewData> updateSong({required SongEditRequest request});
+}
+
+@freezed
+sealed class AlbumChoice with _$AlbumChoice {
+  const AlbumChoice._();
+
+  const factory AlbumChoice.existing({required String albumId}) =
+      AlbumChoice_Existing;
+  const factory AlbumChoice.new_({
+    required String title,
+    required List<String> artists,
+  }) = AlbumChoice_New;
+}
+
+class AlbumEditRequest {
+  final String albumId;
+  final String title;
+  final List<String> artists;
+  final CoverArtEdit cover;
+
+  const AlbumEditRequest({
+    required this.albumId,
+    required this.title,
+    required this.artists,
+    required this.cover,
+  });
+
+  @override
+  int get hashCode =>
+      albumId.hashCode ^ title.hashCode ^ artists.hashCode ^ cover.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AlbumEditRequest &&
+          runtimeType == other.runtimeType &&
+          albumId == other.albumId &&
+          title == other.title &&
+          artists == other.artists &&
+          cover == other.cover;
 }
 
 /// UI-ready album shape. `artist` is the resolved album-artist name.
@@ -159,6 +214,7 @@ class AlbumViewData {
   final String artist;
   final String? coverPath;
   final PlatformInt64 songCount;
+  final List<String> artists;
 
   const AlbumViewData({
     required this.id,
@@ -166,6 +222,7 @@ class AlbumViewData {
     required this.artist,
     this.coverPath,
     required this.songCount,
+    required this.artists,
   });
 
   @override
@@ -174,7 +231,8 @@ class AlbumViewData {
       title.hashCode ^
       artist.hashCode ^
       coverPath.hashCode ^
-      songCount.hashCode;
+      songCount.hashCode ^
+      artists.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -185,7 +243,8 @@ class AlbumViewData {
           title == other.title &&
           artist == other.artist &&
           coverPath == other.coverPath &&
-          songCount == other.songCount;
+          songCount == other.songCount &&
+          artists == other.artists;
 }
 
 /// UI-ready artist shape. `cover_path` is a representative album cover for
@@ -196,6 +255,7 @@ class ArtistViewData {
   final String? coverPath;
   final PlatformInt64 albumCount;
   final PlatformInt64 songCount;
+  final String? customCoverPath;
 
   const ArtistViewData({
     required this.id,
@@ -203,6 +263,7 @@ class ArtistViewData {
     this.coverPath,
     required this.albumCount,
     required this.songCount,
+    this.customCoverPath,
   });
 
   @override
@@ -211,7 +272,8 @@ class ArtistViewData {
       name.hashCode ^
       coverPath.hashCode ^
       albumCount.hashCode ^
-      songCount.hashCode;
+      songCount.hashCode ^
+      customCoverPath.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -222,7 +284,8 @@ class ArtistViewData {
           name == other.name &&
           coverPath == other.coverPath &&
           albumCount == other.albumCount &&
-          songCount == other.songCount;
+          songCount == other.songCount &&
+          customCoverPath == other.customCoverPath;
 }
 
 class Config {
@@ -239,6 +302,16 @@ class Config {
       other is Config &&
           runtimeType == other.runtimeType &&
           isDeezer == other.isDeezer;
+}
+
+@freezed
+sealed class CoverArtEdit with _$CoverArtEdit {
+  const CoverArtEdit._();
+
+  const factory CoverArtEdit.keep() = CoverArtEdit_Keep;
+  const factory CoverArtEdit.remove() = CoverArtEdit_Remove;
+  const factory CoverArtEdit.replace({required String sourcePath}) =
+      CoverArtEdit_Replace;
 }
 
 /// UI-ready pinned item for the quick-play sidebar.
@@ -291,23 +364,56 @@ class PlaybackStateData {
           loopOne == other.loopOne;
 }
 
+class PlaylistEditRequest {
+  final String playlistId;
+  final String name;
+  final PlaylistVisualEdit visual;
+
+  const PlaylistEditRequest({
+    required this.playlistId,
+    required this.name,
+    required this.visual,
+  });
+
+  @override
+  int get hashCode => playlistId.hashCode ^ name.hashCode ^ visual.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PlaylistEditRequest &&
+          runtimeType == other.runtimeType &&
+          playlistId == other.playlistId &&
+          name == other.name &&
+          visual == other.visual;
+}
+
 /// UI-ready playlist shape.
 class PlaylistViewData {
   final String id;
   final String name;
   final bool isSystem;
   final PlatformInt64 songCount;
+  final String? iconKey;
+  final String? imagePath;
 
   const PlaylistViewData({
     required this.id,
     required this.name,
     required this.isSystem,
     required this.songCount,
+    this.iconKey,
+    this.imagePath,
   });
 
   @override
   int get hashCode =>
-      id.hashCode ^ name.hashCode ^ isSystem.hashCode ^ songCount.hashCode;
+      id.hashCode ^
+      name.hashCode ^
+      isSystem.hashCode ^
+      songCount.hashCode ^
+      iconKey.hashCode ^
+      imagePath.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -317,7 +423,68 @@ class PlaylistViewData {
           id == other.id &&
           name == other.name &&
           isSystem == other.isSystem &&
-          songCount == other.songCount;
+          songCount == other.songCount &&
+          iconKey == other.iconKey &&
+          imagePath == other.imagePath;
+}
+
+@freezed
+sealed class PlaylistVisualEdit with _$PlaylistVisualEdit {
+  const PlaylistVisualEdit._();
+
+  const factory PlaylistVisualEdit.keep() = PlaylistVisualEdit_Keep;
+  const factory PlaylistVisualEdit.initials() = PlaylistVisualEdit_Initials;
+  const factory PlaylistVisualEdit.icon({required String key}) =
+      PlaylistVisualEdit_Icon;
+  const factory PlaylistVisualEdit.image({required String sourcePath}) =
+      PlaylistVisualEdit_Image;
+}
+
+class SongEditRequest {
+  final String songId;
+  final String title;
+  final String primaryArtist;
+  final List<String> featuredArtists;
+  final PlatformInt64 trackNum;
+  final PlatformInt64 discNum;
+  final AlbumChoice album;
+  final CoverArtEdit cover;
+
+  const SongEditRequest({
+    required this.songId,
+    required this.title,
+    required this.primaryArtist,
+    required this.featuredArtists,
+    required this.trackNum,
+    required this.discNum,
+    required this.album,
+    required this.cover,
+  });
+
+  @override
+  int get hashCode =>
+      songId.hashCode ^
+      title.hashCode ^
+      primaryArtist.hashCode ^
+      featuredArtists.hashCode ^
+      trackNum.hashCode ^
+      discNum.hashCode ^
+      album.hashCode ^
+      cover.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SongEditRequest &&
+          runtimeType == other.runtimeType &&
+          songId == other.songId &&
+          title == other.title &&
+          primaryArtist == other.primaryArtist &&
+          featuredArtists == other.featuredArtists &&
+          trackNum == other.trackNum &&
+          discNum == other.discNum &&
+          album == other.album &&
+          cover == other.cover;
 }
 
 /// Flattened, UI-ready view of a song. All names are resolved strings — the
@@ -332,6 +499,9 @@ class SongViewData {
   final PlatformInt64 trackNum;
   final PlatformInt64 discNum;
   final String album;
+  final String albumId;
+  final List<String> albumArtists;
+  final String? songCoverPath;
 
   const SongViewData({
     required this.id,
@@ -343,6 +513,9 @@ class SongViewData {
     required this.trackNum,
     required this.discNum,
     required this.album,
+    required this.albumId,
+    required this.albumArtists,
+    this.songCoverPath,
   });
 
   @override
@@ -355,7 +528,10 @@ class SongViewData {
       filePath.hashCode ^
       trackNum.hashCode ^
       discNum.hashCode ^
-      album.hashCode;
+      album.hashCode ^
+      albumId.hashCode ^
+      albumArtists.hashCode ^
+      songCoverPath.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -370,5 +546,8 @@ class SongViewData {
           filePath == other.filePath &&
           trackNum == other.trackNum &&
           discNum == other.discNum &&
-          album == other.album;
+          album == other.album &&
+          albumId == other.albumId &&
+          albumArtists == other.albumArtists &&
+          songCoverPath == other.songCoverPath;
 }

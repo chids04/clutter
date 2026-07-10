@@ -1,19 +1,33 @@
 CREATE TABLE IF NOT EXISTS artists (
-    id   TEXT PRIMARY KEY,
-    name TEXT NOT NULL
+    id                TEXT PRIMARY KEY,
+    name              TEXT NOT NULL,
+    custom_cover_path TEXT
 );
 
 CREATE INDEX IF NOT EXISTS artists_name ON artists(name);
 
 CREATE TABLE IF NOT EXISTS albums (
-    id         TEXT PRIMARY KEY,
-    title      TEXT NOT NULL,
-    artist_id  TEXT,
-    cover_path TEXT,
+    id           TEXT PRIMARY KEY,
+    title        TEXT NOT NULL,
+    artist_id    TEXT,
+    artist_key   TEXT NOT NULL,
+    cover_path   TEXT,
     FOREIGN KEY (artist_id) REFERENCES artists(id)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS albums_title_artist ON albums(title, artist_id);
+CREATE UNIQUE INDEX IF NOT EXISTS albums_identity ON albums(title COLLATE NOCASE, artist_key);
+
+CREATE TABLE IF NOT EXISTS album_artists (
+    album_id  TEXT NOT NULL,
+    artist_id TEXT NOT NULL,
+    position  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (album_id, artist_id),
+    FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+    FOREIGN KEY (artist_id) REFERENCES artists(id)
+);
+
+CREATE INDEX IF NOT EXISTS album_artists_album ON album_artists(album_id, position);
+CREATE INDEX IF NOT EXISTS album_artists_artist ON album_artists(artist_id);
 
 CREATE TABLE IF NOT EXISTS songs (
     id         TEXT PRIMARY KEY,
@@ -21,6 +35,7 @@ CREATE TABLE IF NOT EXISTS songs (
     track_num  INTEGER NOT NULL DEFAULT 1,
     disc_num   INTEGER NOT NULL DEFAULT 1,
     album_id   TEXT,
+    cover_path TEXT,
     file_path  TEXT NOT NULL UNIQUE,
     added_at   INTEGER NOT NULL,
     FOREIGN KEY (album_id) REFERENCES albums(id)
@@ -44,6 +59,8 @@ CREATE INDEX IF NOT EXISTS song_artists_song ON song_artists(song_id);
 CREATE TABLE IF NOT EXISTS playlists (
     id         TEXT PRIMARY KEY,
     name       TEXT NOT NULL,
+    icon_key   TEXT,
+    image_path TEXT,
     is_system  INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL
 );
@@ -83,6 +100,11 @@ CREATE TABLE IF NOT EXISTS pinned_items (
 );
 
 CREATE INDEX IF NOT EXISTS pinned_items_position ON pinned_items(position, pinned_at DESC);
+
+CREATE TABLE IF NOT EXISTS metadata_operations (
+    id TEXT PRIMARY KEY,
+    committed_at INTEGER NOT NULL
+);
 
 -- Singleton (id must be 1) so the MediaBar can restore on relaunch.
 CREATE TABLE IF NOT EXISTS playback_state (

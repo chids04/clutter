@@ -6,7 +6,6 @@
 // Static analysis wrongly picks the IO variant, thus ignore this
 // ignore_for_file: argument_type_not_assignable
 
-import 'api/db.dart';
 import 'api/scanner.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -47,6 +46,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String dco_decode_String(dynamic raw);
 
   @protected
+  AlbumChoice dco_decode_album_choice(dynamic raw);
+
+  @protected
+  AlbumEditRequest dco_decode_album_edit_request(dynamic raw);
+
+  @protected
   AlbumViewData dco_decode_album_view_data(dynamic raw);
 
   @protected
@@ -56,19 +61,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  AlbumEditRequest dco_decode_box_autoadd_album_edit_request(dynamic raw);
+
+  @protected
   ArtistViewData dco_decode_box_autoadd_artist_view_data(dynamic raw);
 
   @protected
   Config dco_decode_box_autoadd_config(dynamic raw);
 
   @protected
+  CoverArtEdit dco_decode_box_autoadd_cover_art_edit(dynamic raw);
+
+  @protected
   PlaybackStateData dco_decode_box_autoadd_playback_state_data(dynamic raw);
+
+  @protected
+  PlaylistEditRequest dco_decode_box_autoadd_playlist_edit_request(dynamic raw);
+
+  @protected
+  SongEditRequest dco_decode_box_autoadd_song_edit_request(dynamic raw);
 
   @protected
   SongViewData dco_decode_box_autoadd_song_view_data(dynamic raw);
 
   @protected
   Config dco_decode_config(dynamic raw);
+
+  @protected
+  CoverArtEdit dco_decode_cover_art_edit(dynamic raw);
 
   @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
@@ -84,14 +104,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<PinnedItemData> dco_decode_list_pinned_item_data(dynamic raw);
-
-  @protected
-  List<PlaylistBackupPlaylist> dco_decode_list_playlist_backup_playlist(
-    dynamic raw,
-  );
-
-  @protected
-  List<PlaylistBackupSong> dco_decode_list_playlist_backup_song(dynamic raw);
 
   @protected
   List<PlaylistViewData> dco_decode_list_playlist_view_data(dynamic raw);
@@ -123,16 +135,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlaybackStateData dco_decode_playback_state_data(dynamic raw);
 
   @protected
-  PlaylistBackup dco_decode_playlist_backup(dynamic raw);
-
-  @protected
-  PlaylistBackupPlaylist dco_decode_playlist_backup_playlist(dynamic raw);
-
-  @protected
-  PlaylistBackupSong dco_decode_playlist_backup_song(dynamic raw);
+  PlaylistEditRequest dco_decode_playlist_edit_request(dynamic raw);
 
   @protected
   PlaylistViewData dco_decode_playlist_view_data(dynamic raw);
+
+  @protected
+  PlaylistVisualEdit dco_decode_playlist_visual_edit(dynamic raw);
+
+  @protected
+  SongEditRequest dco_decode_song_edit_request(dynamic raw);
 
   @protected
   SongViewData dco_decode_song_view_data(dynamic raw);
@@ -171,6 +183,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
+  AlbumChoice sse_decode_album_choice(SseDeserializer deserializer);
+
+  @protected
+  AlbumEditRequest sse_decode_album_edit_request(SseDeserializer deserializer);
+
+  @protected
   AlbumViewData sse_decode_album_view_data(SseDeserializer deserializer);
 
   @protected
@@ -178,6 +196,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   bool sse_decode_bool(SseDeserializer deserializer);
+
+  @protected
+  AlbumEditRequest sse_decode_box_autoadd_album_edit_request(
+    SseDeserializer deserializer,
+  );
 
   @protected
   ArtistViewData sse_decode_box_autoadd_artist_view_data(
@@ -188,7 +211,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Config sse_decode_box_autoadd_config(SseDeserializer deserializer);
 
   @protected
+  CoverArtEdit sse_decode_box_autoadd_cover_art_edit(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PlaybackStateData sse_decode_box_autoadd_playback_state_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PlaylistEditRequest sse_decode_box_autoadd_playlist_edit_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SongEditRequest sse_decode_box_autoadd_song_edit_request(
     SseDeserializer deserializer,
   );
 
@@ -199,6 +237,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Config sse_decode_config(SseDeserializer deserializer);
+
+  @protected
+  CoverArtEdit sse_decode_cover_art_edit(SseDeserializer deserializer);
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
@@ -218,16 +259,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<PinnedItemData> sse_decode_list_pinned_item_data(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  List<PlaylistBackupPlaylist> sse_decode_list_playlist_backup_playlist(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  List<PlaylistBackupSong> sse_decode_list_playlist_backup_song(
     SseDeserializer deserializer,
   );
 
@@ -271,20 +302,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  PlaylistBackup sse_decode_playlist_backup(SseDeserializer deserializer);
-
-  @protected
-  PlaylistBackupPlaylist sse_decode_playlist_backup_playlist(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  PlaylistBackupSong sse_decode_playlist_backup_song(
+  PlaylistEditRequest sse_decode_playlist_edit_request(
     SseDeserializer deserializer,
   );
 
   @protected
   PlaylistViewData sse_decode_playlist_view_data(SseDeserializer deserializer);
+
+  @protected
+  PlaylistVisualEdit sse_decode_playlist_visual_edit(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SongEditRequest sse_decode_song_edit_request(SseDeserializer deserializer);
 
   @protected
   SongViewData sse_decode_song_view_data(SseDeserializer deserializer);
@@ -329,6 +360,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
+  void sse_encode_album_choice(AlbumChoice self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_album_edit_request(
+    AlbumEditRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_album_view_data(AlbumViewData self, SseSerializer serializer);
 
   @protected
@@ -341,6 +381,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_album_edit_request(
+    AlbumEditRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_artist_view_data(
     ArtistViewData self,
     SseSerializer serializer,
@@ -350,8 +396,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_config(Config self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_cover_art_edit(
+    CoverArtEdit self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_playback_state_data(
     PlaybackStateData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_playlist_edit_request(
+    PlaylistEditRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_song_edit_request(
+    SongEditRequest self,
     SseSerializer serializer,
   );
 
@@ -363,6 +427,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_config(Config self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_cover_art_edit(CoverArtEdit self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
@@ -385,18 +452,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_pinned_item_data(
     List<PinnedItemData> self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_list_playlist_backup_playlist(
-    List<PlaylistBackupPlaylist> self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_list_playlist_backup_song(
-    List<PlaylistBackupSong> self,
     SseSerializer serializer,
   );
 
@@ -452,26 +507,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_playlist_backup(
-    PlaylistBackup self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_playlist_backup_playlist(
-    PlaylistBackupPlaylist self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_playlist_backup_song(
-    PlaylistBackupSong self,
+  void sse_encode_playlist_edit_request(
+    PlaylistEditRequest self,
     SseSerializer serializer,
   );
 
   @protected
   void sse_encode_playlist_view_data(
     PlaylistViewData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_playlist_visual_edit(
+    PlaylistVisualEdit self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_song_edit_request(
+    SongEditRequest self,
     SseSerializer serializer,
   );
 

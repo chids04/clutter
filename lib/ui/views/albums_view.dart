@@ -10,6 +10,7 @@ import 'package:clutter/ui/widgets/confirm_dialog.dart';
 import 'package:clutter/ui/widgets/collection_context_menu.dart';
 import 'package:clutter/ui/widgets/search_sliver_app_bar.dart';
 import 'package:clutter/ui/widgets/song_delegate.dart';
+import 'package:clutter/ui/widgets/metadata_editors.dart';
 
 class AlbumsView extends StatefulWidget {
   const AlbumsView({super.key});
@@ -139,7 +140,7 @@ class _AlbumTile extends StatelessWidget {
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
             Text(
-              album.artist,
+              album.artists.join(', '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -193,6 +194,24 @@ class AlbumDetailView extends StatelessWidget {
           ),
         ),
         actions: [
+          IconButton(
+            tooltip: "edit album",
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () async {
+              final updated = await showAlbumEditor(
+                context,
+                album,
+                musicLibrary,
+              );
+              if (updated != null && context.mounted) {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (_) => AlbumDetailView(album: updated),
+                  ),
+                );
+              }
+            },
+          ),
           Consumer<MusicLibrary>(
             builder: (context, lib, _) {
               final pinned = lib.isPinned(
@@ -307,7 +326,7 @@ class _AlbumHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  album.artist,
+                  album.artists.join(', '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

@@ -8,6 +8,8 @@ import 'package:clutter/src/rust/api/scanner.dart';
 import 'package:clutter/ui/widgets/collection_context_menu.dart';
 import 'package:clutter/ui/widgets/search_sliver_app_bar.dart';
 import 'package:clutter/ui/widgets/song_delegate.dart';
+import 'package:clutter/ui/widgets/metadata_editors.dart';
+import 'package:clutter/services/cover_img_loader.dart';
 
 class PlaylistsView extends StatefulWidget {
   const PlaylistsView({super.key});
@@ -165,6 +167,17 @@ class _PlaylistCover extends StatelessWidget {
         child: const Icon(Icons.favorite, color: Colors.redAccent, size: 56),
       );
     }
+    if (playlist.imagePath != null) {
+      return coverImg(playlist.imagePath, 120, cacheSize: 360, expand: true);
+    }
+    final icon = playlistIcons[playlist.iconKey];
+    if (icon != null) {
+      return Container(
+        color: theme.colorScheme.surface,
+        alignment: Alignment.center,
+        child: Icon(icon, size: 56),
+      );
+    }
     final initials = _initials(playlist.name);
     return Container(
       color: theme.colorScheme.surface,
@@ -212,6 +225,25 @@ class PlaylistDetailView extends StatelessWidget {
           ),
         ),
         actions: [
+          if (!playlist.isSystem)
+            IconButton(
+              tooltip: "edit playlist",
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () async {
+                final updated = await showPlaylistEditor(
+                  context,
+                  playlist,
+                  context.read<MusicLibrary>(),
+                );
+                if (updated != null && context.mounted) {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (_) => PlaylistDetailView(playlist: updated),
+                    ),
+                  );
+                }
+              },
+            ),
           Consumer<MusicLibrary>(
             builder: (context, lib, _) {
               final pinned = lib.isPinned(

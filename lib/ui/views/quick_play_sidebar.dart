@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:clutter/models/music_library.dart';
 import 'package:clutter/services/cover_img_loader.dart';
 import 'package:clutter/src/rust/api/scanner.dart';
+import 'package:clutter/ui/widgets/metadata_editors.dart';
 
 const double _kPanelWidth = 280.0;
 const double _kHandleWidth = 40.0;
@@ -341,6 +342,8 @@ class _PinnedTile extends StatelessWidget {
             trackNum: 0,
             discNum: 0,
             album: '',
+            albumId: '',
+            albumArtists: const [],
           ),
         );
         return song.title;
@@ -352,6 +355,7 @@ class _PinnedTile extends StatelessWidget {
             title: 'Unknown album',
             artist: '',
             songCount: 0,
+            artists: const [],
           ),
         );
         return album.title;
@@ -385,18 +389,25 @@ class _PinnedTile extends StatelessWidget {
             trackNum: 0,
             discNum: 0,
             album: '',
+            albumId: '',
+            albumArtists: const [],
           ),
         );
         return song.id.isEmpty ? '' : musicLibrary.artistsDisplay(song);
       case 'album':
         final album = musicLibrary.albums.firstWhere(
           (a) => a.id == pin.itemId,
-          orElse: () =>
-              AlbumViewData(id: '', title: '', artist: '', songCount: 0),
+          orElse: () => AlbumViewData(
+            id: '',
+            title: '',
+            artist: '',
+            songCount: 0,
+            artists: const [],
+          ),
         );
         return album.id.isEmpty
             ? ''
-            : '${album.artist} • ${album.songCount} song${album.songCount == 1 ? '' : 's'}';
+            : '${album.artists.join(', ')} • ${album.songCount} song${album.songCount == 1 ? '' : 's'}';
       case 'playlist':
         final playlist = musicLibrary.playlists.firstWhere(
           (p) => p.id == pin.itemId,
@@ -426,6 +437,8 @@ class _PinnedTile extends StatelessWidget {
             trackNum: 0,
             discNum: 0,
             album: '',
+            albumId: '',
+            albumArtists: const [],
           ),
         );
         if (song.id.isEmpty) {
@@ -439,8 +452,13 @@ class _PinnedTile extends StatelessWidget {
       case 'album':
         final album = musicLibrary.albums.firstWhere(
           (a) => a.id == pin.itemId,
-          orElse: () =>
-              AlbumViewData(id: '', title: '', artist: '', songCount: 0),
+          orElse: () => AlbumViewData(
+            id: '',
+            title: '',
+            artist: '',
+            songCount: 0,
+            artists: const [],
+          ),
         );
         if (album.id.isEmpty) {
           return _PlaceholderIcon(theme: theme, icon: Icons.album);
@@ -466,6 +484,17 @@ class _PinnedTile extends StatelessWidget {
             color: theme.colorScheme.surface,
             child: const Icon(Icons.favorite, color: Colors.redAccent),
           );
+        }
+        if (playlist.imagePath != null) {
+          return coverImg(
+            playlist.imagePath,
+            44,
+            fallback: _PlaceholderIcon(theme: theme, icon: Icons.queue_music),
+          );
+        }
+        final customIcon = playlistIcons[playlist.iconKey];
+        if (customIcon != null) {
+          return _PlaceholderIcon(theme: theme, icon: customIcon);
         }
         final initials = _initials(playlist.name);
         return Container(

@@ -365,6 +365,100 @@ class MusicLibrary extends ChangeNotifier {
     return id;
   }
 
+  Future<SongViewData> updateSong(SongEditRequest request) async {
+    late SongViewData updated;
+    await _runMetadataEdit({request.songId}, () async {
+      updated = await library.updateSong(request: request);
+    });
+    showToast("song updated");
+    return _songs.firstWhere((song) => song.id == updated.id);
+  }
+
+  Future<AlbumViewData> updateAlbum(AlbumEditRequest request) async {
+    final affected = _songs
+        .where((song) => song.albumId == request.albumId)
+        .map((song) => song.id)
+        .toSet();
+    late AlbumViewData updated;
+    await _runMetadataEdit(affected, () async {
+      updated = await library.updateAlbum(request: request);
+    });
+    showToast("album updated");
+    return _albums.firstWhere((album) => album.id == updated.id);
+  }
+
+  Future<ArtistViewData> updateArtistImage(
+    String artistId,
+    CoverArtEdit cover,
+  ) async {
+    final updated = await library.updateArtistImage(
+      artistId: artistId,
+      cover: cover,
+    );
+    await _reloadSongs();
+    showToast("artist image updated");
+    return _artists.firstWhere((artist) => artist.id == updated.id);
+  }
+
+  Future<PlaylistViewData> updatePlaylist(PlaylistEditRequest request) async {
+    final updated = await library.updatePlaylist(request: request);
+    await _reloadPlaylists();
+    showToast("playlist updated");
+    return _playlists.firstWhere((playlist) => playlist.id == updated.id);
+  }
+
+  Future<void> _runMetadataEdit(
+    Set<String> affectedSongIds,
+    Future<void> Function() operation,
+  ) async {
+    final playingSong = _currentSong;
+    final shouldRelease =
+        playingSong != null && affectedSongIds.contains(playingSong.id);
+    final wasPlaying = _isPlaying;
+    final savedPosition = _position ?? Duration.zero;
+    if (shouldRelease) {
+      await _handler.stop();
+      _isPlaying = false;
+      notifyListeners();
+    }
+    Object? failure;
+    StackTrace? failureStack;
+    try {
+      await operation();
+    } catch (error, stack) {
+      failure = error;
+      failureStack = stack;
+    }
+    await _reloadSongs();
+    _reconcileTransientSongs();
+    if (shouldRelease) {
+      final refreshed = _songs.where((s) => s.id == playingSong.id).firstOrNull;
+      if (refreshed != null) {
+        await _handler.loadAndPlay(refreshed, startPosition: savedPosition);
+        if (!wasPlaying) await _handler.pause();
+        _currentSong = refreshed;
+        _isPlaying = wasPlaying;
+      }
+    }
+    notifyListeners();
+    if (failure != null) Error.throwWithStackTrace(failure, failureStack!);
+  }
+
+  void _reconcileTransientSongs() {
+    final byId = {for (final song in _songs) song.id: song};
+    if (_currentSong != null) _currentSong = byId[_currentSong!.id];
+    for (var i = 0; i < _queue.length; i++) {
+      _queue[i] = byId[_queue[i].id] ?? _queue[i];
+    }
+    for (var i = 0; i < _history.length; i++) {
+      _history[i] = byId[_history[i].id] ?? _history[i];
+    }
+    for (var i = 0; i < _queueLoopSnapshot.length; i++) {
+      _queueLoopSnapshot[i] =
+          byId[_queueLoopSnapshot[i].id] ?? _queueLoopSnapshot[i];
+    }
+  }
+
   Future<void> deletePlaylist(String id) async {
     await library.deletePlaylist(id: id);
     await _reloadPlaylists();

@@ -9,6 +9,7 @@ import 'package:clutter/src/rust/api/scanner.dart';
 import 'package:clutter/ui/views/albums_view.dart';
 import 'package:clutter/ui/widgets/search_sliver_app_bar.dart';
 import 'package:clutter/ui/widgets/song_delegate.dart';
+import 'package:clutter/ui/widgets/metadata_editors.dart';
 
 class ArtistsView extends StatefulWidget {
   const ArtistsView({super.key});
@@ -99,36 +100,42 @@ class _ArtistTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => ArtistDetailView(artist: artist)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          AspectRatio(
-            aspectRatio: 1,
-            child: ClipOval(child: _ArtistCover(coverPath: artist.coverPath)),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            artist.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-          Text(
-            _subtitle(artist),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 11,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+    return GestureDetector(
+      onLongPressStart: (_) =>
+          showArtistImageEditor(context, artist, context.read<MusicLibrary>()),
+      onSecondaryTapDown: (_) =>
+          showArtistImageEditor(context, artist, context.read<MusicLibrary>()),
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ArtistDetailView(artist: artist)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            AspectRatio(
+              aspectRatio: 1,
+              child: ClipOval(child: _ArtistCover(coverPath: artist.coverPath)),
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              artist.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            Text(
+              _subtitle(artist),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -178,10 +185,12 @@ class ArtistDetailView extends StatefulWidget {
 
 class _ArtistDetailViewState extends State<ArtistDetailView> {
   late Future<_ArtistDetailData> _future;
+  late ArtistViewData _artist;
 
   @override
   void initState() {
     super.initState();
+    _artist = widget.artist;
     _future = _load();
   }
 
@@ -204,11 +213,21 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.artist.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        title: Text(_artist.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+        actions: [
+          IconButton(
+            tooltip: 'edit artist image',
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () async {
+              final updated = await showArtistImageEditor(
+                context,
+                _artist,
+                context.read<MusicLibrary>(),
+              );
+              if (updated != null && mounted) setState(() => _artist = updated);
+            },
+          ),
+        ],
         shape: Border(
           bottom: BorderSide(
             color: theme.dividerTheme.color ?? Colors.transparent,
@@ -226,7 +245,7 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
           return Consumer<MusicLibrary>(
             builder: (context, lib, _) => CustomScrollView(
               slivers: [
-                SliverToBoxAdapter(child: _Header(artist: widget.artist)),
+                SliverToBoxAdapter(child: _Header(artist: _artist)),
                 if (data.albums.isNotEmpty) ...[
                   const _SectionHeader(title: "Albums"),
                   SliverToBoxAdapter(
@@ -384,7 +403,7 @@ class _CarouselAlbumTile extends StatelessWidget {
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
             Text(
-              album.artist,
+              album.artists.join(', '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(

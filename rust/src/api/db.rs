@@ -2,7 +2,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use crate::api::metadata::{RawCover, RawMetadata, MISSING_ALBUM, MISSING_ARTIST, MISSING_TITLE};
+use crate::api::metadata::{
+    write_metadata, RawCover, RawMetadata, MISSING_ALBUM, MISSING_ARTIST, MISSING_TITLE,
+};
 use flutter_rust_bridge::frb;
 use log::{debug, warn};
 use rusqlite::{params, Connection, OptionalExtension};
@@ -24,7 +26,10 @@ pub struct SongRow {
     pub disc_num: i64,
     pub file_path: String,
     pub album: String,
+    pub album_id: String,
+    pub album_artists: Vec<String>,
     pub cover_path: Option<String>,
+    pub song_cover_path: Option<String>,
     pub primary_artist: String,
     pub featured_artists: Vec<String>,
 }
@@ -36,6 +41,7 @@ pub struct AlbumRow {
     pub id: String,
     pub title: String,
     pub artist: String,
+    pub artists: Vec<String>,
     pub cover_path: Option<String>,
     pub song_count: i64,
 }
@@ -48,6 +54,8 @@ pub struct PlaylistRow {
     pub name: String,
     pub is_system: bool,
     pub song_count: i64,
+    pub icon_key: Option<String>,
+    pub image_path: Option<String>,
 }
 
 /// Restored playback for the MediaBar on relaunch. `position_ms` is where the
@@ -79,8 +87,57 @@ pub struct ArtistRow {
     pub id: String,
     pub name: String,
     pub cover_path: Option<String>,
+    pub custom_cover_path: Option<String>,
     pub album_count: i64,
     pub song_count: i64,
+}
+
+#[frb(ignore)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ArtworkUpdate {
+    Keep,
+    Replace(String),
+    Remove,
+}
+
+#[frb(ignore)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AlbumSelection {
+    Existing(String),
+    New { title: String, artists: Vec<String> },
+}
+
+#[frb(ignore)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SongMetadataUpdate {
+    pub song_id: String,
+    pub title: String,
+    pub primary_artist: String,
+    pub featured_artists: Vec<String>,
+    pub track_num: i64,
+    pub disc_num: i64,
+    pub album: AlbumSelection,
+    pub cover: ArtworkUpdate,
+    pub write_file_tags: bool,
+}
+
+#[frb(ignore)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlbumMetadataUpdate {
+    pub album_id: String,
+    pub title: String,
+    pub artists: Vec<String>,
+    pub cover: ArtworkUpdate,
+    pub write_file_tags: bool,
+}
+
+#[frb(ignore)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PlaylistVisualUpdate {
+    Keep,
+    Initials,
+    Icon(String),
+    Image(String),
 }
 
 pub(crate) const LIKED_SONGS_NAME: &str = "Liked Songs";
@@ -90,6 +147,7 @@ pub struct Store {
     pub conn: Mutex<Connection>,
     covers_dir: PathBuf,
     playlist_backup_path: PathBuf,
+    operation_journal_path: PathBuf,
     /// Base directory that every stored path is relativized against. On iOS the
     /// app's sandbox container path (and thus the documents dir) carries a UUID
     /// that rotates on every relaunch/reinstall, so absolute paths persisted in
@@ -124,11 +182,17 @@ impl Store {
             .parent()
             .unwrap_or_else(|| Path::new("."))
             .join("playlist_backup.json");
+        let operation_journal_path = Path::new(db_path)
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join("metadata_operation.json");
+        recover_metadata_operation(&conn, &operation_journal_path)?;
 
         Ok(Store {
             conn: Mutex::new(conn),
             covers_dir: covers_dir_buf,
             playlist_backup_path,
+            operation_journal_path,
             base_dir: PathBuf::from(base_dir),
         })
     }
@@ -150,6 +214,7 @@ impl Store {
     fn abs_song(&self, mut row: SongRow) -> SongRow {
         row.file_path = self.to_abs(&row.file_path);
         row.cover_path = row.cover_path.map(|c| self.to_abs(&c));
+        row.song_cover_path = row.song_cover_path.map(|c| self.to_abs(&c));
         row
     }
 
@@ -160,6 +225,12 @@ impl Store {
 
     fn abs_artist(&self, mut row: ArtistRow) -> ArtistRow {
         row.cover_path = row.cover_path.map(|c| self.to_abs(&c));
+        row.custom_cover_path = row.custom_cover_path.map(|c| self.to_abs(&c));
+        row
+    }
+
+    fn abs_playlist(&self, mut row: PlaylistRow) -> PlaylistRow {
+        row.image_path = row.image_path.map(|p| self.to_abs(&p));
         row
     }
 
@@ -202,6 +273,24 @@ impl Store {
             .map(|r| self.abs_song(r))
     }
 
+    pub fn contains_song_file(&self, file_path: &Path) -> bool {
+        let stored = self.to_rel(file_path);
+        self.conn
+            .lock()
+            .ok()
+            .and_then(|conn| {
+                conn.query_row(
+                    "SELECT 1 FROM songs WHERE file_path = ?1",
+                    params![stored],
+                    |r| r.get::<_, i64>(0),
+                )
+                .optional()
+                .ok()
+                .flatten()
+            })
+            .is_some()
+    }
+
     /// Insert a song with its pre-parsed artists. `leading_artist` is the
     /// primary performer; `feature_artists` are ordered featured artists;
     /// `album_artist` is the artist credited at the album level (falls back to
@@ -214,6 +303,23 @@ impl Store {
         feature_artists: &[String],
         album_artist: &str,
     ) -> Result<(), String> {
+        self.insert_song_with_album_artists(
+            file_path,
+            meta,
+            leading_artist,
+            feature_artists,
+            &[album_artist.to_string()],
+        )
+    }
+
+    pub fn insert_song_with_album_artists(
+        &self,
+        file_path: &Path,
+        meta: RawMetadata,
+        leading_artist: &str,
+        feature_artists: &[String],
+        album_artists: &[String],
+    ) -> Result<(), String> {
         let conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
         insert_song(
             &conn,
@@ -223,9 +329,33 @@ impl Store {
             meta,
             leading_artist,
             feature_artists,
-            album_artist,
+            album_artists,
         )
         .map_err(|e| format!("insert: {e}"))
+    }
+
+    pub fn set_scanned_song_cover(&self, file_path: &Path, cover: &RawCover) -> Result<(), String> {
+        let stored_file = self.to_rel(file_path);
+        let conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
+        let song_id: String = conn
+            .query_row(
+                "SELECT id FROM songs WHERE file_path = ?1",
+                params![stored_file],
+                |r| r.get(0),
+            )
+            .map_err(|e| format!("find scanned song: {e}"))?;
+        let ext = guess_cover_ext(&cover.mime_type);
+        let dir = self.covers_dir.join("songs");
+        fs::create_dir_all(&dir).map_err(|e| format!("create song artwork dir: {e}"))?;
+        let destination = dir.join(format!("{song_id}-{}.{}", Uuid::new_v4(), ext));
+        fs::write(&destination, &cover.data).map_err(|e| format!("write song artwork: {e}"))?;
+        let stored_cover = self.to_rel(&destination);
+        conn.execute(
+            "UPDATE songs SET cover_path = ?1 WHERE id = ?2",
+            params![stored_cover, song_id],
+        )
+        .map_err(|e| format!("store song artwork: {e}"))?;
+        Ok(())
     }
 
     pub fn get_total_albums(&self) -> u32 {
@@ -298,10 +428,14 @@ impl Store {
                 return Vec::new();
             }
         };
-        query_playlists(&conn, offset, limit).unwrap_or_else(|e| {
-            warn!("query playlists failed: {e}");
-            Vec::new()
-        })
+        query_playlists(&conn, offset, limit)
+            .unwrap_or_else(|e| {
+                warn!("query playlists failed: {e}");
+                Vec::new()
+            })
+            .into_iter()
+            .map(|r| self.abs_playlist(r))
+            .collect()
     }
 
     pub fn get_songs_in_playlist(&self, playlist_id: &str) -> Vec<SongRow> {
@@ -458,6 +592,493 @@ impl Store {
             Err(e) => warn!("lookup playlist before remove-song backup failed: {e}"),
         }
         Ok(())
+    }
+
+    pub fn update_song_metadata(&self, update: SongMetadataUpdate) -> Result<SongRow, String> {
+        let title = required_text(&update.title, "song title")?;
+        let primary = required_text(&update.primary_artist, "primary artist")?;
+        if update.track_num < 1 || update.disc_num < 1 {
+            return Err("track and disc numbers must be at least 1".into());
+        }
+        let features = normalize_names(update.featured_artists)
+            .into_iter()
+            .filter(|name| !name.eq_ignore_ascii_case(&primary))
+            .collect::<Vec<_>>();
+        let new_cover = match &update.cover {
+            ArtworkUpdate::Replace(path) => {
+                Some(self.stage_managed_artwork(path, "songs", &update.song_id)?)
+            }
+            _ => None,
+        };
+
+        let result = (|| {
+            let mut conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
+            let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
+            let (old_album_id, old_cover, stored_file_path): (
+                Option<String>,
+                Option<String>,
+                String,
+            ) = tx
+                .query_row(
+                    "SELECT album_id, cover_path, file_path FROM songs WHERE id = ?1",
+                    params![update.song_id],
+                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                )
+                .optional()
+                .map_err(|e| format!("lookup song: {e}"))?
+                .ok_or_else(|| "song not found".to_string())?;
+
+            let album_id = match &update.album {
+                AlbumSelection::Existing(id) => {
+                    let exists: Option<i64> = tx
+                        .query_row("SELECT 1 FROM albums WHERE id = ?1", params![id], |r| {
+                            r.get(0)
+                        })
+                        .optional()
+                        .map_err(|e| format!("lookup album: {e}"))?;
+                    if exists.is_none() {
+                        return Err("album not found".into());
+                    }
+                    id.clone()
+                }
+                AlbumSelection::New { title, artists } => {
+                    let album_title = required_text(title, "album title")?;
+                    let artist_names = normalize_names(artists.clone());
+                    if artist_names.is_empty() {
+                        return Err("at least one album artist is required".into());
+                    }
+                    ensure_multi_artist_album(&tx, &album_title, &artist_names)
+                        .map_err(|e| format!("ensure album: {e}"))?
+                }
+            };
+
+            let primary_id =
+                ensure_artist(&tx, &primary).map_err(|e| format!("primary artist: {e}"))?;
+            let feature_ids = features
+                .iter()
+                .map(|name| ensure_artist(&tx, name))
+                .collect::<rusqlite::Result<Vec<_>>>()
+                .map_err(|e| format!("featured artists: {e}"))?;
+            let cover_value = match &update.cover {
+                ArtworkUpdate::Keep => old_cover.clone(),
+                ArtworkUpdate::Remove => None,
+                ArtworkUpdate::Replace(_) => new_cover.clone(),
+            };
+
+            let (album_title, album_cover): (String, Option<String>) = tx
+                .query_row(
+                    "SELECT title, cover_path FROM albums WHERE id = ?1",
+                    params![album_id],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                )
+                .map_err(|e| format!("load destination album: {e}"))?;
+            let album_artists = album_artist_names(&tx, &album_id)
+                .map_err(|e| format!("load album artists: {e}"))?;
+            let effective_art = cover_value.clone().or(album_cover);
+            let prepared_audio = if update.write_file_tags {
+                let source = PathBuf::from(self.to_abs(&stored_file_path));
+                let artwork = effective_art
+                    .as_deref()
+                    .map(|p| PathBuf::from(self.to_abs(p)));
+                Some(prepare_audio_update(
+                    &source,
+                    &title,
+                    &primary,
+                    &features,
+                    &album_title,
+                    &album_artists,
+                    update.track_num,
+                    update.disc_num,
+                    artwork.as_deref(),
+                )?)
+            } else {
+                None
+            };
+
+            tx.execute(
+                "UPDATE songs SET title = ?1, track_num = ?2, disc_num = ?3, album_id = ?4, cover_path = ?5 WHERE id = ?6",
+                params![title, update.track_num, update.disc_num, album_id, cover_value, update.song_id],
+            )
+            .map_err(|e| format!("update song: {e}"))?;
+            tx.execute(
+                "DELETE FROM song_artists WHERE song_id = ?1",
+                params![update.song_id],
+            )
+            .map_err(|e| format!("clear song artists: {e}"))?;
+            tx.execute(
+                "INSERT INTO song_artists (song_id, artist_id, is_featured, position) VALUES (?1, ?2, 0, 0)",
+                params![update.song_id, primary_id],
+            )
+            .map_err(|e| format!("insert primary artist: {e}"))?;
+            for (position, artist_id) in feature_ids.iter().enumerate() {
+                tx.execute(
+                    "INSERT INTO song_artists (song_id, artist_id, is_featured, position) VALUES (?1, ?2, 1, ?3)",
+                    params![update.song_id, artist_id, position as i64 + 1],
+                )
+                .map_err(|e| format!("insert featured artist: {e}"))?;
+            }
+            if let Some(old_album_id) = old_album_id.filter(|id| id != &album_id) {
+                cleanup_orphan_album(&tx, &self.base_dir, &old_album_id)?;
+            }
+            let operation_id = if let Some(prepared) = prepared_audio.as_ref() {
+                let id = write_metadata_operation_journal(
+                    &self.operation_journal_path,
+                    std::slice::from_ref(prepared),
+                )?;
+                tx.execute(
+                    "INSERT INTO metadata_operations (id, committed_at) VALUES (?1, ?2)",
+                    params![id, now_secs()],
+                )
+                .map_err(|e| format!("record metadata operation: {e}"))?;
+                Some(id)
+            } else {
+                None
+            };
+            if let Some(prepared) = prepared_audio.as_ref() {
+                if let Err(error) = prepared.activate() {
+                    let _ = fs::remove_file(&self.operation_journal_path);
+                    return Err(error);
+                }
+            }
+            if let Err(e) = tx.commit() {
+                if let Some(prepared) = prepared_audio.as_ref() {
+                    prepared.rollback();
+                }
+                let _ = fs::remove_file(&self.operation_journal_path);
+                return Err(format!("commit: {e}"));
+            }
+            if let Some(prepared) = prepared_audio.as_ref() {
+                prepared.finish();
+            }
+            if let Some(id) = operation_id.as_deref() {
+                finish_metadata_operation(&conn, &self.operation_journal_path, id);
+            }
+            drop(conn);
+
+            if !matches!(update.cover, ArtworkUpdate::Keep) {
+                if let Some(old) = old_cover {
+                    if Some(old.clone()) != new_cover {
+                        remove_stored_file(&self.base_dir, &old);
+                    }
+                }
+            }
+            self.get_song_by_id(&update.song_id)
+                .ok_or_else(|| "updated song not found".into())
+        })();
+
+        if result.is_err() {
+            if let Some(path) = new_cover {
+                remove_stored_file(&self.base_dir, &path);
+            }
+        }
+        result
+    }
+
+    pub fn update_artist_image(
+        &self,
+        artist_id: &str,
+        artwork: ArtworkUpdate,
+    ) -> Result<ArtistRow, String> {
+        let new_path = match &artwork {
+            ArtworkUpdate::Replace(source) => {
+                Some(self.stage_managed_artwork(source, "artists", artist_id)?)
+            }
+            _ => None,
+        };
+        let result = (|| {
+            let conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
+            let old: Option<String> = conn
+                .query_row(
+                    "SELECT custom_cover_path FROM artists WHERE id = ?1",
+                    params![artist_id],
+                    |r| r.get(0),
+                )
+                .optional()
+                .map_err(|e| format!("lookup artist: {e}"))?
+                .ok_or_else(|| "artist not found".to_string())?;
+            let value = match &artwork {
+                ArtworkUpdate::Keep => old.clone(),
+                ArtworkUpdate::Remove => None,
+                ArtworkUpdate::Replace(_) => new_path.clone(),
+            };
+            conn.execute(
+                "UPDATE artists SET custom_cover_path = ?1 WHERE id = ?2",
+                params![value, artist_id],
+            )
+            .map_err(|e| format!("update artist image: {e}"))?;
+            drop(conn);
+            if !matches!(artwork, ArtworkUpdate::Keep) {
+                if let Some(old) = old {
+                    if Some(old.clone()) != new_path {
+                        remove_stored_file(&self.base_dir, &old);
+                    }
+                }
+            }
+            self.get_artist_by_id(artist_id)
+                .ok_or_else(|| "updated artist not found".into())
+        })();
+        if result.is_err() {
+            if let Some(path) = new_path {
+                remove_stored_file(&self.base_dir, &path);
+            }
+        }
+        result
+    }
+
+    pub fn update_album_metadata(&self, update: AlbumMetadataUpdate) -> Result<AlbumRow, String> {
+        let title = required_text(&update.title, "album title")?;
+        let artist_names = normalize_names(update.artists.clone());
+        if artist_names.is_empty() {
+            return Err("at least one album artist is required".into());
+        }
+        let new_cover = match &update.cover {
+            ArtworkUpdate::Replace(path) => {
+                Some(self.stage_managed_artwork(path, "albums", &update.album_id)?)
+            }
+            _ => None,
+        };
+        let result = (|| {
+            let mut conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
+            let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
+            let source_cover: Option<String> = tx
+                .query_row(
+                    "SELECT cover_path FROM albums WHERE id = ?1",
+                    params![update.album_id],
+                    |r| r.get(0),
+                )
+                .optional()
+                .map_err(|e| format!("lookup album: {e}"))?
+                .ok_or_else(|| "album not found".to_string())?;
+            let artist_ids = artist_names
+                .iter()
+                .map(|n| ensure_artist(&tx, n))
+                .collect::<rusqlite::Result<Vec<_>>>()
+                .map_err(|e| format!("album artists: {e}"))?;
+            let mut key_ids = artist_ids.clone();
+            key_ids.sort();
+            key_ids.dedup();
+            let artist_key = key_ids.join("\u{1f}");
+            let collision: Option<(String, Option<String>)> = tx
+                .query_row(
+                    "SELECT id, cover_path FROM albums WHERE id != ?1 AND title = ?2 COLLATE NOCASE AND artist_key = ?3",
+                    params![update.album_id, title, artist_key],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                ).optional().map_err(|e| format!("find matching album: {e}"))?;
+            let (surviving_id, destination_cover, merged) = match collision {
+                Some((id, cover)) => (id, cover, true),
+                None => (update.album_id.clone(), source_cover.clone(), false),
+            };
+            let final_cover = match &update.cover {
+                ArtworkUpdate::Keep => destination_cover.clone(),
+                ArtworkUpdate::Remove => None,
+                ArtworkUpdate::Replace(_) => new_cover.clone(),
+            };
+
+            if merged {
+                tx.execute(
+                    "UPDATE songs SET album_id = ?1 WHERE album_id = ?2",
+                    params![surviving_id, update.album_id],
+                )
+                .map_err(|e| format!("merge album songs: {e}"))?;
+                tx.execute(
+                    "INSERT OR IGNORE INTO pinned_items (item_id, kind, position, pinned_at) SELECT ?1, kind, position, pinned_at FROM pinned_items WHERE item_id = ?2 AND kind = 'album'",
+                    params![surviving_id, update.album_id],
+                ).map_err(|e| format!("retarget album pin: {e}"))?;
+                tx.execute(
+                    "DELETE FROM pinned_items WHERE item_id = ?1 AND kind = 'album'",
+                    params![update.album_id],
+                )
+                .map_err(|e| format!("remove source pin: {e}"))?;
+                tx.execute("DELETE FROM albums WHERE id = ?1", params![update.album_id])
+                    .map_err(|e| format!("delete merged album: {e}"))?;
+            } else {
+                tx.execute(
+                    "UPDATE albums SET title = ?1, artist_id = ?2, artist_key = ?3 WHERE id = ?4",
+                    params![title, artist_ids[0], artist_key, surviving_id],
+                )
+                .map_err(|e| format!("update album: {e}"))?;
+                tx.execute(
+                    "DELETE FROM album_artists WHERE album_id = ?1",
+                    params![surviving_id],
+                )
+                .map_err(|e| format!("clear album artists: {e}"))?;
+                for (position, artist_id) in artist_ids.iter().enumerate() {
+                    tx.execute("INSERT INTO album_artists (album_id, artist_id, position) VALUES (?1, ?2, ?3)", params![surviving_id, artist_id, position as i64])
+                        .map_err(|e| format!("insert album artist: {e}"))?;
+                }
+            }
+            tx.execute(
+                "UPDATE albums SET cover_path = ?1 WHERE id = ?2",
+                params![final_cover, surviving_id],
+            )
+            .map_err(|e| format!("update album artwork: {e}"))?;
+
+            let prepared = if update.write_file_tags {
+                let rows = query_songs(&tx, SongFilter::ByAlbumId(surviving_id.clone()))
+                    .map_err(|e| format!("load album songs: {e}"))?;
+                let album_names = album_artist_names(&tx, &surviving_id)
+                    .map_err(|e| format!("load album artists: {e}"))?;
+                let album_title: String = tx
+                    .query_row(
+                        "SELECT title FROM albums WHERE id = ?1",
+                        params![surviving_id],
+                        |r| r.get(0),
+                    )
+                    .map_err(|e| format!("load album title: {e}"))?;
+                let mut files = Vec::new();
+                for row in rows {
+                    let art = row
+                        .cover_path
+                        .as_deref()
+                        .map(|p| PathBuf::from(self.to_abs(p)));
+                    files.push(prepare_audio_update(
+                        &PathBuf::from(self.to_abs(&row.file_path)),
+                        &row.title,
+                        &row.primary_artist,
+                        &row.featured_artists,
+                        &album_title,
+                        &album_names,
+                        row.track_num,
+                        row.disc_num,
+                        art.as_deref(),
+                    )?);
+                }
+                files
+            } else {
+                Vec::new()
+            };
+            let operation_id = if prepared.is_empty() {
+                None
+            } else {
+                let id = write_metadata_operation_journal(&self.operation_journal_path, &prepared)?;
+                tx.execute(
+                    "INSERT INTO metadata_operations (id, committed_at) VALUES (?1, ?2)",
+                    params![id, now_secs()],
+                )
+                .map_err(|e| format!("record metadata operation: {e}"))?;
+                Some(id)
+            };
+            if let Err(e) = activate_prepared_batch(&prepared) {
+                rollback_prepared_batch(&prepared);
+                let _ = fs::remove_file(&self.operation_journal_path);
+                return Err(e);
+            }
+            if let Err(e) = tx.commit() {
+                rollback_prepared_batch(&prepared);
+                let _ = fs::remove_file(&self.operation_journal_path);
+                return Err(format!("commit: {e}"));
+            }
+            finish_prepared_batch(&prepared);
+            if let Some(id) = operation_id.as_deref() {
+                finish_metadata_operation(&conn, &self.operation_journal_path, id);
+            }
+            drop(conn);
+
+            if source_cover != final_cover {
+                if let Some(path) = source_cover {
+                    remove_stored_file(&self.base_dir, &path);
+                }
+            }
+            if merged && destination_cover != final_cover {
+                if let Some(path) = destination_cover {
+                    remove_stored_file(&self.base_dir, &path);
+                }
+            }
+            self.get_albums_paginated(0, self.get_total_albums())
+                .into_iter()
+                .find(|a| a.id == surviving_id)
+                .ok_or_else(|| "updated album not found".into())
+        })();
+        if result.is_err() {
+            if let Some(path) = new_cover {
+                remove_stored_file(&self.base_dir, &path);
+            }
+        }
+        result
+    }
+
+    pub fn update_playlist_metadata(
+        &self,
+        playlist_id: &str,
+        name: &str,
+        visual: PlaylistVisualUpdate,
+    ) -> Result<PlaylistRow, String> {
+        let name = required_text(name, "playlist name")?;
+        let new_image = match &visual {
+            PlaylistVisualUpdate::Image(source) => {
+                Some(self.stage_managed_artwork(source, "playlists", playlist_id)?)
+            }
+            _ => None,
+        };
+        let result = (|| {
+            let conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
+            let (is_system, old_icon, old_image): (i64, Option<String>, Option<String>) = conn
+                .query_row(
+                    "SELECT is_system, icon_key, image_path FROM playlists WHERE id = ?1",
+                    params![playlist_id],
+                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                )
+                .optional()
+                .map_err(|e| format!("lookup playlist: {e}"))?
+                .ok_or_else(|| "playlist not found".to_string())?;
+            if is_system != 0 {
+                return Err("system playlists cannot be edited".into());
+            }
+            let (icon, image) = match &visual {
+                PlaylistVisualUpdate::Keep => (old_icon, old_image.clone()),
+                PlaylistVisualUpdate::Initials => (None, None),
+                PlaylistVisualUpdate::Icon(key) => {
+                    if !valid_playlist_icon(key) {
+                        return Err("invalid playlist icon".into());
+                    }
+                    (Some(key.clone()), None)
+                }
+                PlaylistVisualUpdate::Image(_) => (None, new_image.clone()),
+            };
+            conn.execute(
+                "UPDATE playlists SET name = ?1, icon_key = ?2, image_path = ?3 WHERE id = ?4",
+                params![name, icon, image, playlist_id],
+            )
+            .map_err(|e| format!("update playlist: {e}"))?;
+            if let Err(e) = backup_user_playlists(&conn, &self.playlist_backup_path) {
+                warn!("backup after playlist update failed: {e}");
+            }
+            drop(conn);
+            if !matches!(visual, PlaylistVisualUpdate::Keep) {
+                if let Some(old) = old_image {
+                    if Some(old.clone()) != new_image {
+                        remove_stored_file(&self.base_dir, &old);
+                    }
+                }
+            }
+            self.get_playlists_paginated(0, self.get_total_playlists())
+                .into_iter()
+                .find(|p| p.id == playlist_id)
+                .ok_or_else(|| "updated playlist not found".into())
+        })();
+        if result.is_err() {
+            if let Some(path) = new_image {
+                remove_stored_file(&self.base_dir, &path);
+            }
+        }
+        result
+    }
+
+    fn stage_managed_artwork(
+        &self,
+        source: &str,
+        category: &str,
+        owner_id: &str,
+    ) -> Result<String, String> {
+        let source = Path::new(source);
+        let bytes = fs::read(source).map_err(|e| format!("read artwork: {e}"))?;
+        let ext = detect_image_extension(&bytes)
+            .ok_or_else(|| "artwork must be a valid JPEG, PNG, or WebP image".to_string())?;
+        let dir = self.covers_dir.join(category);
+        fs::create_dir_all(&dir).map_err(|e| format!("create artwork dir: {e}"))?;
+        let destination = dir.join(format!("{owner_id}-{}.{}", Uuid::new_v4(), ext));
+        fs::write(&destination, bytes).map_err(|e| format!("write artwork: {e}"))?;
+        Ok(self.to_rel(&destination))
     }
 
     pub fn restore_user_playlists_from_backup(&self) -> Result<(), String> {
@@ -644,10 +1265,14 @@ impl Store {
                 return Vec::new();
             }
         };
-        search_playlists(&conn, query, limit).unwrap_or_else(|e| {
-            warn!("search playlists failed: {e}");
-            Vec::new()
-        })
+        search_playlists(&conn, query, limit)
+            .unwrap_or_else(|e| {
+                warn!("search playlists failed: {e}");
+                Vec::new()
+            })
+            .into_iter()
+            .map(|r| self.abs_playlist(r))
+            .collect()
     }
 
     /// Create a new artist row with the same name as the album's current
@@ -680,6 +1305,21 @@ impl Store {
             params![new_id, album_id],
         )
         .map_err(|e| format!("update album: {e}"))?;
+        tx.execute(
+            "DELETE FROM album_artists WHERE album_id = ?1",
+            params![album_id],
+        )
+        .map_err(|e| format!("clear album artists: {e}"))?;
+        tx.execute(
+            "INSERT INTO album_artists (album_id, artist_id, position) VALUES (?1, ?2, 0)",
+            params![album_id, new_id],
+        )
+        .map_err(|e| format!("insert album artist: {e}"))?;
+        tx.execute(
+            "UPDATE albums SET artist_key = ?1 WHERE id = ?2",
+            params![new_id, album_id],
+        )
+        .map_err(|e| format!("update album key: {e}"))?;
 
         tx.execute(
             "UPDATE song_artists SET artist_id = ?1 \
@@ -1026,10 +1666,21 @@ impl Store {
             .map_err(|e| format!("delete pinned_items: {e}"))?;
         ensure_liked_songs_playlist(&tx).map_err(|e| format!("reseed liked songs: {e}"))?;
         tx.commit().map_err(|e| format!("commit: {e}"))?;
-        // Nuke the entire covers directory and recreate it — clears all cover
-        // files including any orphans not tracked in the DB.
-        let _ = fs::remove_dir_all(&self.covers_dir);
-        let _ = fs::create_dir_all(&self.covers_dir);
+        // Preserve user playlist artwork because playlists are restored from
+        // their backup after the next scan; clear scanned and artist artwork.
+        if let Ok(entries) = fs::read_dir(&self.covers_dir) {
+            for entry in entries.flatten() {
+                if entry.file_name() == "playlists" {
+                    continue;
+                }
+                let path = entry.path();
+                if path.is_dir() {
+                    let _ = fs::remove_dir_all(path);
+                } else {
+                    let _ = fs::remove_file(path);
+                }
+            }
+        }
         Ok(())
     }
 }
@@ -1103,12 +1754,17 @@ enum SongFilter {
 fn query_songs(conn: &Connection, filter: SongFilter) -> rusqlite::Result<Vec<SongRow>> {
     let base = "\
         SELECT s.id, s.title, s.track_num, s.disc_num, s.file_path, \
-               al.title, al.cover_path, pa.name, \
+               al.title, COALESCE(s.cover_path, al.cover_path), pa.name, \
                (SELECT GROUP_CONCAT(a.name, ?1) \
                 FROM song_artists sa \
                 JOIN artists a ON sa.artist_id = a.id \
                 WHERE sa.song_id = s.id AND sa.is_featured = 1 \
-                ORDER BY sa.position) AS features \
+                ORDER BY sa.position) AS features, \
+               al.id, \
+               (SELECT GROUP_CONCAT(aa_name.name, ?1) FROM album_artists aa \
+                JOIN artists aa_name ON aa_name.id = aa.artist_id \
+                WHERE aa.album_id = al.id ORDER BY aa.position), \
+               s.cover_path \
         FROM songs s \
         LEFT JOIN albums al ON s.album_id = al.id \
         LEFT JOIN song_artists pasa ON pasa.song_id = s.id AND pasa.is_featured = 0 \
@@ -1193,7 +1849,8 @@ fn query_playlists(
 ) -> rusqlite::Result<Vec<PlaylistRow>> {
     let mut stmt = conn.prepare(
         "SELECT p.id, p.name, p.is_system, \
-                (SELECT COUNT(*) FROM playlist_songs ps WHERE ps.playlist_id = p.id) AS song_count \
+                (SELECT COUNT(*) FROM playlist_songs ps WHERE ps.playlist_id = p.id) AS song_count, \
+                p.icon_key, p.image_path \
          FROM playlists p \
          ORDER BY p.is_system DESC, p.created_at DESC \
          LIMIT ?1 OFFSET ?2",
@@ -1204,6 +1861,8 @@ fn query_playlists(
             name: r.get(1)?,
             is_system: r.get::<_, i64>(2)? != 0,
             song_count: r.get(3)?,
+            icon_key: r.get(4)?,
+            image_path: r.get(5)?,
         })
     })?;
     rows.collect()
@@ -1214,22 +1873,29 @@ fn search_albums(conn: &Connection, query: &str, limit: u32) -> rusqlite::Result
     let mut stmt = conn.prepare(
         "SELECT al.id, al.title, COALESCE(a.name, ?1), al.cover_path, \
                 (SELECT COUNT(*) FROM songs s WHERE s.album_id = al.id) AS song_count \
+                , (SELECT GROUP_CONCAT(an.name, ?4) FROM album_artists aa \
+                   JOIN artists an ON an.id = aa.artist_id \
+                   WHERE aa.album_id = al.id ORDER BY aa.position) \
          FROM albums al \
          LEFT JOIN artists a ON al.artist_id = a.id \
          WHERE al.title LIKE ?2 ESCAPE '\\' \
-            OR a.name   LIKE ?2 ESCAPE '\\' \
+            OR EXISTS (SELECT 1 FROM album_artists saa JOIN artists san ON san.id = saa.artist_id WHERE saa.album_id = al.id AND san.name LIKE ?2 ESCAPE '\\') \
          ORDER BY al.title COLLATE NOCASE \
          LIMIT ?3",
     )?;
-    let rows = stmt.query_map(params![MISSING_ARTIST, pattern, limit as i64], |r| {
-        Ok(AlbumRow {
-            id: r.get(0)?,
-            title: r.get(1)?,
-            artist: r.get(2)?,
-            cover_path: r.get(3)?,
-            song_count: r.get(4)?,
-        })
-    })?;
+    let rows = stmt.query_map(
+        params![MISSING_ARTIST, pattern, limit as i64, UNIT_SEP.to_string()],
+        |r| {
+            Ok(AlbumRow {
+                id: r.get(0)?,
+                title: r.get(1)?,
+                artist: r.get(2)?,
+                cover_path: r.get(3)?,
+                song_count: r.get(4)?,
+                artists: split_names(r.get(5)?),
+            })
+        },
+    )?;
     rows.collect()
 }
 
@@ -1241,7 +1907,8 @@ fn search_playlists(
     let pattern = format!("%{}%", like_escape(query));
     let mut stmt = conn.prepare(
         "SELECT p.id, p.name, p.is_system, \
-                (SELECT COUNT(*) FROM playlist_songs ps WHERE ps.playlist_id = p.id) AS song_count \
+                (SELECT COUNT(*) FROM playlist_songs ps WHERE ps.playlist_id = p.id) AS song_count, \
+                p.icon_key, p.image_path \
          FROM playlists p \
          WHERE p.name LIKE ?1 ESCAPE '\\' \
          ORDER BY p.is_system DESC, p.name COLLATE NOCASE \
@@ -1253,6 +1920,8 @@ fn search_playlists(
             name: r.get(1)?,
             is_system: r.get::<_, i64>(2)? != 0,
             song_count: r.get(3)?,
+            icon_key: r.get(4)?,
+            image_path: r.get(5)?,
         })
     })?;
     rows.collect()
@@ -1265,7 +1934,7 @@ fn like_escape(q: &str) -> String {
 }
 
 #[frb(ignore)]
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PlaylistBackup {
     pub playlists: Vec<PlaylistBackupPlaylist>,
 }
@@ -1273,7 +1942,10 @@ pub struct PlaylistBackup {
 #[frb(ignore)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlaylistBackupPlaylist {
+    pub id: String,
     pub name: String,
+    pub icon_key: Option<String>,
+    pub image_path: Option<String>,
     pub songs: Vec<PlaylistBackupSong>,
 }
 
@@ -1287,19 +1959,28 @@ pub struct PlaylistBackupSong {
 fn backup_user_playlists(conn: &Connection, path: &Path) -> Result<(), String> {
     let mut playlists_stmt = conn
         .prepare(
-            "SELECT id, name FROM playlists \
+            "SELECT id, name, icon_key, image_path FROM playlists \
              WHERE is_system = 0 \
              ORDER BY created_at DESC, name COLLATE NOCASE",
         )
         .map_err(|e| format!("prepare playlists backup: {e}"))?;
     let playlists = playlists_stmt
-        .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, Option<String>>(2)?,
+                r.get::<_, Option<String>>(3)?,
+            ))
+        })
         .map_err(|e| format!("query playlists backup: {e}"))?
         .collect::<rusqlite::Result<Vec<_>>>()
         .map_err(|e| format!("collect playlists backup: {e}"))?;
 
-    let mut backup = PlaylistBackup::default();
-    for (playlist_id, name) in playlists {
+    let mut backup = PlaylistBackup {
+        playlists: Vec::new(),
+    };
+    for (playlist_id, name, icon_key, image_path) in playlists {
         let mut songs_stmt = conn
             .prepare(
                 "SELECT s.title, COALESCE(al.title, ?1) \
@@ -1320,9 +2001,13 @@ fn backup_user_playlists(conn: &Connection, path: &Path) -> Result<(), String> {
             .map_err(|e| format!("query playlist songs backup: {e}"))?
             .collect::<rusqlite::Result<Vec<_>>>()
             .map_err(|e| format!("collect playlist songs backup: {e}"))?;
-        backup
-            .playlists
-            .push(PlaylistBackupPlaylist { name, songs });
+        backup.playlists.push(PlaylistBackupPlaylist {
+            id: playlist_id,
+            name,
+            icon_key,
+            image_path,
+            songs,
+        });
     }
 
     if let Some(parent) = path.parent() {
@@ -1401,10 +2086,14 @@ fn restore_user_playlists_from_backup(conn: &Connection, path: &Path) -> Result<
         {
             Some(id) => id,
             None => {
-                let id = Uuid::new_v4().to_string();
+                let id = if playlist.id.trim().is_empty() {
+                    Uuid::new_v4().to_string()
+                } else {
+                    playlist.id.clone()
+                };
                 conn.execute(
-                    "INSERT INTO playlists (id, name, is_system, created_at) VALUES (?1, ?2, 0, ?3)",
-                    params![id, name, now_secs()],
+                    "INSERT INTO playlists (id, name, icon_key, image_path, is_system, created_at) VALUES (?1, ?2, ?3, ?4, 0, ?5)",
+                    params![id, name, playlist.icon_key, playlist.image_path, now_secs()],
                 )
                 .map_err(|e| format!("insert restore playlist: {e}"))?;
                 id
@@ -1505,11 +2194,12 @@ enum ArtistFilter {
 fn query_artists(conn: &Connection, filter: ArtistFilter) -> rusqlite::Result<Vec<ArtistRow>> {
     let base = "\
         SELECT a.id, a.name, \
-               (SELECT cover_path FROM albums \
-                WHERE artist_id = a.id AND cover_path IS NOT NULL LIMIT 1), \
-               (SELECT COUNT(*) FROM albums WHERE artist_id = a.id) AS album_count, \
+               COALESCE(a.custom_cover_path, (SELECT al.cover_path FROM albums al \
+                JOIN album_artists aa ON aa.album_id = al.id \
+                WHERE aa.artist_id = a.id AND al.cover_path IS NOT NULL LIMIT 1)), \
+               (SELECT COUNT(*) FROM album_artists WHERE artist_id = a.id) AS album_count, \
                (SELECT COUNT(DISTINCT song_id) FROM song_artists \
-                WHERE artist_id = a.id) AS song_count \
+                WHERE artist_id = a.id) AS song_count, a.custom_cover_path \
         FROM artists a";
 
     let map = |row: &rusqlite::Row| -> rusqlite::Result<ArtistRow> {
@@ -1519,6 +2209,7 @@ fn query_artists(conn: &Connection, filter: ArtistFilter) -> rusqlite::Result<Ve
             cover_path: row.get(2)?,
             album_count: row.get(3)?,
             song_count: row.get(4)?,
+            custom_cover_path: row.get(5)?,
         })
     };
 
@@ -1556,6 +2247,7 @@ fn query_albums_by_artist(
     let sql = if featured_only {
         "SELECT DISTINCT al.id, al.title, COALESCE(a.name, ?1), al.cover_path, \
                 (SELECT COUNT(*) FROM songs s2 WHERE s2.album_id = al.id) AS song_count \
+                , (SELECT GROUP_CONCAT(an.name, ?3) FROM album_artists aa2 JOIN artists an ON an.id = aa2.artist_id WHERE aa2.album_id = al.id ORDER BY aa2.position) \
          FROM albums al \
          LEFT JOIN artists a ON al.artist_id = a.id \
          JOIN songs s ON s.album_id = al.id \
@@ -1566,21 +2258,27 @@ fn query_albums_by_artist(
     } else {
         "SELECT al.id, al.title, COALESCE(a.name, ?1), al.cover_path, \
                 (SELECT COUNT(*) FROM songs s WHERE s.album_id = al.id) AS song_count \
+                , (SELECT GROUP_CONCAT(an.name, ?3) FROM album_artists aa2 JOIN artists an ON an.id = aa2.artist_id WHERE aa2.album_id = al.id ORDER BY aa2.position) \
          FROM albums al \
          LEFT JOIN artists a ON al.artist_id = a.id \
-         WHERE al.artist_id = ?2 \
+         JOIN album_artists own_aa ON own_aa.album_id = al.id \
+         WHERE own_aa.artist_id = ?2 \
          ORDER BY al.title COLLATE NOCASE"
     };
     let mut stmt = conn.prepare(sql)?;
-    let rows = stmt.query_map(params![MISSING_ARTIST, artist_id], |r| {
-        Ok(AlbumRow {
-            id: r.get(0)?,
-            title: r.get(1)?,
-            artist: r.get(2)?,
-            cover_path: r.get(3)?,
-            song_count: r.get(4)?,
-        })
-    })?;
+    let rows = stmt.query_map(
+        params![MISSING_ARTIST, artist_id, UNIT_SEP.to_string()],
+        |r| {
+            Ok(AlbumRow {
+                id: r.get(0)?,
+                title: r.get(1)?,
+                artist: r.get(2)?,
+                cover_path: r.get(3)?,
+                song_count: r.get(4)?,
+                artists: split_names(r.get(5)?),
+            })
+        },
+    )?;
     rows.collect()
 }
 
@@ -1588,20 +2286,30 @@ fn query_albums(conn: &Connection, offset: u32, limit: u32) -> rusqlite::Result<
     let mut stmt = conn.prepare(
         "SELECT al.id, al.title, COALESCE(a.name, ?1), al.cover_path, \
                 (SELECT COUNT(*) FROM songs s WHERE s.album_id = al.id) AS song_count \
+                , (SELECT GROUP_CONCAT(an.name, ?4) FROM album_artists aa JOIN artists an ON an.id = aa.artist_id WHERE aa.album_id = al.id ORDER BY aa.position) \
          FROM albums al \
          LEFT JOIN artists a ON al.artist_id = a.id \
          ORDER BY al.title COLLATE NOCASE \
          LIMIT ?2 OFFSET ?3",
     )?;
-    let rows = stmt.query_map(params![MISSING_ARTIST, limit as i64, offset as i64], |r| {
-        Ok(AlbumRow {
-            id: r.get(0)?,
-            title: r.get(1)?,
-            artist: r.get(2)?,
-            cover_path: r.get(3)?,
-            song_count: r.get(4)?,
-        })
-    })?;
+    let rows = stmt.query_map(
+        params![
+            MISSING_ARTIST,
+            limit as i64,
+            offset as i64,
+            UNIT_SEP.to_string()
+        ],
+        |r| {
+            Ok(AlbumRow {
+                id: r.get(0)?,
+                title: r.get(1)?,
+                artist: r.get(2)?,
+                cover_path: r.get(3)?,
+                song_count: r.get(4)?,
+                artists: split_names(r.get(5)?),
+            })
+        },
+    )?;
     rows.collect()
 }
 
@@ -1625,12 +2333,26 @@ fn map_song_row(row: &rusqlite::Row) -> rusqlite::Result<SongRow> {
         album: row
             .get::<_, Option<String>>(5)?
             .unwrap_or_else(|| MISSING_ALBUM.to_string()),
+        album_id: row.get::<_, Option<String>>(9)?.unwrap_or_default(),
+        album_artists: split_names(row.get(10)?),
         cover_path: row.get(6)?,
+        song_cover_path: row.get(11)?,
         primary_artist: row
             .get::<_, Option<String>>(7)?
             .unwrap_or_else(|| MISSING_ARTIST.to_string()),
         featured_artists,
     })
+}
+
+fn split_names(value: Option<String>) -> Vec<String> {
+    value
+        .map(|s| {
+            s.split(UNIT_SEP)
+                .filter(|p| !p.is_empty())
+                .map(str::to_owned)
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1642,7 +2364,7 @@ fn insert_song(
     meta: RawMetadata,
     leading_artist: &str,
     feature_artists: &[String],
-    album_artist: &str,
+    album_artists: &[String],
 ) -> rusqlite::Result<()> {
     let title = meta.title.unwrap_or_else(|| MISSING_TITLE.to_string());
     let album_name = meta.album.unwrap_or_else(|| MISSING_ALBUM.to_string());
@@ -1668,13 +2390,13 @@ fn insert_song(
         .map(|name| ensure_artist(conn, name))
         .collect::<rusqlite::Result<_>>()?;
 
-    let album_artist_trimmed = album_artist.trim();
-    let album_artist_id = if album_artist_trimmed.is_empty() {
-        leading_artist_id.clone()
+    let normalized_album_artists = normalize_names(album_artists.to_vec());
+    let normalized_album_artists = if normalized_album_artists.is_empty() {
+        vec![leading_artist.to_string()]
     } else {
-        ensure_artist(conn, album_artist_trimmed)?
+        normalized_album_artists
     };
-    let album_id = ensure_album(conn, &album_name, &album_artist_id)?;
+    let album_id = ensure_multi_artist_album(conn, &album_name, &normalized_album_artists)?;
 
     if let Some(cover) = meta.cover {
         write_cover_if_missing(conn, covers_dir, base_dir, &album_id, &cover)?;
@@ -1736,12 +2458,23 @@ fn ensure_artist(conn: &Connection, name: &str) -> rusqlite::Result<String> {
     Ok(id)
 }
 
-fn ensure_album(conn: &Connection, title: &str, artist_id: &str) -> rusqlite::Result<String> {
-    let trimmed = title.trim();
+fn ensure_multi_artist_album(
+    conn: &Connection,
+    title: &str,
+    artist_names: &[String],
+) -> rusqlite::Result<String> {
+    let artist_ids = artist_names
+        .iter()
+        .map(|name| ensure_artist(conn, name))
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    let mut key_ids = artist_ids.clone();
+    key_ids.sort();
+    key_ids.dedup();
+    let artist_key = key_ids.join("\u{1f}");
     if let Some(id) = conn
         .query_row(
-            "SELECT id FROM albums WHERE title = ?1 AND artist_id = ?2",
-            params![trimmed, artist_id],
+            "SELECT id FROM albums WHERE title = ?1 COLLATE NOCASE AND artist_key = ?2",
+            params![title.trim(), artist_key],
             |r| r.get::<_, String>(0),
         )
         .optional()?
@@ -1750,10 +2483,280 @@ fn ensure_album(conn: &Connection, title: &str, artist_id: &str) -> rusqlite::Re
     }
     let id = Uuid::new_v4().to_string();
     conn.execute(
-        "INSERT INTO albums (id, title, artist_id, cover_path) VALUES (?1, ?2, ?3, NULL)",
-        params![id, trimmed, artist_id],
+        "INSERT INTO albums (id, title, artist_id, artist_key, cover_path) VALUES (?1, ?2, ?3, ?4, NULL)",
+        params![id, title.trim(), artist_ids[0], artist_key],
     )?;
+    for (position, artist_id) in artist_ids.iter().enumerate() {
+        conn.execute(
+            "INSERT INTO album_artists (album_id, artist_id, position) VALUES (?1, ?2, ?3)",
+            params![id, artist_id, position as i64],
+        )?;
+    }
     Ok(id)
+}
+
+fn required_text(value: &str, field: &str) -> Result<String, String> {
+    let value = value.split_whitespace().collect::<Vec<_>>().join(" ");
+    if value.is_empty() {
+        Err(format!("{field} cannot be empty"))
+    } else {
+        Ok(value)
+    }
+}
+
+fn normalize_names(values: Vec<String>) -> Vec<String> {
+    let mut normalized = Vec::new();
+    for value in values {
+        let value = value.split_whitespace().collect::<Vec<_>>().join(" ");
+        if !value.is_empty()
+            && !normalized
+                .iter()
+                .any(|v: &String| v.eq_ignore_ascii_case(&value))
+        {
+            normalized.push(value);
+        }
+    }
+    normalized
+}
+
+fn valid_playlist_icon(key: &str) -> bool {
+    matches!(
+        key,
+        "music"
+            | "queue"
+            | "favorite"
+            | "star"
+            | "car"
+            | "fitness"
+            | "flight"
+            | "celebration"
+            | "work"
+            | "school"
+            | "gaming"
+            | "night"
+    )
+}
+
+fn detect_image_extension(bytes: &[u8]) -> Option<&'static str> {
+    if bytes.starts_with(&[0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a]) {
+        Some("png")
+    } else if bytes.starts_with(&[0xff, 0xd8, 0xff]) {
+        Some("jpg")
+    } else if bytes.len() >= 12 && &bytes[..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
+        Some("webp")
+    } else {
+        None
+    }
+}
+
+fn remove_stored_file(base_dir: &Path, stored: &str) {
+    let path = PathBuf::from(absolutize(stored, base_dir));
+    if let Err(e) = fs::remove_file(&path) {
+        if e.kind() != std::io::ErrorKind::NotFound {
+            warn!("remove managed artwork {:?}: {e}", path);
+        }
+    }
+}
+
+fn album_artist_names(conn: &Connection, album_id: &str) -> rusqlite::Result<Vec<String>> {
+    let mut stmt = conn.prepare(
+        "SELECT a.name FROM album_artists aa JOIN artists a ON a.id = aa.artist_id WHERE aa.album_id = ?1 ORDER BY aa.position",
+    )?;
+    let rows = stmt.query_map(params![album_id], |r| r.get::<_, String>(0))?;
+    rows.collect()
+}
+
+struct PreparedAudioUpdate {
+    original: PathBuf,
+    staged: PathBuf,
+    backup: PathBuf,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct MetadataOperationJournal {
+    id: String,
+    files: Vec<MetadataOperationFile>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct MetadataOperationFile {
+    original: String,
+    staged: String,
+    backup: String,
+}
+
+fn write_metadata_operation_journal(
+    path: &Path,
+    files: &[PreparedAudioUpdate],
+) -> Result<String, String> {
+    let id = Uuid::new_v4().to_string();
+    let journal = MetadataOperationJournal {
+        id: id.clone(),
+        files: files
+            .iter()
+            .map(|file| MetadataOperationFile {
+                original: file.original.to_string_lossy().into_owned(),
+                staged: file.staged.to_string_lossy().into_owned(),
+                backup: file.backup.to_string_lossy().into_owned(),
+            })
+            .collect(),
+    };
+    let json =
+        serde_json::to_vec_pretty(&journal).map_err(|e| format!("encode metadata journal: {e}"))?;
+    fs::write(path, json).map_err(|e| format!("write metadata journal: {e}"))?;
+    Ok(id)
+}
+
+fn finish_metadata_operation(conn: &Connection, path: &Path, id: &str) {
+    let _ = fs::remove_file(path);
+    let _ = conn.execute("DELETE FROM metadata_operations WHERE id = ?1", params![id]);
+}
+
+fn recover_metadata_operation(conn: &Connection, path: &Path) -> Result<(), String> {
+    if !path.exists() {
+        return Ok(());
+    }
+    let raw = fs::read(path).map_err(|e| format!("read metadata recovery journal: {e}"))?;
+    let journal: MetadataOperationJournal = serde_json::from_slice(&raw)
+        .map_err(|e| format!("parse metadata recovery journal: {e}"))?;
+    let committed = conn
+        .query_row(
+            "SELECT 1 FROM metadata_operations WHERE id = ?1",
+            params![journal.id],
+            |r| r.get::<_, i64>(0),
+        )
+        .optional()
+        .map_err(|e| format!("check metadata operation: {e}"))?
+        .is_some();
+    for file in &journal.files {
+        let original = Path::new(&file.original);
+        let staged = Path::new(&file.staged);
+        let backup = Path::new(&file.backup);
+        if committed {
+            let _ = fs::remove_file(backup);
+            let _ = fs::remove_file(staged);
+        } else if backup.exists() {
+            let _ = fs::remove_file(original);
+            fs::rename(backup, original)
+                .map_err(|e| format!("restore interrupted metadata edit: {e}"))?;
+            let _ = fs::remove_file(staged);
+        } else {
+            let _ = fs::remove_file(staged);
+        }
+    }
+    finish_metadata_operation(conn, path, &journal.id);
+    Ok(())
+}
+
+impl Drop for PreparedAudioUpdate {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.staged);
+    }
+}
+
+impl PreparedAudioUpdate {
+    fn activate(&self) -> Result<(), String> {
+        fs::rename(&self.original, &self.backup).map_err(|e| format!("backup audio file: {e}"))?;
+        if let Err(e) = fs::rename(&self.staged, &self.original) {
+            let _ = fs::rename(&self.backup, &self.original);
+            return Err(format!("replace audio file: {e}"));
+        }
+        Ok(())
+    }
+
+    fn rollback(&self) {
+        let _ = fs::remove_file(&self.original);
+        let _ = fs::rename(&self.backup, &self.original);
+        let _ = fs::remove_file(&self.staged);
+    }
+
+    fn finish(&self) {
+        let _ = fs::remove_file(&self.backup);
+        let _ = fs::remove_file(&self.staged);
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn prepare_audio_update(
+    original: &Path,
+    title: &str,
+    primary_artist: &str,
+    featured_artists: &[String],
+    album: &str,
+    album_artists: &[String],
+    track_num: i64,
+    disc_num: i64,
+    artwork: Option<&Path>,
+) -> Result<PreparedAudioUpdate, String> {
+    if !original.is_file() {
+        return Err(format!(
+            "source audio file is unavailable: {}",
+            original.display()
+        ));
+    }
+    let file_name = original
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| "invalid audio filename".to_string())?;
+    let parent = original
+        .parent()
+        .ok_or_else(|| "audio file has no parent directory".to_string())?;
+    let nonce = Uuid::new_v4();
+    let extension = original
+        .extension()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| "audio file has no extension".to_string())?;
+    let staged = parent.join(format!(".{file_name}.clutter-{nonce}.{extension}"));
+    let backup = parent.join(format!(".{file_name}.clutter-{nonce}.backup"));
+    fs::copy(original, &staged).map_err(|e| format!("stage audio file: {e}"))?;
+    if let Err(e) = write_metadata(
+        &staged,
+        title,
+        primary_artist,
+        featured_artists,
+        album,
+        album_artists,
+        track_num,
+        disc_num,
+        artwork,
+    ) {
+        let _ = fs::remove_file(&staged);
+        return Err(e);
+    }
+    // Re-probe the staged file before it is allowed to replace the original.
+    crate::api::metadata::extract_raw_metadata(&staged).map_err(|e| {
+        let _ = fs::remove_file(&staged);
+        format!("verify staged audio file: {e}")
+    })?;
+    Ok(PreparedAudioUpdate {
+        original: original.to_path_buf(),
+        staged,
+        backup,
+    })
+}
+
+fn activate_prepared_batch(files: &[PreparedAudioUpdate]) -> Result<(), String> {
+    for (index, file) in files.iter().enumerate() {
+        if let Err(error) = file.activate() {
+            for active in files[..index].iter().rev() {
+                active.rollback();
+            }
+            return Err(error);
+        }
+    }
+    Ok(())
+}
+
+fn rollback_prepared_batch(files: &[PreparedAudioUpdate]) {
+    for file in files.iter().rev() {
+        file.rollback();
+    }
+}
+
+fn finish_prepared_batch(files: &[PreparedAudioUpdate]) {
+    for file in files {
+        file.finish();
+    }
 }
 
 fn write_cover_if_missing(
@@ -2238,7 +3241,10 @@ mod tests {
         );
         let backup = PlaylistBackup {
             playlists: vec![PlaylistBackupPlaylist {
+                id: "restored-playlist".to_string(),
                 name: "Restored".to_string(),
+                icon_key: None,
+                image_path: None,
                 songs: vec![
                     PlaylistBackupSong {
                         title: "  a   restored SONG ".to_string(),
@@ -2371,6 +3377,174 @@ mod tests {
                 .unwrap();
         }
         assert!(store.get_songs_in_playlist(&pid).is_empty());
+    }
+
+    #[test]
+    fn song_edit_can_create_multi_artist_album_and_override_cover() {
+        let (store, tmp) = new_store();
+        insert_basic_song(&store, "/tmp/edit.mp3", "Old", "Old Album", "Artist", &[]);
+        let song = store.get_songs_paginated(0, 1).pop().unwrap();
+        let image = tmp.path().join("custom.png");
+        fs::write(&image, tiny_png()).unwrap();
+
+        let updated = store
+            .update_song_metadata(SongMetadataUpdate {
+                song_id: song.id,
+                title: "New Title".into(),
+                primary_artist: "Lead".into(),
+                featured_artists: vec!["Feature".into()],
+                track_num: 2,
+                disc_num: 1,
+                album: AlbumSelection::New {
+                    title: "Joint Album".into(),
+                    artists: vec!["Lead".into(), "Partner".into()],
+                },
+                cover: ArtworkUpdate::Replace(image.to_string_lossy().into_owned()),
+                write_file_tags: false,
+            })
+            .expect("update song");
+
+        assert_eq!(updated.title, "New Title");
+        assert_eq!(updated.album, "Joint Album");
+        assert_eq!(updated.album_artists, vec!["Lead", "Partner"]);
+        assert!(updated.song_cover_path.is_some());
+        assert_eq!(updated.cover_path, updated.song_cover_path);
+    }
+
+    #[test]
+    fn album_edit_merges_matching_identity_without_losing_songs() {
+        let (store, _tmp) = new_store();
+        insert_basic_song(
+            &store,
+            "/tmp/source.mp3",
+            "Source",
+            "Source Album",
+            "Artist",
+            &[],
+        );
+        insert_basic_song(
+            &store,
+            "/tmp/target.mp3",
+            "Target",
+            "Target Album",
+            "Artist",
+            &[],
+        );
+        let source_id = album_id_for(&store, "Source Album");
+        let target_id = album_id_for(&store, "Target Album");
+
+        let result = store
+            .update_album_metadata(AlbumMetadataUpdate {
+                album_id: source_id.clone(),
+                title: "Target Album".into(),
+                artists: vec!["Artist".into()],
+                cover: ArtworkUpdate::Keep,
+                write_file_tags: false,
+            })
+            .expect("merge album");
+
+        assert_eq!(result.id, target_id);
+        assert_eq!(result.song_count, 2);
+        assert!(store.get_songs_by_album_id(&source_id).is_empty());
+        assert_eq!(store.get_songs_by_album_id(&target_id).len(), 2);
+    }
+
+    #[test]
+    fn artist_custom_cover_overrides_and_can_restore_album_fallback() {
+        let (store, tmp) = new_store();
+        insert_basic_song(
+            &store,
+            "/tmp/artist-cover.mp3",
+            "Track",
+            "Album",
+            "Artist",
+            &[],
+        );
+        let artist = store.get_artists_paginated(0, 1).pop().unwrap();
+        let image = tmp.path().join("artist.png");
+        fs::write(&image, tiny_png()).unwrap();
+
+        let changed = store
+            .update_artist_image(
+                &artist.id,
+                ArtworkUpdate::Replace(image.to_string_lossy().into_owned()),
+            )
+            .expect("set artist image");
+        assert!(changed.custom_cover_path.is_some());
+        assert_eq!(changed.cover_path, changed.custom_cover_path);
+
+        let restored = store
+            .update_artist_image(&artist.id, ArtworkUpdate::Remove)
+            .expect("remove artist image");
+        assert!(restored.custom_cover_path.is_none());
+    }
+
+    #[test]
+    fn playlist_visual_modes_are_exclusive_and_system_playlist_is_fixed() {
+        let (store, tmp) = new_store();
+        let id = store.create_playlist("Road Trip").unwrap();
+        let image = tmp.path().join("playlist.png");
+        fs::write(&image, tiny_png()).unwrap();
+
+        let with_image = store
+            .update_playlist_metadata(
+                &id,
+                "Driving",
+                PlaylistVisualUpdate::Image(image.to_string_lossy().into_owned()),
+            )
+            .unwrap();
+        assert!(with_image.image_path.is_some());
+        assert!(with_image.icon_key.is_none());
+
+        let with_icon = store
+            .update_playlist_metadata(&id, "Driving", PlaylistVisualUpdate::Icon("car".into()))
+            .unwrap();
+        assert_eq!(with_icon.icon_key.as_deref(), Some("car"));
+        assert!(with_icon.image_path.is_none());
+
+        let liked = store.get_liked_songs_playlist_id().unwrap();
+        assert!(store
+            .update_playlist_metadata(&liked, "Renamed", PlaylistVisualUpdate::Initials)
+            .is_err());
+    }
+
+    #[test]
+    fn interrupted_metadata_operation_restores_original_when_db_did_not_commit() {
+        let (store, tmp) = new_store();
+        let original = tmp.path().join("track.mp3");
+        let staged = tmp.path().join("track.staged.mp3");
+        let backup = tmp.path().join("track.backup");
+        fs::write(&original, b"new").unwrap();
+        fs::write(&staged, b"staged").unwrap();
+        fs::write(&backup, b"old").unwrap();
+        let journal = MetadataOperationJournal {
+            id: "uncommitted".into(),
+            files: vec![MetadataOperationFile {
+                original: original.to_string_lossy().into_owned(),
+                staged: staged.to_string_lossy().into_owned(),
+                backup: backup.to_string_lossy().into_owned(),
+            }],
+        };
+        fs::write(
+            &store.operation_journal_path,
+            serde_json::to_vec(&journal).unwrap(),
+        )
+        .unwrap();
+        let conn = store.conn.lock().unwrap();
+        recover_metadata_operation(&conn, &store.operation_journal_path).unwrap();
+        assert_eq!(fs::read(&original).unwrap(), b"old");
+        assert!(!staged.exists());
+        assert!(!backup.exists());
+        assert!(!store.operation_journal_path.exists());
+    }
+
+    fn tiny_png() -> &'static [u8] {
+        // 1x1 transparent PNG.
+        &[
+            137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1,
+            8, 6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 13, 73, 68, 65, 84, 8, 215, 99, 96, 0, 0, 0,
+            2, 0, 1, 226, 33, 188, 51, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
+        ]
     }
 
     #[test]

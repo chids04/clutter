@@ -1,13 +1,24 @@
 use flutter_rust_bridge::frb;
 use log::{info, warn};
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::path::PathBuf;
 use walkdir::WalkDir;
 
 use super::db::{
-    AlbumRow, ArtistRow, PinnedItemRow, PlaybackStateRow, PlaylistRow, SongRow, Store,
+    AlbumMetadataUpdate, AlbumRow, AlbumSelection, ArtistRow, ArtworkUpdate, PinnedItemRow,
+    PlaybackStateRow, PlaylistRow, PlaylistVisualUpdate, SongMetadataUpdate, SongRow, Store,
 };
-use super::metadata::{extract_raw_metadata, parse_artist_string, MISSING_ARTIST};
+use super::metadata::{extract_raw_metadata, parse_artist_string, RawCover, MISSING_ARTIST};
 
 const SUPPORTED_EXTENSIONS: &[&str] = &["mp3", "flac", "m4a", "mp4", "ogg", "opus", "wav"];
+
+fn raw_cover_hash(cover: &RawCover) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    cover.mime_type.hash(&mut hasher);
+    cover.data.hash(&mut hasher);
+    hasher.finish()
+}
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -27,6 +38,9 @@ pub struct SongViewData {
     pub track_num: i64,
     pub disc_num: i64,
     pub album: String,
+    pub album_id: String,
+    pub album_artists: Vec<String>,
+    pub song_cover_path: Option<String>,
 }
 
 impl From<SongRow> for SongViewData {
@@ -41,6 +55,9 @@ impl From<SongRow> for SongViewData {
             track_num: row.track_num,
             disc_num: row.disc_num,
             album: row.album,
+            album_id: row.album_id,
+            album_artists: row.album_artists,
+            song_cover_path: row.song_cover_path,
         }
     }
 }
@@ -53,6 +70,7 @@ pub struct AlbumViewData {
     pub artist: String,
     pub cover_path: Option<String>,
     pub song_count: i64,
+    pub artists: Vec<String>,
 }
 
 impl From<AlbumRow> for AlbumViewData {
@@ -63,6 +81,7 @@ impl From<AlbumRow> for AlbumViewData {
             artist: row.artist,
             cover_path: row.cover_path,
             song_count: row.song_count,
+            artists: row.artists,
         }
     }
 }
@@ -74,6 +93,8 @@ pub struct PlaylistViewData {
     pub name: String,
     pub is_system: bool,
     pub song_count: i64,
+    pub icon_key: Option<String>,
+    pub image_path: Option<String>,
 }
 
 impl From<PlaylistRow> for PlaylistViewData {
@@ -83,6 +104,8 @@ impl From<PlaylistRow> for PlaylistViewData {
             name: row.name,
             is_system: row.is_system,
             song_count: row.song_count,
+            icon_key: row.icon_key,
+            image_path: row.image_path,
         }
     }
 }
@@ -96,6 +119,7 @@ pub struct ArtistViewData {
     pub cover_path: Option<String>,
     pub album_count: i64,
     pub song_count: i64,
+    pub custom_cover_path: Option<String>,
 }
 
 impl From<ArtistRow> for ArtistViewData {
@@ -106,8 +130,67 @@ impl From<ArtistRow> for ArtistViewData {
             cover_path: row.cover_path,
             album_count: row.album_count,
             song_count: row.song_count,
+            custom_cover_path: row.custom_cover_path,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum CoverArtEdit {
+    Keep,
+    Remove,
+    Replace { source_path: String },
+}
+
+impl From<CoverArtEdit> for ArtworkUpdate {
+    fn from(value: CoverArtEdit) -> Self {
+        match value {
+            CoverArtEdit::Keep => ArtworkUpdate::Keep,
+            CoverArtEdit::Remove => ArtworkUpdate::Remove,
+            CoverArtEdit::Replace { source_path } => ArtworkUpdate::Replace(source_path),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum AlbumChoice {
+    Existing { album_id: String },
+    New { title: String, artists: Vec<String> },
+}
+
+#[derive(Debug, Clone)]
+pub struct SongEditRequest {
+    pub song_id: String,
+    pub title: String,
+    pub primary_artist: String,
+    pub featured_artists: Vec<String>,
+    pub track_num: i64,
+    pub disc_num: i64,
+    pub album: AlbumChoice,
+    pub cover: CoverArtEdit,
+}
+
+#[derive(Debug, Clone)]
+pub struct AlbumEditRequest {
+    pub album_id: String,
+    pub title: String,
+    pub artists: Vec<String>,
+    pub cover: CoverArtEdit,
+}
+
+#[derive(Debug, Clone)]
+pub enum PlaylistVisualEdit {
+    Keep,
+    Initials,
+    Icon { key: String },
+    Image { source_path: String },
+}
+
+#[derive(Debug, Clone)]
+pub struct PlaylistEditRequest {
+    pub playlist_id: String,
+    pub name: String,
+    pub visual: PlaylistVisualEdit,
 }
 
 /// UI-ready playback state used to resume the MediaBar on relaunch.
@@ -166,7 +249,14 @@ impl CLibrary {
         if let Err(e) = self.store.add_scan_path(&path) {
             warn!("failed to persist scan path {path}: {e}");
         }
-        let mut processed = 0usize;
+        struct PendingSong {
+            path: PathBuf,
+            meta: super::metadata::RawMetadata,
+            leading: String,
+            features: Vec<String>,
+            album_artists: Vec<String>,
+        }
+        let mut pending = Vec::<PendingSong>::new();
         for entry in WalkDir::new(&path)
             .follow_links(true)
             .into_iter()
@@ -184,6 +274,9 @@ impl CLibrary {
             if !supported {
                 continue;
             }
+            if self.store.contains_song_file(file_path) {
+                continue;
+            }
             let meta = match extract_raw_metadata(file_path) {
                 Ok(m) => m,
                 Err(e) => {
@@ -196,20 +289,98 @@ impl CLibrary {
                 Some(raw) => parse_artist_string(raw, config.is_deezer),
                 None => (MISSING_ARTIST.to_string(), Vec::new()),
             };
-            let album_artist = match meta.album_artist.as_deref() {
-                Some(raw) => parse_artist_string(raw, config.is_deezer).0,
-                None => leading_artist.clone(),
+            let album_artists = match meta.album_artist.as_deref() {
+                Some(raw) => {
+                    let (first, rest) = parse_artist_string(raw, config.is_deezer);
+                    std::iter::once(first).chain(rest).collect::<Vec<_>>()
+                }
+                None => vec![leading_artist.clone()],
             };
 
-            if let Err(e) = self.store.insert_song(
-                file_path,
+            pending.push(PendingSong {
+                path: file_path.to_path_buf(),
                 meta,
-                &leading_artist,
-                &feature_artists,
-                &album_artist,
+                leading: leading_artist,
+                features: feature_artists,
+                album_artists,
+            });
+        }
+
+        // Determine the representative cover for every album before inserting
+        // anything. Differing covers are persisted as song overrides.
+        let mut groups = HashMap::<String, Vec<usize>>::new();
+        for (index, song) in pending.iter().enumerate() {
+            let mut artists = song
+                .album_artists
+                .iter()
+                .map(|a| a.trim().to_lowercase())
+                .collect::<Vec<_>>();
+            artists.sort();
+            artists.dedup();
+            let key = format!(
+                "{}\u{1f}{}",
+                song.meta
+                    .album
+                    .as_deref()
+                    .unwrap_or("")
+                    .trim()
+                    .to_lowercase(),
+                artists.join("\u{1f}")
+            );
+            groups.entry(key).or_default().push(index);
+        }
+        let mut representative = HashMap::<usize, Option<u64>>::new();
+        for indices in groups.values_mut() {
+            indices.sort_by_key(|index| {
+                let song = &pending[*index];
+                (
+                    song.meta.disc_num.unwrap_or(1),
+                    song.meta.track_num.unwrap_or(1),
+                    song.path.to_string_lossy().to_string(),
+                )
+            });
+            let mut counts = HashMap::<u64, (usize, usize)>::new();
+            for (rank, index) in indices.iter().enumerate() {
+                if let Some(cover) = pending[*index].meta.cover.as_ref() {
+                    let hash = raw_cover_hash(cover);
+                    let entry = counts.entry(hash).or_insert((0, rank));
+                    entry.0 += 1;
+                }
+            }
+            let winner = counts
+                .into_iter()
+                .max_by(|a, b| a.1 .0.cmp(&b.1 .0).then_with(|| b.1 .1.cmp(&a.1 .1)))
+                .map(|(hash, _)| hash);
+            for index in indices.iter() {
+                representative.insert(*index, winner);
+            }
+        }
+
+        let mut processed = 0usize;
+        for (index, mut song) in pending.into_iter().enumerate() {
+            let override_cover = match (
+                song.meta.cover.as_ref(),
+                representative.get(&index).copied().flatten(),
             ) {
-                warn!("failed to index {:?}: {}", file_path, e);
+                (Some(cover), Some(album_hash)) if raw_cover_hash(cover) != album_hash => {
+                    song.meta.cover.take()
+                }
+                _ => None,
+            };
+            if let Err(e) = self.store.insert_song_with_album_artists(
+                &song.path,
+                song.meta,
+                &song.leading,
+                &song.features,
+                &song.album_artists,
+            ) {
+                warn!("failed to index {:?}: {}", song.path, e);
             } else {
+                if let Some(cover) = override_cover {
+                    if let Err(e) = self.store.set_scanned_song_cover(&song.path, &cover) {
+                        warn!("failed to persist song cover {:?}: {}", song.path, e);
+                    }
+                }
                 processed += 1;
             }
         }
@@ -385,6 +556,63 @@ impl CLibrary {
             .into_iter()
             .map(PlaylistViewData::from)
             .collect()
+    }
+
+    pub fn update_song(&self, request: SongEditRequest) -> Result<SongViewData, String> {
+        let album = match request.album {
+            AlbumChoice::Existing { album_id } => AlbumSelection::Existing(album_id),
+            AlbumChoice::New { title, artists } => AlbumSelection::New { title, artists },
+        };
+        self.store
+            .update_song_metadata(SongMetadataUpdate {
+                song_id: request.song_id,
+                title: request.title,
+                primary_artist: request.primary_artist,
+                featured_artists: request.featured_artists,
+                track_num: request.track_num,
+                disc_num: request.disc_num,
+                album,
+                cover: request.cover.into(),
+                write_file_tags: true,
+            })
+            .map(SongViewData::from)
+    }
+
+    pub fn update_album(&self, request: AlbumEditRequest) -> Result<AlbumViewData, String> {
+        self.store
+            .update_album_metadata(AlbumMetadataUpdate {
+                album_id: request.album_id,
+                title: request.title,
+                artists: request.artists,
+                cover: request.cover.into(),
+                write_file_tags: true,
+            })
+            .map(AlbumViewData::from)
+    }
+
+    pub fn update_artist_image(
+        &self,
+        artist_id: String,
+        cover: CoverArtEdit,
+    ) -> Result<ArtistViewData, String> {
+        self.store
+            .update_artist_image(&artist_id, cover.into())
+            .map(ArtistViewData::from)
+    }
+
+    pub fn update_playlist(
+        &self,
+        request: PlaylistEditRequest,
+    ) -> Result<PlaylistViewData, String> {
+        let visual = match request.visual {
+            PlaylistVisualEdit::Keep => PlaylistVisualUpdate::Keep,
+            PlaylistVisualEdit::Initials => PlaylistVisualUpdate::Initials,
+            PlaylistVisualEdit::Icon { key } => PlaylistVisualUpdate::Icon(key),
+            PlaylistVisualEdit::Image { source_path } => PlaylistVisualUpdate::Image(source_path),
+        };
+        self.store
+            .update_playlist_metadata(&request.playlist_id, &request.name, visual)
+            .map(PlaylistViewData::from)
     }
 
     pub fn delete_song(&self, id: String) -> Result<(), String> {
@@ -572,6 +800,72 @@ mod tests {
         let cover_on_disk = Path::new(cover);
         assert!(cover_on_disk.exists(), "cover file not written: {cover}");
         assert!(cover_on_disk.starts_with(tmp.path().join("covers")));
+    }
+
+    #[test]
+    fn song_edit_rewrites_tags_on_a_temporary_audio_copy() {
+        let (lib, tmp) = new_library();
+        let source = test_album_dir().join("01 - Rockstar Made.mp3");
+        let music_dir = tmp.path().join("editable");
+        std::fs::create_dir_all(&music_dir).unwrap();
+        let copy = music_dir.join("track.mp3");
+        std::fs::copy(source, &copy).unwrap();
+        lib.scan_directory(
+            music_dir.to_string_lossy().to_string(),
+            Config { is_deezer: true },
+        )
+        .unwrap();
+        let song = lib.get_songs_paginated(0, 1).pop().unwrap();
+        let updated = lib
+            .update_song(SongEditRequest {
+                song_id: song.id.clone(),
+                title: "Edited in Clutter".into(),
+                primary_artist: song.primary_artist,
+                featured_artists: song.featured_artists,
+                track_num: song.track_num,
+                disc_num: song.disc_num,
+                album: AlbumChoice::Existing {
+                    album_id: song.album_id,
+                },
+                cover: CoverArtEdit::Keep,
+            })
+            .expect("edit song");
+        assert_eq!(updated.title, "Edited in Clutter");
+        let raw = extract_raw_metadata(&copy).expect("read rewritten tags");
+        assert_eq!(raw.title.as_deref(), Some("Edited in Clutter"));
+    }
+
+    #[test]
+    fn album_edit_rewrites_every_temporary_source_file() {
+        let (lib, tmp) = new_library();
+        let music_dir = tmp.path().join("album-edit");
+        std::fs::create_dir_all(&music_dir).unwrap();
+        for name in ["01 - Rockstar Made.mp3", "02 - Go2DaMoon.mp3"] {
+            std::fs::copy(test_album_dir().join(name), music_dir.join(name)).unwrap();
+        }
+        lib.scan_directory(
+            music_dir.to_string_lossy().into_owned(),
+            Config { is_deezer: true },
+        )
+        .unwrap();
+        let album = lib.get_albums_paginated(0, 1).pop().unwrap();
+        let updated = lib
+            .update_album(AlbumEditRequest {
+                album_id: album.id,
+                title: "Edited Album".into(),
+                artists: vec!["Playboi Carti".into(), "Guest Curator".into()],
+                cover: CoverArtEdit::Keep,
+            })
+            .expect("edit album");
+        assert_eq!(updated.artists, vec!["Playboi Carti", "Guest Curator"]);
+        for name in ["01 - Rockstar Made.mp3", "02 - Go2DaMoon.mp3"] {
+            let raw = extract_raw_metadata(&music_dir.join(name)).unwrap();
+            assert_eq!(raw.album.as_deref(), Some("Edited Album"));
+            assert_eq!(
+                raw.album_artist.as_deref(),
+                Some("Playboi Carti / Guest Curator")
+            );
+        }
     }
 
     fn seed_scan(lib: &CLibrary) {
