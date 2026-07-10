@@ -425,6 +425,10 @@ class _LibraryQuickNav extends StatelessWidget {
                 tooltip: page.label,
                 color: active ? theme.colorScheme.onSurface : inactive,
                 onPressed: () => onPageSelected(page),
+                style: const ButtonStyle(
+                  splashFactory: NoSplash.splashFactory,
+                  overlayColor: WidgetStatePropertyAll(Colors.transparent),
+                ),
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
                 constraints: const BoxConstraints(
