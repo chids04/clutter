@@ -80,8 +80,8 @@ final ThemeData darkTheme = ThemeData(
   ),
   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
     backgroundColor: AppColors.darkBackground,
-    selectedItemColor: AppColors.accent,
-    unselectedItemColor: AppColors.textSecondary,
+    selectedItemColor: AppColors.textPrimary,
+    unselectedItemColor: AppColors.accent,
     elevation: 0,
     type: BottomNavigationBarType.fixed,
   ),

@@ -56,22 +56,7 @@ class LibraryView extends StatelessWidget {
       builder: (context, currentPage, _) {
         return Scaffold(
           appBar: AppBar(
-            title: Row(
-              children: [
-                Text(currentPage.label),
-                const Spacer(),
-                Row(
-                  spacing: 5,
-                  children: [
-                    const Text("list as", style: TextStyle(fontSize: 12)),
-                    DisplayOptDropdown(
-                      onPageChanged: onPageChanged,
-                      currentPage: currentPage,
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            title: Row(children: [Text(currentPage.label)]),
             centerTitle: false,
             elevation: 0.0,
             shape: Border(

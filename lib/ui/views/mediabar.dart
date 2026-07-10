@@ -423,7 +423,7 @@ class _LibraryQuickNav extends StatelessWidget {
               return IconButton(
                 icon: Icon(_iconFor(page), size: 22),
                 tooltip: page.label,
-                color: active ? theme.colorScheme.primary : inactive,
+                color: active ? theme.colorScheme.onSurface : inactive,
                 onPressed: () => onPageSelected(page),
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
