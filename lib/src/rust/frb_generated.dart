@@ -3,7 +3,8 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
-import 'api/scanner.dart';
+import 'api/library.dart';
+import 'api/models.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -55,7 +56,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 
   @override
   Future<void> executeRustInitializers() async {
-    await api.crateApiSimpleInitApp();
+    await api.crateApiInitInitApp();
   }
 
   @override
@@ -66,7 +67,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 1757896391;
+  int get rustContentHash => -1555731542;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -78,239 +79,243 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
-  Future<void> crateApiScannerCLibraryAddSongToPlaylist({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiAddSongToPlaylist({
+    required LibraryApi that,
     required String playlistId,
     required String songId,
   });
 
-  Future<String> crateApiScannerCLibraryCreatePlaylist({
-    required CLibrary that,
+  Future<String> crateApiLibraryLibraryApiCreatePlaylist({
+    required LibraryApi that,
     required String name,
   });
 
-  Future<void> crateApiScannerCLibraryDeleteAlbum({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiDeleteAlbum({
+    required LibraryApi that,
     required String id,
   });
 
-  Future<void> crateApiScannerCLibraryDeletePlaylist({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiDeletePlaylist({
+    required LibraryApi that,
     required String id,
   });
 
-  Future<int> crateApiScannerCLibraryDeleteScanPath({
-    required CLibrary that,
+  Future<int> crateApiLibraryLibraryApiDeleteScanPath({
+    required LibraryApi that,
     required String path,
   });
 
-  Future<void> crateApiScannerCLibraryDeleteSong({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiDeleteSong({
+    required LibraryApi that,
     required String id,
   });
 
-  Future<List<AlbumViewData>> crateApiScannerCLibraryGetAlbumsArtistFeaturedOn({
-    required CLibrary that,
+  Future<List<AlbumViewData>>
+  crateApiLibraryLibraryApiGetAlbumsArtistFeaturedOn({
+    required LibraryApi that,
     required String artistId,
   });
 
-  Future<List<AlbumViewData>> crateApiScannerCLibraryGetAlbumsByArtistId({
-    required CLibrary that,
+  Future<List<AlbumViewData>> crateApiLibraryLibraryApiGetAlbumsByArtistId({
+    required LibraryApi that,
     required String artistId,
   });
 
-  Future<List<AlbumViewData>> crateApiScannerCLibraryGetAlbumsPaginated({
-    required CLibrary that,
+  Future<List<AlbumViewData>> crateApiLibraryLibraryApiGetAlbumsPaginated({
+    required LibraryApi that,
     required int offset,
     required int limit,
   });
 
-  Future<ArtistViewData?> crateApiScannerCLibraryGetArtistById({
-    required CLibrary that,
+  Future<ArtistViewData?> crateApiLibraryLibraryApiGetArtistById({
+    required LibraryApi that,
     required String id,
   });
 
-  Future<List<ArtistViewData>> crateApiScannerCLibraryGetArtistsPaginated({
-    required CLibrary that,
+  Future<List<ArtistViewData>> crateApiLibraryLibraryApiGetArtistsPaginated({
+    required LibraryApi that,
     required int offset,
     required int limit,
   });
 
-  Future<List<String>> crateApiScannerCLibraryGetLikedSongIds({
-    required CLibrary that,
+  Future<List<String>> crateApiLibraryLibraryApiGetLikedSongIds({
+    required LibraryApi that,
   });
 
-  Future<String?> crateApiScannerCLibraryGetLikedSongsPlaylistId({
-    required CLibrary that,
+  Future<String?> crateApiLibraryLibraryApiGetLikedSongsPlaylistId({
+    required LibraryApi that,
   });
 
-  Future<List<PinnedItemData>> crateApiScannerCLibraryGetPinnedItems({
-    required CLibrary that,
+  Future<List<PinnedItemData>> crateApiLibraryLibraryApiGetPinnedItems({
+    required LibraryApi that,
   });
 
-  Future<List<PlaylistViewData>> crateApiScannerCLibraryGetPlaylistsPaginated({
-    required CLibrary that,
+  Future<List<PlaylistViewData>>
+  crateApiLibraryLibraryApiGetPlaylistsPaginated({
+    required LibraryApi that,
     required int offset,
     required int limit,
   });
 
-  Future<List<SongViewData>> crateApiScannerCLibraryGetRecentlyPlayed({
-    required CLibrary that,
+  Future<List<SongViewData>> crateApiLibraryLibraryApiGetRecentlyPlayed({
+    required LibraryApi that,
     required int limit,
   });
 
-  Future<List<String>> crateApiScannerCLibraryGetScanPaths({
-    required CLibrary that,
+  Future<List<String>> crateApiLibraryLibraryApiGetScanPaths({
+    required LibraryApi that,
   });
 
-  Future<SongViewData?> crateApiScannerCLibraryGetSongById({
-    required CLibrary that,
+  Future<SongViewData?> crateApiLibraryLibraryApiGetSongById({
+    required LibraryApi that,
     required String id,
   });
 
-  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsArtistFeaturedOn({
-    required CLibrary that,
+  Future<List<SongViewData>> crateApiLibraryLibraryApiGetSongsArtistFeaturedOn({
+    required LibraryApi that,
     required String artistId,
   });
 
-  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsByAlbumId({
-    required CLibrary that,
+  Future<List<SongViewData>> crateApiLibraryLibraryApiGetSongsByAlbumId({
+    required LibraryApi that,
     required String albumId,
   });
 
-  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsInPlaylist({
-    required CLibrary that,
+  Future<List<SongViewData>> crateApiLibraryLibraryApiGetSongsInPlaylist({
+    required LibraryApi that,
     required String playlistId,
   });
 
-  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsPaginated({
-    required CLibrary that,
+  Future<List<SongViewData>> crateApiLibraryLibraryApiGetSongsPaginated({
+    required LibraryApi that,
     required int offset,
     required int limit,
   });
 
-  int crateApiScannerCLibraryGetTotalAlbums({required CLibrary that});
+  int crateApiLibraryLibraryApiGetTotalAlbums({required LibraryApi that});
 
-  int crateApiScannerCLibraryGetTotalArtists({required CLibrary that});
+  int crateApiLibraryLibraryApiGetTotalArtists({required LibraryApi that});
 
-  int crateApiScannerCLibraryGetTotalPlaylists({required CLibrary that});
+  int crateApiLibraryLibraryApiGetTotalPlaylists({required LibraryApi that});
 
-  int crateApiScannerCLibraryGetTotalSongs({required CLibrary that});
+  int crateApiLibraryLibraryApiGetTotalSongs({required LibraryApi that});
 
-  Future<CLibrary> crateApiScannerCLibraryInit({
+  Future<LibraryApi> crateApiLibraryLibraryApiInit({
     required String dbPath,
     required String coversDir,
     required String baseDir,
   });
 
-  Future<PlaybackStateData?> crateApiScannerCLibraryLoadPlaybackState({
-    required CLibrary that,
+  Future<PlaybackStateData?> crateApiLibraryLibraryApiLoadPlaybackState({
+    required LibraryApi that,
   });
 
-  Future<void> crateApiScannerCLibraryMovePinnedItem({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiMovePinnedItem({
+    required LibraryApi that,
     required String itemId,
     required String kind,
     required int newIndex,
   });
 
-  Future<void> crateApiScannerCLibraryPinItem({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiPinItem({
+    required LibraryApi that,
     required String itemId,
     required String kind,
   });
 
-  Future<void> crateApiScannerCLibraryRecordPlay({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiRecordPlay({
+    required LibraryApi that,
     required String songId,
   });
 
-  Future<void> crateApiScannerCLibraryRemoveSongFromPlaylist({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiRemoveSongFromPlaylist({
+    required LibraryApi that,
     required String playlistId,
     required String songId,
   });
 
-  Future<void> crateApiScannerCLibraryResetLibrary({required CLibrary that});
+  Future<void> crateApiLibraryLibraryApiResetLibrary({
+    required LibraryApi that,
+  });
 
-  Future<void> crateApiScannerCLibrarySavePlaybackState({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiSavePlaybackState({
+    required LibraryApi that,
     String? songId,
     required PlatformInt64 positionMs,
     required bool loopOne,
   });
 
-  Future<void> crateApiScannerCLibraryScanDirectory({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiScanDirectory({
+    required LibraryApi that,
     required String path,
-    required Config config,
+    required ScanConfig config,
   });
 
-  Future<List<AlbumViewData>> crateApiScannerCLibrarySearchAlbums({
-    required CLibrary that,
+  Future<List<AlbumViewData>> crateApiLibraryLibraryApiSearchAlbums({
+    required LibraryApi that,
     required String query,
     required int limit,
   });
 
-  Future<List<ArtistViewData>> crateApiScannerCLibrarySearchArtists({
-    required CLibrary that,
+  Future<List<ArtistViewData>> crateApiLibraryLibraryApiSearchArtists({
+    required LibraryApi that,
     required String query,
     required int limit,
   });
 
-  Future<List<PlaylistViewData>> crateApiScannerCLibrarySearchPlaylists({
-    required CLibrary that,
+  Future<List<PlaylistViewData>> crateApiLibraryLibraryApiSearchPlaylists({
+    required LibraryApi that,
     required String query,
     required int limit,
   });
 
-  Future<List<SongViewData>> crateApiScannerCLibrarySearchSongs({
-    required CLibrary that,
+  Future<List<SongViewData>> crateApiLibraryLibraryApiSearchSongs({
+    required LibraryApi that,
     required String query,
     required int limit,
   });
 
-  Future<String> crateApiScannerCLibrarySplitAlbumToNewArtist({
-    required CLibrary that,
+  Future<String> crateApiLibraryLibraryApiSplitAlbumToNewArtist({
+    required LibraryApi that,
     required String albumId,
   });
 
-  Future<void> crateApiScannerCLibraryUnpinItem({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiUnpinItem({
+    required LibraryApi that,
     required String itemId,
     required String kind,
   });
 
-  Future<AlbumViewData> crateApiScannerCLibraryUpdateAlbum({
-    required CLibrary that,
+  Future<AlbumViewData> crateApiLibraryLibraryApiUpdateAlbum({
+    required LibraryApi that,
     required AlbumEditRequest request,
   });
 
-  Future<ArtistViewData> crateApiScannerCLibraryUpdateArtistImage({
-    required CLibrary that,
+  Future<ArtistViewData> crateApiLibraryLibraryApiUpdateArtistImage({
+    required LibraryApi that,
     required String artistId,
     required CoverArtEdit cover,
   });
 
-  Future<PlaylistViewData> crateApiScannerCLibraryUpdatePlaylist({
-    required CLibrary that,
+  Future<PlaylistViewData> crateApiLibraryLibraryApiUpdatePlaylist({
+    required LibraryApi that,
     required PlaylistEditRequest request,
   });
 
-  Future<SongViewData> crateApiScannerCLibraryUpdateSong({
-    required CLibrary that,
+  Future<SongViewData> crateApiLibraryLibraryApiUpdateSong({
+    required LibraryApi that,
     required SongEditRequest request,
   });
 
-  Future<void> crateApiSimpleInitApp();
+  Future<void> crateApiInitInitApp();
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_CLibrary;
+  get rust_arc_increment_strong_count_LibraryApi;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_CLibrary;
+  get rust_arc_decrement_strong_count_LibraryApi;
 
-  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_CLibraryPtr;
+  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_LibraryApiPtr;
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -322,8 +327,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
-  Future<void> crateApiScannerCLibraryAddSongToPlaylist({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiAddSongToPlaylist({
+    required LibraryApi that,
     required String playlistId,
     required String songId,
   }) {
@@ -331,7 +336,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -348,29 +353,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryAddSongToPlaylistConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiAddSongToPlaylistConstMeta,
         argValues: [that, playlistId, songId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryAddSongToPlaylistConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiAddSongToPlaylistConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_add_song_to_playlist",
+        debugName: "LibraryApi_add_song_to_playlist",
         argNames: ["that", "playlistId", "songId"],
       );
 
   @override
-  Future<String> crateApiScannerCLibraryCreatePlaylist({
-    required CLibrary that,
+  Future<String> crateApiLibraryLibraryApiCreatePlaylist({
+    required LibraryApi that,
     required String name,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -386,29 +391,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_String,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryCreatePlaylistConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiCreatePlaylistConstMeta,
         argValues: [that, name],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryCreatePlaylistConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiCreatePlaylistConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_create_playlist",
+        debugName: "LibraryApi_create_playlist",
         argNames: ["that", "name"],
       );
 
   @override
-  Future<void> crateApiScannerCLibraryDeleteAlbum({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiDeleteAlbum({
+    required LibraryApi that,
     required String id,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -424,29 +429,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryDeleteAlbumConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiDeleteAlbumConstMeta,
         argValues: [that, id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryDeleteAlbumConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiDeleteAlbumConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_delete_album",
+        debugName: "LibraryApi_delete_album",
         argNames: ["that", "id"],
       );
 
   @override
-  Future<void> crateApiScannerCLibraryDeletePlaylist({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiDeletePlaylist({
+    required LibraryApi that,
     required String id,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -462,29 +467,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryDeletePlaylistConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiDeletePlaylistConstMeta,
         argValues: [that, id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryDeletePlaylistConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiDeletePlaylistConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_delete_playlist",
+        debugName: "LibraryApi_delete_playlist",
         argNames: ["that", "id"],
       );
 
   @override
-  Future<int> crateApiScannerCLibraryDeleteScanPath({
-    required CLibrary that,
+  Future<int> crateApiLibraryLibraryApiDeleteScanPath({
+    required LibraryApi that,
     required String path,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -500,29 +505,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_u_32,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryDeleteScanPathConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiDeleteScanPathConstMeta,
         argValues: [that, path],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryDeleteScanPathConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiDeleteScanPathConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_delete_scan_path",
+        debugName: "LibraryApi_delete_scan_path",
         argNames: ["that", "path"],
       );
 
   @override
-  Future<void> crateApiScannerCLibraryDeleteSong({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiDeleteSong({
+    required LibraryApi that,
     required String id,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -538,29 +543,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryDeleteSongConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiDeleteSongConstMeta,
         argValues: [that, id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryDeleteSongConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiDeleteSongConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_delete_song",
+        debugName: "LibraryApi_delete_song",
         argNames: ["that", "id"],
       );
 
   @override
-  Future<List<AlbumViewData>> crateApiScannerCLibraryGetAlbumsArtistFeaturedOn({
-    required CLibrary that,
+  Future<List<AlbumViewData>>
+  crateApiLibraryLibraryApiGetAlbumsArtistFeaturedOn({
+    required LibraryApi that,
     required String artistId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -576,7 +582,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_album_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetAlbumsArtistFeaturedOnConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetAlbumsArtistFeaturedOnConstMeta,
         argValues: [that, artistId],
         apiImpl: this,
       ),
@@ -584,22 +590,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta
-  get kCrateApiScannerCLibraryGetAlbumsArtistFeaturedOnConstMeta =>
+  get kCrateApiLibraryLibraryApiGetAlbumsArtistFeaturedOnConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_albums_artist_featured_on",
+        debugName: "LibraryApi_get_albums_artist_featured_on",
         argNames: ["that", "artistId"],
       );
 
   @override
-  Future<List<AlbumViewData>> crateApiScannerCLibraryGetAlbumsByArtistId({
-    required CLibrary that,
+  Future<List<AlbumViewData>> crateApiLibraryLibraryApiGetAlbumsByArtistId({
+    required LibraryApi that,
     required String artistId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -615,22 +621,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_album_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetAlbumsByArtistIdConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetAlbumsByArtistIdConstMeta,
         argValues: [that, artistId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetAlbumsByArtistIdConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetAlbumsByArtistIdConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_albums_by_artist_id",
+        debugName: "LibraryApi_get_albums_by_artist_id",
         argNames: ["that", "artistId"],
       );
 
   @override
-  Future<List<AlbumViewData>> crateApiScannerCLibraryGetAlbumsPaginated({
-    required CLibrary that,
+  Future<List<AlbumViewData>> crateApiLibraryLibraryApiGetAlbumsPaginated({
+    required LibraryApi that,
     required int offset,
     required int limit,
   }) {
@@ -638,7 +644,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -655,29 +661,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_album_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetAlbumsPaginatedConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetAlbumsPaginatedConstMeta,
         argValues: [that, offset, limit],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetAlbumsPaginatedConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetAlbumsPaginatedConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_albums_paginated",
+        debugName: "LibraryApi_get_albums_paginated",
         argNames: ["that", "offset", "limit"],
       );
 
   @override
-  Future<ArtistViewData?> crateApiScannerCLibraryGetArtistById({
-    required CLibrary that,
+  Future<ArtistViewData?> crateApiLibraryLibraryApiGetArtistById({
+    required LibraryApi that,
     required String id,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -693,22 +699,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_opt_box_autoadd_artist_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetArtistByIdConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetArtistByIdConstMeta,
         argValues: [that, id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetArtistByIdConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetArtistByIdConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_artist_by_id",
+        debugName: "LibraryApi_get_artist_by_id",
         argNames: ["that", "id"],
       );
 
   @override
-  Future<List<ArtistViewData>> crateApiScannerCLibraryGetArtistsPaginated({
-    required CLibrary that,
+  Future<List<ArtistViewData>> crateApiLibraryLibraryApiGetArtistsPaginated({
+    required LibraryApi that,
     required int offset,
     required int limit,
   }) {
@@ -716,7 +722,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -733,28 +739,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_artist_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetArtistsPaginatedConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetArtistsPaginatedConstMeta,
         argValues: [that, offset, limit],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetArtistsPaginatedConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetArtistsPaginatedConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_artists_paginated",
+        debugName: "LibraryApi_get_artists_paginated",
         argNames: ["that", "offset", "limit"],
       );
 
   @override
-  Future<List<String>> crateApiScannerCLibraryGetLikedSongIds({
-    required CLibrary that,
+  Future<List<String>> crateApiLibraryLibraryApiGetLikedSongIds({
+    required LibraryApi that,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -769,28 +775,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_String,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetLikedSongIdsConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetLikedSongIdsConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetLikedSongIdsConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetLikedSongIdsConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_liked_song_ids",
+        debugName: "LibraryApi_get_liked_song_ids",
         argNames: ["that"],
       );
 
   @override
-  Future<String?> crateApiScannerCLibraryGetLikedSongsPlaylistId({
-    required CLibrary that,
+  Future<String?> crateApiLibraryLibraryApiGetLikedSongsPlaylistId({
+    required LibraryApi that,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -805,28 +811,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_opt_String,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetLikedSongsPlaylistIdConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetLikedSongsPlaylistIdConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetLikedSongsPlaylistIdConstMeta =>
+  TaskConstMeta
+  get kCrateApiLibraryLibraryApiGetLikedSongsPlaylistIdConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_liked_songs_playlist_id",
+        debugName: "LibraryApi_get_liked_songs_playlist_id",
         argNames: ["that"],
       );
 
   @override
-  Future<List<PinnedItemData>> crateApiScannerCLibraryGetPinnedItems({
-    required CLibrary that,
+  Future<List<PinnedItemData>> crateApiLibraryLibraryApiGetPinnedItems({
+    required LibraryApi that,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -841,22 +848,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_pinned_item_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetPinnedItemsConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetPinnedItemsConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetPinnedItemsConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetPinnedItemsConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_pinned_items",
+        debugName: "LibraryApi_get_pinned_items",
         argNames: ["that"],
       );
 
   @override
-  Future<List<PlaylistViewData>> crateApiScannerCLibraryGetPlaylistsPaginated({
-    required CLibrary that,
+  Future<List<PlaylistViewData>>
+  crateApiLibraryLibraryApiGetPlaylistsPaginated({
+    required LibraryApi that,
     required int offset,
     required int limit,
   }) {
@@ -864,7 +872,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -881,29 +889,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_playlist_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetPlaylistsPaginatedConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetPlaylistsPaginatedConstMeta,
         argValues: [that, offset, limit],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetPlaylistsPaginatedConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetPlaylistsPaginatedConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_playlists_paginated",
+        debugName: "LibraryApi_get_playlists_paginated",
         argNames: ["that", "offset", "limit"],
       );
 
   @override
-  Future<List<SongViewData>> crateApiScannerCLibraryGetRecentlyPlayed({
-    required CLibrary that,
+  Future<List<SongViewData>> crateApiLibraryLibraryApiGetRecentlyPlayed({
+    required LibraryApi that,
     required int limit,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -919,28 +927,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_song_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetRecentlyPlayedConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetRecentlyPlayedConstMeta,
         argValues: [that, limit],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetRecentlyPlayedConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetRecentlyPlayedConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_recently_played",
+        debugName: "LibraryApi_get_recently_played",
         argNames: ["that", "limit"],
       );
 
   @override
-  Future<List<String>> crateApiScannerCLibraryGetScanPaths({
-    required CLibrary that,
+  Future<List<String>> crateApiLibraryLibraryApiGetScanPaths({
+    required LibraryApi that,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -955,29 +963,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_String,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetScanPathsConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetScanPathsConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetScanPathsConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetScanPathsConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_scan_paths",
+        debugName: "LibraryApi_get_scan_paths",
         argNames: ["that"],
       );
 
   @override
-  Future<SongViewData?> crateApiScannerCLibraryGetSongById({
-    required CLibrary that,
+  Future<SongViewData?> crateApiLibraryLibraryApiGetSongById({
+    required LibraryApi that,
     required String id,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -993,29 +1001,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_opt_box_autoadd_song_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetSongByIdConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetSongByIdConstMeta,
         argValues: [that, id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetSongByIdConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetSongByIdConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_song_by_id",
+        debugName: "LibraryApi_get_song_by_id",
         argNames: ["that", "id"],
       );
 
   @override
-  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsArtistFeaturedOn({
-    required CLibrary that,
+  Future<List<SongViewData>> crateApiLibraryLibraryApiGetSongsArtistFeaturedOn({
+    required LibraryApi that,
     required String artistId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1031,29 +1039,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_song_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetSongsArtistFeaturedOnConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetSongsArtistFeaturedOnConstMeta,
         argValues: [that, artistId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetSongsArtistFeaturedOnConstMeta =>
+  TaskConstMeta
+  get kCrateApiLibraryLibraryApiGetSongsArtistFeaturedOnConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_songs_artist_featured_on",
+        debugName: "LibraryApi_get_songs_artist_featured_on",
         argNames: ["that", "artistId"],
       );
 
   @override
-  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsByAlbumId({
-    required CLibrary that,
+  Future<List<SongViewData>> crateApiLibraryLibraryApiGetSongsByAlbumId({
+    required LibraryApi that,
     required String albumId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1069,29 +1078,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_song_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetSongsByAlbumIdConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetSongsByAlbumIdConstMeta,
         argValues: [that, albumId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetSongsByAlbumIdConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetSongsByAlbumIdConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_songs_by_album_id",
+        debugName: "LibraryApi_get_songs_by_album_id",
         argNames: ["that", "albumId"],
       );
 
   @override
-  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsInPlaylist({
-    required CLibrary that,
+  Future<List<SongViewData>> crateApiLibraryLibraryApiGetSongsInPlaylist({
+    required LibraryApi that,
     required String playlistId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1107,22 +1116,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_song_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetSongsInPlaylistConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetSongsInPlaylistConstMeta,
         argValues: [that, playlistId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetSongsInPlaylistConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetSongsInPlaylistConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_songs_in_playlist",
+        debugName: "LibraryApi_get_songs_in_playlist",
         argNames: ["that", "playlistId"],
       );
 
   @override
-  Future<List<SongViewData>> crateApiScannerCLibraryGetSongsPaginated({
-    required CLibrary that,
+  Future<List<SongViewData>> crateApiLibraryLibraryApiGetSongsPaginated({
+    required LibraryApi that,
     required int offset,
     required int limit,
   }) {
@@ -1130,7 +1139,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1147,26 +1156,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_song_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetSongsPaginatedConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetSongsPaginatedConstMeta,
         argValues: [that, offset, limit],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetSongsPaginatedConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetSongsPaginatedConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_songs_paginated",
+        debugName: "LibraryApi_get_songs_paginated",
         argNames: ["that", "offset", "limit"],
       );
 
   @override
-  int crateApiScannerCLibraryGetTotalAlbums({required CLibrary that}) {
+  int crateApiLibraryLibraryApiGetTotalAlbums({required LibraryApi that}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1176,26 +1185,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_u_32,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetTotalAlbumsConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetTotalAlbumsConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetTotalAlbumsConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetTotalAlbumsConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_total_albums",
+        debugName: "LibraryApi_get_total_albums",
         argNames: ["that"],
       );
 
   @override
-  int crateApiScannerCLibraryGetTotalArtists({required CLibrary that}) {
+  int crateApiLibraryLibraryApiGetTotalArtists({required LibraryApi that}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1205,26 +1214,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_u_32,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetTotalArtistsConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetTotalArtistsConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetTotalArtistsConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetTotalArtistsConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_total_artists",
+        debugName: "LibraryApi_get_total_artists",
         argNames: ["that"],
       );
 
   @override
-  int crateApiScannerCLibraryGetTotalPlaylists({required CLibrary that}) {
+  int crateApiLibraryLibraryApiGetTotalPlaylists({required LibraryApi that}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1234,26 +1243,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_u_32,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetTotalPlaylistsConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetTotalPlaylistsConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetTotalPlaylistsConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetTotalPlaylistsConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_total_playlists",
+        debugName: "LibraryApi_get_total_playlists",
         argNames: ["that"],
       );
 
   @override
-  int crateApiScannerCLibraryGetTotalSongs({required CLibrary that}) {
+  int crateApiLibraryLibraryApiGetTotalSongs({required LibraryApi that}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1263,21 +1272,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_u_32,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryGetTotalSongsConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiGetTotalSongsConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryGetTotalSongsConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetTotalSongsConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_get_total_songs",
+        debugName: "LibraryApi_get_total_songs",
         argNames: ["that"],
       );
 
   @override
-  Future<CLibrary> crateApiScannerCLibraryInit({
+  Future<LibraryApi> crateApiLibraryLibraryApiInit({
     required String dbPath,
     required String coversDir,
     required String baseDir,
@@ -1298,31 +1307,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: SseCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryInitConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiInitConstMeta,
         argValues: [dbPath, coversDir, baseDir],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryInitConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiInitConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_init",
+        debugName: "LibraryApi_init",
         argNames: ["dbPath", "coversDir", "baseDir"],
       );
 
   @override
-  Future<PlaybackStateData?> crateApiScannerCLibraryLoadPlaybackState({
-    required CLibrary that,
+  Future<PlaybackStateData?> crateApiLibraryLibraryApiLoadPlaybackState({
+    required LibraryApi that,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1337,22 +1346,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_opt_box_autoadd_playback_state_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibraryLoadPlaybackStateConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiLoadPlaybackStateConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryLoadPlaybackStateConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiLoadPlaybackStateConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_load_playback_state",
+        debugName: "LibraryApi_load_playback_state",
         argNames: ["that"],
       );
 
   @override
-  Future<void> crateApiScannerCLibraryMovePinnedItem({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiMovePinnedItem({
+    required LibraryApi that,
     required String itemId,
     required String kind,
     required int newIndex,
@@ -1361,7 +1370,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1379,22 +1388,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryMovePinnedItemConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiMovePinnedItemConstMeta,
         argValues: [that, itemId, kind, newIndex],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryMovePinnedItemConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiMovePinnedItemConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_move_pinned_item",
+        debugName: "LibraryApi_move_pinned_item",
         argNames: ["that", "itemId", "kind", "newIndex"],
       );
 
   @override
-  Future<void> crateApiScannerCLibraryPinItem({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiPinItem({
+    required LibraryApi that,
     required String itemId,
     required String kind,
   }) {
@@ -1402,7 +1411,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1419,29 +1428,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryPinItemConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiPinItemConstMeta,
         argValues: [that, itemId, kind],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryPinItemConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiPinItemConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_pin_item",
+        debugName: "LibraryApi_pin_item",
         argNames: ["that", "itemId", "kind"],
       );
 
   @override
-  Future<void> crateApiScannerCLibraryRecordPlay({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiRecordPlay({
+    required LibraryApi that,
     required String songId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1457,22 +1466,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryRecordPlayConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiRecordPlayConstMeta,
         argValues: [that, songId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryRecordPlayConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiRecordPlayConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_record_play",
+        debugName: "LibraryApi_record_play",
         argNames: ["that", "songId"],
       );
 
   @override
-  Future<void> crateApiScannerCLibraryRemoveSongFromPlaylist({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiRemoveSongFromPlaylist({
+    required LibraryApi that,
     required String playlistId,
     required String songId,
   }) {
@@ -1480,7 +1489,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1497,26 +1506,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryRemoveSongFromPlaylistConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiRemoveSongFromPlaylistConstMeta,
         argValues: [that, playlistId, songId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryRemoveSongFromPlaylistConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiRemoveSongFromPlaylistConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_remove_song_from_playlist",
+        debugName: "LibraryApi_remove_song_from_playlist",
         argNames: ["that", "playlistId", "songId"],
       );
 
   @override
-  Future<void> crateApiScannerCLibraryResetLibrary({required CLibrary that}) {
+  Future<void> crateApiLibraryLibraryApiResetLibrary({
+    required LibraryApi that,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1531,22 +1542,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryResetLibraryConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiResetLibraryConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryResetLibraryConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiResetLibraryConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_reset_library",
+        debugName: "LibraryApi_reset_library",
         argNames: ["that"],
       );
 
   @override
-  Future<void> crateApiScannerCLibrarySavePlaybackState({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiSavePlaybackState({
+    required LibraryApi that,
     String? songId,
     required PlatformInt64 positionMs,
     required bool loopOne,
@@ -1555,7 +1566,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1573,35 +1584,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibrarySavePlaybackStateConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiSavePlaybackStateConstMeta,
         argValues: [that, songId, positionMs, loopOne],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibrarySavePlaybackStateConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiSavePlaybackStateConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_save_playback_state",
+        debugName: "LibraryApi_save_playback_state",
         argNames: ["that", "songId", "positionMs", "loopOne"],
       );
 
   @override
-  Future<void> crateApiScannerCLibraryScanDirectory({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiScanDirectory({
+    required LibraryApi that,
     required String path,
-    required Config config,
+    required ScanConfig config,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
           sse_encode_String(path, serializer);
-          sse_encode_box_autoadd_config(config, serializer);
+          sse_encode_box_autoadd_scan_config(config, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1613,22 +1624,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryScanDirectoryConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiScanDirectoryConstMeta,
         argValues: [that, path, config],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryScanDirectoryConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiScanDirectoryConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_scan_directory",
+        debugName: "LibraryApi_scan_directory",
         argNames: ["that", "path", "config"],
       );
 
   @override
-  Future<List<AlbumViewData>> crateApiScannerCLibrarySearchAlbums({
-    required CLibrary that,
+  Future<List<AlbumViewData>> crateApiLibraryLibraryApiSearchAlbums({
+    required LibraryApi that,
     required String query,
     required int limit,
   }) {
@@ -1636,7 +1647,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1653,22 +1664,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_album_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibrarySearchAlbumsConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiSearchAlbumsConstMeta,
         argValues: [that, query, limit],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibrarySearchAlbumsConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiSearchAlbumsConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_search_albums",
+        debugName: "LibraryApi_search_albums",
         argNames: ["that", "query", "limit"],
       );
 
   @override
-  Future<List<ArtistViewData>> crateApiScannerCLibrarySearchArtists({
-    required CLibrary that,
+  Future<List<ArtistViewData>> crateApiLibraryLibraryApiSearchArtists({
+    required LibraryApi that,
     required String query,
     required int limit,
   }) {
@@ -1676,7 +1687,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1693,22 +1704,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_artist_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibrarySearchArtistsConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiSearchArtistsConstMeta,
         argValues: [that, query, limit],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibrarySearchArtistsConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiSearchArtistsConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_search_artists",
+        debugName: "LibraryApi_search_artists",
         argNames: ["that", "query", "limit"],
       );
 
   @override
-  Future<List<PlaylistViewData>> crateApiScannerCLibrarySearchPlaylists({
-    required CLibrary that,
+  Future<List<PlaylistViewData>> crateApiLibraryLibraryApiSearchPlaylists({
+    required LibraryApi that,
     required String query,
     required int limit,
   }) {
@@ -1716,7 +1727,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1733,22 +1744,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_playlist_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibrarySearchPlaylistsConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiSearchPlaylistsConstMeta,
         argValues: [that, query, limit],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibrarySearchPlaylistsConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiSearchPlaylistsConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_search_playlists",
+        debugName: "LibraryApi_search_playlists",
         argNames: ["that", "query", "limit"],
       );
 
   @override
-  Future<List<SongViewData>> crateApiScannerCLibrarySearchSongs({
-    required CLibrary that,
+  Future<List<SongViewData>> crateApiLibraryLibraryApiSearchSongs({
+    required LibraryApi that,
     required String query,
     required int limit,
   }) {
@@ -1756,7 +1767,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1773,29 +1784,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_song_view_data,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiScannerCLibrarySearchSongsConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiSearchSongsConstMeta,
         argValues: [that, query, limit],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibrarySearchSongsConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiSearchSongsConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_search_songs",
+        debugName: "LibraryApi_search_songs",
         argNames: ["that", "query", "limit"],
       );
 
   @override
-  Future<String> crateApiScannerCLibrarySplitAlbumToNewArtist({
-    required CLibrary that,
+  Future<String> crateApiLibraryLibraryApiSplitAlbumToNewArtist({
+    required LibraryApi that,
     required String albumId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1811,22 +1822,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_String,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibrarySplitAlbumToNewArtistConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiSplitAlbumToNewArtistConstMeta,
         argValues: [that, albumId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibrarySplitAlbumToNewArtistConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiSplitAlbumToNewArtistConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_split_album_to_new_artist",
+        debugName: "LibraryApi_split_album_to_new_artist",
         argNames: ["that", "albumId"],
       );
 
   @override
-  Future<void> crateApiScannerCLibraryUnpinItem({
-    required CLibrary that,
+  Future<void> crateApiLibraryLibraryApiUnpinItem({
+    required LibraryApi that,
     required String itemId,
     required String kind,
   }) {
@@ -1834,7 +1845,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1851,29 +1862,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryUnpinItemConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiUnpinItemConstMeta,
         argValues: [that, itemId, kind],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryUnpinItemConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiUnpinItemConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_unpin_item",
+        debugName: "LibraryApi_unpin_item",
         argNames: ["that", "itemId", "kind"],
       );
 
   @override
-  Future<AlbumViewData> crateApiScannerCLibraryUpdateAlbum({
-    required CLibrary that,
+  Future<AlbumViewData> crateApiLibraryLibraryApiUpdateAlbum({
+    required LibraryApi that,
     required AlbumEditRequest request,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1889,22 +1900,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_album_view_data,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryUpdateAlbumConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiUpdateAlbumConstMeta,
         argValues: [that, request],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryUpdateAlbumConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiUpdateAlbumConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_update_album",
+        debugName: "LibraryApi_update_album",
         argNames: ["that", "request"],
       );
 
   @override
-  Future<ArtistViewData> crateApiScannerCLibraryUpdateArtistImage({
-    required CLibrary that,
+  Future<ArtistViewData> crateApiLibraryLibraryApiUpdateArtistImage({
+    required LibraryApi that,
     required String artistId,
     required CoverArtEdit cover,
   }) {
@@ -1912,7 +1923,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1929,29 +1940,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_artist_view_data,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryUpdateArtistImageConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiUpdateArtistImageConstMeta,
         argValues: [that, artistId, cover],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryUpdateArtistImageConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiUpdateArtistImageConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_update_artist_image",
+        debugName: "LibraryApi_update_artist_image",
         argNames: ["that", "artistId", "cover"],
       );
 
   @override
-  Future<PlaylistViewData> crateApiScannerCLibraryUpdatePlaylist({
-    required CLibrary that,
+  Future<PlaylistViewData> crateApiLibraryLibraryApiUpdatePlaylist({
+    required LibraryApi that,
     required PlaylistEditRequest request,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -1967,29 +1978,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_playlist_view_data,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryUpdatePlaylistConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiUpdatePlaylistConstMeta,
         argValues: [that, request],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryUpdatePlaylistConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiUpdatePlaylistConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_update_playlist",
+        debugName: "LibraryApi_update_playlist",
         argNames: ["that", "request"],
       );
 
   @override
-  Future<SongViewData> crateApiScannerCLibraryUpdateSong({
-    required CLibrary that,
+  Future<SongViewData> crateApiLibraryLibraryApiUpdateSong({
+    required LibraryApi that,
     required SongEditRequest request,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
             that,
             serializer,
           );
@@ -2005,21 +2016,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_song_view_data,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiScannerCLibraryUpdateSongConstMeta,
+        constMeta: kCrateApiLibraryLibraryApiUpdateSongConstMeta,
         argValues: [that, request],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiScannerCLibraryUpdateSongConstMeta =>
+  TaskConstMeta get kCrateApiLibraryLibraryApiUpdateSongConstMeta =>
       const TaskConstMeta(
-        debugName: "CLibrary_update_song",
+        debugName: "LibraryApi_update_song",
         argNames: ["that", "request"],
       );
 
   @override
-  Future<void> crateApiSimpleInitApp() {
+  Future<void> crateApiInitInitApp() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2035,49 +2046,49 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiSimpleInitAppConstMeta,
+        constMeta: kCrateApiInitInitAppConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSimpleInitAppConstMeta =>
+  TaskConstMeta get kCrateApiInitInitAppConstMeta =>
       const TaskConstMeta(debugName: "init_app", argNames: []);
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_CLibrary => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary;
+  get rust_arc_increment_strong_count_LibraryApi => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_CLibrary => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary;
+  get rust_arc_decrement_strong_count_LibraryApi => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi;
 
   @protected
-  CLibrary
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  LibraryApi
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return CLibraryImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return LibraryApiImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
-  CLibrary
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  LibraryApi
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return CLibraryImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return LibraryApiImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
-  CLibrary
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  LibraryApi
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return CLibraryImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return LibraryApiImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -2167,12 +2178,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  Config dco_decode_box_autoadd_config(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_config(raw);
-  }
-
-  @protected
   CoverArtEdit dco_decode_box_autoadd_cover_art_edit(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_cover_art_edit(raw);
@@ -2193,6 +2198,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ScanConfig dco_decode_box_autoadd_scan_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_scan_config(raw);
+  }
+
+  @protected
   SongEditRequest dco_decode_box_autoadd_song_edit_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_song_edit_request(raw);
@@ -2202,15 +2213,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   SongViewData dco_decode_box_autoadd_song_view_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_song_view_data(raw);
-  }
-
-  @protected
-  Config dco_decode_config(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 1)
-      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
-    return Config(isDeezer: dco_decode_bool(arr[0]));
   }
 
   @protected
@@ -2375,6 +2377,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ScanConfig dco_decode_scan_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return ScanConfig(isDeezer: dco_decode_bool(arr[0]));
+  }
+
+  @protected
   SongEditRequest dco_decode_song_edit_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -2439,36 +2450,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CLibrary
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  LibraryApi
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return CLibraryImpl.frbInternalSseDecode(
+    return LibraryApiImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  CLibrary
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  LibraryApi
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return CLibraryImpl.frbInternalSseDecode(
+    return LibraryApiImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  CLibrary
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  LibraryApi
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return CLibraryImpl.frbInternalSseDecode(
+    return LibraryApiImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -2575,12 +2586,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  Config sse_decode_box_autoadd_config(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_config(deserializer));
-  }
-
-  @protected
   CoverArtEdit sse_decode_box_autoadd_cover_art_edit(
     SseDeserializer deserializer,
   ) {
@@ -2605,6 +2610,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ScanConfig sse_decode_box_autoadd_scan_config(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_scan_config(deserializer));
+  }
+
+  @protected
   SongEditRequest sse_decode_box_autoadd_song_edit_request(
     SseDeserializer deserializer,
   ) {
@@ -2618,13 +2629,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_song_view_data(deserializer));
-  }
-
-  @protected
-  Config sse_decode_config(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_isDeezer = sse_decode_bool(deserializer);
-    return Config(isDeezer: var_isDeezer);
   }
 
   @protected
@@ -2876,6 +2880,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ScanConfig sse_decode_scan_config(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_isDeezer = sse_decode_bool(deserializer);
+    return ScanConfig(isDeezer: var_isDeezer);
+  }
+
+  @protected
   SongEditRequest sse_decode_song_edit_request(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_songId = sse_decode_String(deserializer);
@@ -2960,39 +2971,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    CLibrary self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
+    LibraryApi self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as CLibraryImpl).frbInternalSseEncode(move: true),
+      (self as LibraryApiImpl).frbInternalSseEncode(move: true),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    CLibrary self,
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
+    LibraryApi self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as CLibraryImpl).frbInternalSseEncode(move: false),
+      (self as LibraryApiImpl).frbInternalSseEncode(move: false),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    CLibrary self,
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
+    LibraryApi self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as CLibraryImpl).frbInternalSseEncode(move: null),
+      (self as LibraryApiImpl).frbInternalSseEncode(move: null),
       serializer,
     );
   }
@@ -3082,12 +3093,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_box_autoadd_config(Config self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_config(self, serializer);
-  }
-
-  @protected
   void sse_encode_box_autoadd_cover_art_edit(
     CoverArtEdit self,
     SseSerializer serializer,
@@ -3115,6 +3120,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_scan_config(
+    ScanConfig self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_scan_config(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_song_edit_request(
     SongEditRequest self,
     SseSerializer serializer,
@@ -3130,12 +3144,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_song_view_data(self, serializer);
-  }
-
-  @protected
-  void sse_encode_config(Config self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_bool(self.isDeezer, serializer);
   }
 
   @protected
@@ -3354,6 +3362,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_scan_config(ScanConfig self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.isDeezer, serializer);
+  }
+
+  @protected
   void sse_encode_song_edit_request(
     SongEditRequest self,
     SseSerializer serializer,
@@ -3417,59 +3431,59 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 }
 
 @sealed
-class CLibraryImpl extends RustOpaque implements CLibrary {
+class LibraryApiImpl extends RustOpaque implements LibraryApi {
   // Not to be used by end users
-  CLibraryImpl.frbInternalDcoDecode(List<dynamic> wire)
+  LibraryApiImpl.frbInternalDcoDecode(List<dynamic> wire)
     : super.frbInternalDcoDecode(wire, _kStaticData);
 
   // Not to be used by end users
-  CLibraryImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
+  LibraryApiImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
     : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
 
   static final _kStaticData = RustArcStaticData(
     rustArcIncrementStrongCount:
-        RustLib.instance.api.rust_arc_increment_strong_count_CLibrary,
+        RustLib.instance.api.rust_arc_increment_strong_count_LibraryApi,
     rustArcDecrementStrongCount:
-        RustLib.instance.api.rust_arc_decrement_strong_count_CLibrary,
+        RustLib.instance.api.rust_arc_decrement_strong_count_LibraryApi,
     rustArcDecrementStrongCountPtr:
-        RustLib.instance.api.rust_arc_decrement_strong_count_CLibraryPtr,
+        RustLib.instance.api.rust_arc_decrement_strong_count_LibraryApiPtr,
   );
 
   Future<void> addSongToPlaylist({
     required String playlistId,
     required String songId,
-  }) => RustLib.instance.api.crateApiScannerCLibraryAddSongToPlaylist(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiAddSongToPlaylist(
     that: this,
     playlistId: playlistId,
     songId: songId,
   );
 
   Future<String> createPlaylist({required String name}) => RustLib.instance.api
-      .crateApiScannerCLibraryCreatePlaylist(that: this, name: name);
+      .crateApiLibraryLibraryApiCreatePlaylist(that: this, name: name);
 
   Future<void> deleteAlbum({required String id}) => RustLib.instance.api
-      .crateApiScannerCLibraryDeleteAlbum(that: this, id: id);
+      .crateApiLibraryLibraryApiDeleteAlbum(that: this, id: id);
 
   Future<void> deletePlaylist({required String id}) => RustLib.instance.api
-      .crateApiScannerCLibraryDeletePlaylist(that: this, id: id);
+      .crateApiLibraryLibraryApiDeletePlaylist(that: this, id: id);
 
   /// Remove a scan path and every song indexed beneath it. Returns the
   /// number of songs purged so the UI can surface it in a toast.
   Future<int> deleteScanPath({required String path}) => RustLib.instance.api
-      .crateApiScannerCLibraryDeleteScanPath(that: this, path: path);
+      .crateApiLibraryLibraryApiDeleteScanPath(that: this, path: path);
 
   Future<void> deleteSong({required String id}) => RustLib.instance.api
-      .crateApiScannerCLibraryDeleteSong(that: this, id: id);
+      .crateApiLibraryLibraryApiDeleteSong(that: this, id: id);
 
   Future<List<AlbumViewData>> getAlbumsArtistFeaturedOn({
     required String artistId,
-  }) => RustLib.instance.api.crateApiScannerCLibraryGetAlbumsArtistFeaturedOn(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiGetAlbumsArtistFeaturedOn(
     that: this,
     artistId: artistId,
   );
 
   Future<List<AlbumViewData>> getAlbumsByArtistId({required String artistId}) =>
-      RustLib.instance.api.crateApiScannerCLibraryGetAlbumsByArtistId(
+      RustLib.instance.api.crateApiLibraryLibraryApiGetAlbumsByArtistId(
         that: this,
         artistId: artistId,
       );
@@ -3477,7 +3491,7 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
   Future<List<AlbumViewData>> getAlbumsPaginated({
     required int offset,
     required int limit,
-  }) => RustLib.instance.api.crateApiScannerCLibraryGetAlbumsPaginated(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiGetAlbumsPaginated(
     that: this,
     offset: offset,
     limit: limit,
@@ -3486,30 +3500,30 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
   Future<ArtistViewData?> getArtistById({required String id}) => RustLib
       .instance
       .api
-      .crateApiScannerCLibraryGetArtistById(that: this, id: id);
+      .crateApiLibraryLibraryApiGetArtistById(that: this, id: id);
 
   Future<List<ArtistViewData>> getArtistsPaginated({
     required int offset,
     required int limit,
-  }) => RustLib.instance.api.crateApiScannerCLibraryGetArtistsPaginated(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiGetArtistsPaginated(
     that: this,
     offset: offset,
     limit: limit,
   );
 
   Future<List<String>> getLikedSongIds() =>
-      RustLib.instance.api.crateApiScannerCLibraryGetLikedSongIds(that: this);
+      RustLib.instance.api.crateApiLibraryLibraryApiGetLikedSongIds(that: this);
 
   Future<String?> getLikedSongsPlaylistId() => RustLib.instance.api
-      .crateApiScannerCLibraryGetLikedSongsPlaylistId(that: this);
+      .crateApiLibraryLibraryApiGetLikedSongsPlaylistId(that: this);
 
   Future<List<PinnedItemData>> getPinnedItems() =>
-      RustLib.instance.api.crateApiScannerCLibraryGetPinnedItems(that: this);
+      RustLib.instance.api.crateApiLibraryLibraryApiGetPinnedItems(that: this);
 
   Future<List<PlaylistViewData>> getPlaylistsPaginated({
     required int offset,
     required int limit,
-  }) => RustLib.instance.api.crateApiScannerCLibraryGetPlaylistsPaginated(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiGetPlaylistsPaginated(
     that: this,
     offset: offset,
     limit: limit,
@@ -3518,31 +3532,31 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
   Future<List<SongViewData>> getRecentlyPlayed({required int limit}) => RustLib
       .instance
       .api
-      .crateApiScannerCLibraryGetRecentlyPlayed(that: this, limit: limit);
+      .crateApiLibraryLibraryApiGetRecentlyPlayed(that: this, limit: limit);
 
   Future<List<String>> getScanPaths() =>
-      RustLib.instance.api.crateApiScannerCLibraryGetScanPaths(that: this);
+      RustLib.instance.api.crateApiLibraryLibraryApiGetScanPaths(that: this);
 
   Future<SongViewData?> getSongById({required String id}) => RustLib
       .instance
       .api
-      .crateApiScannerCLibraryGetSongById(that: this, id: id);
+      .crateApiLibraryLibraryApiGetSongById(that: this, id: id);
 
   Future<List<SongViewData>> getSongsArtistFeaturedOn({
     required String artistId,
-  }) => RustLib.instance.api.crateApiScannerCLibraryGetSongsArtistFeaturedOn(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiGetSongsArtistFeaturedOn(
     that: this,
     artistId: artistId,
   );
 
   Future<List<SongViewData>> getSongsByAlbumId({required String albumId}) =>
-      RustLib.instance.api.crateApiScannerCLibraryGetSongsByAlbumId(
+      RustLib.instance.api.crateApiLibraryLibraryApiGetSongsByAlbumId(
         that: this,
         albumId: albumId,
       );
 
   Future<List<SongViewData>> getSongsInPlaylist({required String playlistId}) =>
-      RustLib.instance.api.crateApiScannerCLibraryGetSongsInPlaylist(
+      RustLib.instance.api.crateApiLibraryLibraryApiGetSongsInPlaylist(
         that: this,
         playlistId: playlistId,
       );
@@ -3550,32 +3564,32 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
   Future<List<SongViewData>> getSongsPaginated({
     required int offset,
     required int limit,
-  }) => RustLib.instance.api.crateApiScannerCLibraryGetSongsPaginated(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiGetSongsPaginated(
     that: this,
     offset: offset,
     limit: limit,
   );
 
   int getTotalAlbums() =>
-      RustLib.instance.api.crateApiScannerCLibraryGetTotalAlbums(that: this);
+      RustLib.instance.api.crateApiLibraryLibraryApiGetTotalAlbums(that: this);
 
   int getTotalArtists() =>
-      RustLib.instance.api.crateApiScannerCLibraryGetTotalArtists(that: this);
+      RustLib.instance.api.crateApiLibraryLibraryApiGetTotalArtists(that: this);
 
-  int getTotalPlaylists() =>
-      RustLib.instance.api.crateApiScannerCLibraryGetTotalPlaylists(that: this);
+  int getTotalPlaylists() => RustLib.instance.api
+      .crateApiLibraryLibraryApiGetTotalPlaylists(that: this);
 
   int getTotalSongs() =>
-      RustLib.instance.api.crateApiScannerCLibraryGetTotalSongs(that: this);
+      RustLib.instance.api.crateApiLibraryLibraryApiGetTotalSongs(that: this);
 
-  Future<PlaybackStateData?> loadPlaybackState() =>
-      RustLib.instance.api.crateApiScannerCLibraryLoadPlaybackState(that: this);
+  Future<PlaybackStateData?> loadPlaybackState() => RustLib.instance.api
+      .crateApiLibraryLibraryApiLoadPlaybackState(that: this);
 
   Future<void> movePinnedItem({
     required String itemId,
     required String kind,
     required int newIndex,
-  }) => RustLib.instance.api.crateApiScannerCLibraryMovePinnedItem(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiMovePinnedItem(
     that: this,
     itemId: itemId,
     kind: kind,
@@ -3583,32 +3597,32 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
   );
 
   Future<void> pinItem({required String itemId, required String kind}) =>
-      RustLib.instance.api.crateApiScannerCLibraryPinItem(
+      RustLib.instance.api.crateApiLibraryLibraryApiPinItem(
         that: this,
         itemId: itemId,
         kind: kind,
       );
 
   Future<void> recordPlay({required String songId}) => RustLib.instance.api
-      .crateApiScannerCLibraryRecordPlay(that: this, songId: songId);
+      .crateApiLibraryLibraryApiRecordPlay(that: this, songId: songId);
 
   Future<void> removeSongFromPlaylist({
     required String playlistId,
     required String songId,
-  }) => RustLib.instance.api.crateApiScannerCLibraryRemoveSongFromPlaylist(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiRemoveSongFromPlaylist(
     that: this,
     playlistId: playlistId,
     songId: songId,
   );
 
   Future<void> resetLibrary() =>
-      RustLib.instance.api.crateApiScannerCLibraryResetLibrary(that: this);
+      RustLib.instance.api.crateApiLibraryLibraryApiResetLibrary(that: this);
 
   Future<void> savePlaybackState({
     String? songId,
     required PlatformInt64 positionMs,
     required bool loopOne,
-  }) => RustLib.instance.api.crateApiScannerCLibrarySavePlaybackState(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiSavePlaybackState(
     that: this,
     songId: songId,
     positionMs: positionMs,
@@ -3617,17 +3631,19 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
 
   /// Recursively scan `path` for audio files and write their metadata into
   /// SQLite. Files already present (matched by `file_path`) are skipped.
-  Future<void> scanDirectory({required String path, required Config config}) =>
-      RustLib.instance.api.crateApiScannerCLibraryScanDirectory(
-        that: this,
-        path: path,
-        config: config,
-      );
+  Future<void> scanDirectory({
+    required String path,
+    required ScanConfig config,
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiScanDirectory(
+    that: this,
+    path: path,
+    config: config,
+  );
 
   Future<List<AlbumViewData>> searchAlbums({
     required String query,
     required int limit,
-  }) => RustLib.instance.api.crateApiScannerCLibrarySearchAlbums(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiSearchAlbums(
     that: this,
     query: query,
     limit: limit,
@@ -3636,7 +3652,7 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
   Future<List<ArtistViewData>> searchArtists({
     required String query,
     required int limit,
-  }) => RustLib.instance.api.crateApiScannerCLibrarySearchArtists(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiSearchArtists(
     that: this,
     query: query,
     limit: limit,
@@ -3645,7 +3661,7 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
   Future<List<PlaylistViewData>> searchPlaylists({
     required String query,
     required int limit,
-  }) => RustLib.instance.api.crateApiScannerCLibrarySearchPlaylists(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiSearchPlaylists(
     that: this,
     query: query,
     limit: limit,
@@ -3654,7 +3670,7 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
   Future<List<SongViewData>> searchSongs({
     required String query,
     required int limit,
-  }) => RustLib.instance.api.crateApiScannerCLibrarySearchSongs(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiSearchSongs(
     that: this,
     query: query,
     limit: limit,
@@ -3664,20 +3680,20 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
   /// Returns the new artist's id. Used by the UI to resolve ambiguity when
   /// the scanner merged two distinct same-named artists into one row.
   Future<String> splitAlbumToNewArtist({required String albumId}) =>
-      RustLib.instance.api.crateApiScannerCLibrarySplitAlbumToNewArtist(
+      RustLib.instance.api.crateApiLibraryLibraryApiSplitAlbumToNewArtist(
         that: this,
         albumId: albumId,
       );
 
   Future<void> unpinItem({required String itemId, required String kind}) =>
-      RustLib.instance.api.crateApiScannerCLibraryUnpinItem(
+      RustLib.instance.api.crateApiLibraryLibraryApiUnpinItem(
         that: this,
         itemId: itemId,
         kind: kind,
       );
 
   Future<AlbumViewData> updateAlbum({required AlbumEditRequest request}) =>
-      RustLib.instance.api.crateApiScannerCLibraryUpdateAlbum(
+      RustLib.instance.api.crateApiLibraryLibraryApiUpdateAlbum(
         that: this,
         request: request,
       );
@@ -3685,7 +3701,7 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
   Future<ArtistViewData> updateArtistImage({
     required String artistId,
     required CoverArtEdit cover,
-  }) => RustLib.instance.api.crateApiScannerCLibraryUpdateArtistImage(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiUpdateArtistImage(
     that: this,
     artistId: artistId,
     cover: cover,
@@ -3693,7 +3709,7 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
 
   Future<PlaylistViewData> updatePlaylist({
     required PlaylistEditRequest request,
-  }) => RustLib.instance.api.crateApiScannerCLibraryUpdatePlaylist(
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiUpdatePlaylist(
     that: this,
     request: request,
   );
@@ -3701,5 +3717,5 @@ class CLibraryImpl extends RustOpaque implements CLibrary {
   Future<SongViewData> updateSong({required SongEditRequest request}) => RustLib
       .instance
       .api
-      .crateApiScannerCLibraryUpdateSong(that: this, request: request);
+      .crateApiLibraryLibraryApiUpdateSong(that: this, request: request);
 }

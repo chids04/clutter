@@ -6,7 +6,8 @@
 // Static analysis wrongly picks the IO variant, thus ignore this
 // ignore_for_file: argument_type_not_assignable
 
-import 'api/scanner.dart';
+import 'api/library.dart';
+import 'api/models.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -21,24 +22,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   });
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_CLibraryPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary;
+  get rust_arc_decrement_strong_count_LibraryApiPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi;
 
   @protected
-  CLibrary
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  LibraryApi
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     dynamic raw,
   );
 
   @protected
-  CLibrary
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  LibraryApi
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     dynamic raw,
   );
 
   @protected
-  CLibrary
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  LibraryApi
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     dynamic raw,
   );
 
@@ -67,9 +68,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ArtistViewData dco_decode_box_autoadd_artist_view_data(dynamic raw);
 
   @protected
-  Config dco_decode_box_autoadd_config(dynamic raw);
-
-  @protected
   CoverArtEdit dco_decode_box_autoadd_cover_art_edit(dynamic raw);
 
   @protected
@@ -79,13 +77,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlaylistEditRequest dco_decode_box_autoadd_playlist_edit_request(dynamic raw);
 
   @protected
+  ScanConfig dco_decode_box_autoadd_scan_config(dynamic raw);
+
+  @protected
   SongEditRequest dco_decode_box_autoadd_song_edit_request(dynamic raw);
 
   @protected
   SongViewData dco_decode_box_autoadd_song_view_data(dynamic raw);
-
-  @protected
-  Config dco_decode_config(dynamic raw);
 
   @protected
   CoverArtEdit dco_decode_cover_art_edit(dynamic raw);
@@ -144,6 +142,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlaylistVisualEdit dco_decode_playlist_visual_edit(dynamic raw);
 
   @protected
+  ScanConfig dco_decode_scan_config(dynamic raw);
+
+  @protected
   SongEditRequest dco_decode_song_edit_request(dynamic raw);
 
   @protected
@@ -162,20 +163,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt dco_decode_usize(dynamic raw);
 
   @protected
-  CLibrary
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  LibraryApi
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     SseDeserializer deserializer,
   );
 
   @protected
-  CLibrary
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  LibraryApi
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     SseDeserializer deserializer,
   );
 
   @protected
-  CLibrary
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  LibraryApi
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     SseDeserializer deserializer,
   );
 
@@ -208,9 +209,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  Config sse_decode_box_autoadd_config(SseDeserializer deserializer);
-
-  @protected
   CoverArtEdit sse_decode_box_autoadd_cover_art_edit(
     SseDeserializer deserializer,
   );
@@ -226,6 +224,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ScanConfig sse_decode_box_autoadd_scan_config(SseDeserializer deserializer);
+
+  @protected
   SongEditRequest sse_decode_box_autoadd_song_edit_request(
     SseDeserializer deserializer,
   );
@@ -234,9 +235,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SongViewData sse_decode_box_autoadd_song_view_data(
     SseDeserializer deserializer,
   );
-
-  @protected
-  Config sse_decode_config(SseDeserializer deserializer);
 
   @protected
   CoverArtEdit sse_decode_cover_art_edit(SseDeserializer deserializer);
@@ -315,6 +313,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ScanConfig sse_decode_scan_config(SseDeserializer deserializer);
+
+  @protected
   SongEditRequest sse_decode_song_edit_request(SseDeserializer deserializer);
 
   @protected
@@ -337,22 +338,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    CLibrary self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
+    LibraryApi self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    CLibrary self,
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
+    LibraryApi self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
-    CLibrary self,
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
+    LibraryApi self,
     SseSerializer serializer,
   );
 
@@ -393,9 +394,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_box_autoadd_config(Config self, SseSerializer serializer);
-
-  @protected
   void sse_encode_box_autoadd_cover_art_edit(
     CoverArtEdit self,
     SseSerializer serializer,
@@ -414,6 +412,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_scan_config(
+    ScanConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_song_edit_request(
     SongEditRequest self,
     SseSerializer serializer,
@@ -424,9 +428,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     SongViewData self,
     SseSerializer serializer,
   );
-
-  @protected
-  void sse_encode_config(Config self, SseSerializer serializer);
 
   @protected
   void sse_encode_cover_art_edit(CoverArtEdit self, SseSerializer serializer);
@@ -525,6 +526,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_scan_config(ScanConfig self, SseSerializer serializer);
+
+  @protected
   void sse_encode_song_edit_request(
     SongEditRequest self,
     SseSerializer serializer,
@@ -555,18 +559,18 @@ class RustLibWire implements BaseWire {
   RustLibWire.fromExternalLibrary(ExternalLibrary lib);
 
   void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     int ptr,
   ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
         ptr,
       );
 
   void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     int ptr,
   ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
         ptr,
       );
 }
@@ -578,12 +582,12 @@ external RustLibWasmModule get wasmModule;
 @anonymous
 extension type RustLibWasmModule._(JSObject _) implements JSObject {
   external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     int ptr,
   );
 
   external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCLibrary(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     int ptr,
   );
 }

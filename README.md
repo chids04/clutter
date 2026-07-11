@@ -1,17 +1,9 @@
 # clutter
 
-A new Flutter project.
+a local-first music player built with flutter, dart, and rust.
 
-## Getting Started
+clutter scans your music, manages songs, albums, artists, and playlists, supports metadata and artwork editing, and provides queue and playback controls.
 
-This project is a starting point for a Flutter application.
+dart owns the interface and platform playback while rust owns library data, scanning, and metadata changes.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+see [the architecture guide](docs/ARCHITECTURE.md) for the project structure.

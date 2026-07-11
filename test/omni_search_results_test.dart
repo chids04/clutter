@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:clutter/models/music_library.dart';
+import 'package:clutter/features/library/domain/library_entities.dart';
 
 void main() {
   test('OmniSearchResults reports empty when all groups are empty', () {
