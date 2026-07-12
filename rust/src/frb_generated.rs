@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1555731542;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1461996016;
 
 // Section: executor
 
@@ -631,6 +631,56 @@ fn wire__crate__api__library__LibraryApi_get_artists_paginated_impl(
                             api_limit,
                         ),
                     )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__library__LibraryApi_get_keybindings_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "LibraryApi_get_keybindings",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<LibraryApi>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok =
+                        crate::api::library::LibraryApi::get_keybindings(&*api_that_guard)?;
                     Ok(output_ok)
                 })())
             }
@@ -1729,6 +1779,56 @@ fn wire__crate__api__library__LibraryApi_remove_song_from_playlist_impl(
         },
     )
 }
+fn wire__crate__api__library__LibraryApi_reset_keybindings_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "LibraryApi_reset_keybindings",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<LibraryApi>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok =
+                        crate::api::library::LibraryApi::reset_keybindings(&*api_that_guard)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__library__LibraryApi_reset_library_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2331,6 +2431,59 @@ fn wire__crate__api__library__LibraryApi_update_artist_image_impl(
         },
     )
 }
+fn wire__crate__api__library__LibraryApi_update_keybinding_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "LibraryApi_update_keybinding",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<LibraryApi>,
+            >>::sse_decode(&mut deserializer);
+            let api_binding = <crate::api::models::KeybindingData>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok = crate::api::library::LibraryApi::update_keybinding(
+                        &*api_that_guard,
+                        api_binding,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__library__LibraryApi_update_playlist_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2622,10 +2775,53 @@ impl SseDecode for crate::api::models::CoverArtEdit {
     }
 }
 
+impl SseDecode for i32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_i32::<NativeEndian>().unwrap()
+    }
+}
+
 impl SseDecode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_i64::<NativeEndian>().unwrap()
+    }
+}
+
+impl SseDecode for crate::api::models::KeybindingAction {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::models::KeybindingAction::PlayPause,
+            1 => crate::api::models::KeybindingAction::PreviousTrack,
+            2 => crate::api::models::KeybindingAction::NextTrack,
+            3 => crate::api::models::KeybindingAction::OmniSearch,
+            _ => unreachable!("Invalid variant for KeybindingAction: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::models::KeybindingData {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_action = <crate::api::models::KeybindingAction>::sse_decode(deserializer);
+        let mut var_keyCode = <Option<String>>::sse_decode(deserializer);
+        let mut var_primary = <bool>::sse_decode(deserializer);
+        let mut var_control = <bool>::sse_decode(deserializer);
+        let mut var_meta = <bool>::sse_decode(deserializer);
+        let mut var_alt = <bool>::sse_decode(deserializer);
+        let mut var_shift = <bool>::sse_decode(deserializer);
+        return crate::api::models::KeybindingData {
+            action: var_action,
+            key_code: var_keyCode,
+            primary: var_primary,
+            control: var_control,
+            meta: var_meta,
+            alt: var_alt,
+            shift: var_shift,
+        };
     }
 }
 
@@ -2662,6 +2858,20 @@ impl SseDecode for Vec<crate::api::models::ArtistViewData> {
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ {
             ans_.push(<crate::api::models::ArtistViewData>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::models::KeybindingData> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::models::KeybindingData>::sse_decode(
                 deserializer,
             ));
         }
@@ -2951,13 +3161,6 @@ impl SseDecode for usize {
     }
 }
 
-impl SseDecode for i32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        deserializer.cursor.read_i32::<NativeEndian>().unwrap()
-    }
-}
-
 fn pde_ffi_dispatcher_primary_impl(
     func_id: i32,
     port: flutter_rust_bridge::for_generated::MessagePort,
@@ -3033,176 +3236,194 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        12 => wire__crate__api__library__LibraryApi_get_liked_song_ids_impl(
+        12 => wire__crate__api__library__LibraryApi_get_keybindings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        13 => wire__crate__api__library__LibraryApi_get_liked_songs_playlist_id_impl(
+        13 => wire__crate__api__library__LibraryApi_get_liked_song_ids_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        14 => wire__crate__api__library__LibraryApi_get_pinned_items_impl(
+        14 => wire__crate__api__library__LibraryApi_get_liked_songs_playlist_id_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        15 => wire__crate__api__library__LibraryApi_get_playlists_paginated_impl(
+        15 => wire__crate__api__library__LibraryApi_get_pinned_items_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        16 => wire__crate__api__library__LibraryApi_get_recently_played_impl(
+        16 => wire__crate__api__library__LibraryApi_get_playlists_paginated_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        17 => wire__crate__api__library__LibraryApi_get_scan_paths_impl(
+        17 => wire__crate__api__library__LibraryApi_get_recently_played_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        18 => wire__crate__api__library__LibraryApi_get_song_by_id_impl(
+        18 => wire__crate__api__library__LibraryApi_get_scan_paths_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        19 => wire__crate__api__library__LibraryApi_get_songs_artist_featured_on_impl(
+        19 => wire__crate__api__library__LibraryApi_get_song_by_id_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        20 => wire__crate__api__library__LibraryApi_get_songs_by_album_id_impl(
+        20 => wire__crate__api__library__LibraryApi_get_songs_artist_featured_on_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        21 => wire__crate__api__library__LibraryApi_get_songs_in_playlist_impl(
+        21 => wire__crate__api__library__LibraryApi_get_songs_by_album_id_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        22 => wire__crate__api__library__LibraryApi_get_songs_paginated_impl(
+        22 => wire__crate__api__library__LibraryApi_get_songs_in_playlist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        27 => wire__crate__api__library__LibraryApi_init_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__library__LibraryApi_load_playback_state_impl(
+        23 => wire__crate__api__library__LibraryApi_get_songs_paginated_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        29 => wire__crate__api__library__LibraryApi_move_pinned_item_impl(
+        28 => wire__crate__api__library__LibraryApi_init_impl(port, ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__library__LibraryApi_load_playback_state_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        30 => {
+        30 => wire__crate__api__library__LibraryApi_move_pinned_item_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        31 => {
             wire__crate__api__library__LibraryApi_pin_item_impl(port, ptr, rust_vec_len, data_len)
         }
-        31 => wire__crate__api__library__LibraryApi_record_play_impl(
+        32 => wire__crate__api__library__LibraryApi_record_play_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        32 => wire__crate__api__library__LibraryApi_remove_song_from_playlist_impl(
+        33 => wire__crate__api__library__LibraryApi_remove_song_from_playlist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        33 => wire__crate__api__library__LibraryApi_reset_library_impl(
+        34 => wire__crate__api__library__LibraryApi_reset_keybindings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        34 => wire__crate__api__library__LibraryApi_save_playback_state_impl(
+        35 => wire__crate__api__library__LibraryApi_reset_library_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        35 => wire__crate__api__library__LibraryApi_scan_directory_impl(
+        36 => wire__crate__api__library__LibraryApi_save_playback_state_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__library__LibraryApi_search_albums_impl(
+        37 => wire__crate__api__library__LibraryApi_scan_directory_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => wire__crate__api__library__LibraryApi_search_artists_impl(
+        38 => wire__crate__api__library__LibraryApi_search_albums_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => wire__crate__api__library__LibraryApi_search_playlists_impl(
+        39 => wire__crate__api__library__LibraryApi_search_artists_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__library__LibraryApi_search_songs_impl(
+        40 => wire__crate__api__library__LibraryApi_search_playlists_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        40 => wire__crate__api__library__LibraryApi_split_album_to_new_artist_impl(
+        41 => wire__crate__api__library__LibraryApi_search_songs_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        41 => {
+        42 => wire__crate__api__library__LibraryApi_split_album_to_new_artist_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        43 => {
             wire__crate__api__library__LibraryApi_unpin_item_impl(port, ptr, rust_vec_len, data_len)
         }
-        42 => wire__crate__api__library__LibraryApi_update_album_impl(
+        44 => wire__crate__api__library__LibraryApi_update_album_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__library__LibraryApi_update_artist_image_impl(
+        45 => wire__crate__api__library__LibraryApi_update_artist_image_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        44 => wire__crate__api__library__LibraryApi_update_playlist_impl(
+        46 => wire__crate__api__library__LibraryApi_update_keybinding_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__library__LibraryApi_update_song_impl(
+        47 => wire__crate__api__library__LibraryApi_update_playlist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        46 => wire__crate__api__init__init_app_impl(port, ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__library__LibraryApi_update_song_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        49 => wire__crate__api__init__init_app_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -3215,20 +3436,20 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        23 => {
+        24 => {
             wire__crate__api__library__LibraryApi_get_total_albums_impl(ptr, rust_vec_len, data_len)
         }
-        24 => wire__crate__api__library__LibraryApi_get_total_artists_impl(
+        25 => wire__crate__api__library__LibraryApi_get_total_artists_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        25 => wire__crate__api__library__LibraryApi_get_total_playlists_impl(
+        26 => wire__crate__api__library__LibraryApi_get_total_playlists_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        26 => {
+        27 => {
             wire__crate__api__library__LibraryApi_get_total_songs_impl(ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
@@ -3378,6 +3599,55 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::models::CoverArtEdit>
     for crate::api::models::CoverArtEdit
 {
     fn into_into_dart(self) -> crate::api::models::CoverArtEdit {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::models::KeybindingAction {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::PlayPause => 0.into_dart(),
+            Self::PreviousTrack => 1.into_dart(),
+            Self::NextTrack => 2.into_dart(),
+            Self::OmniSearch => 3.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::models::KeybindingAction
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::models::KeybindingAction>
+    for crate::api::models::KeybindingAction
+{
+    fn into_into_dart(self) -> crate::api::models::KeybindingAction {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::models::KeybindingData {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.action.into_into_dart().into_dart(),
+            self.key_code.into_into_dart().into_dart(),
+            self.primary.into_into_dart().into_dart(),
+            self.control.into_into_dart().into_dart(),
+            self.meta.into_into_dart().into_dart(),
+            self.alt.into_into_dart().into_dart(),
+            self.shift.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::models::KeybindingData
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::models::KeybindingData>
+    for crate::api::models::KeybindingData
+{
+    fn into_into_dart(self) -> crate::api::models::KeybindingData {
         self
     }
 }
@@ -3684,10 +3954,48 @@ impl SseEncode for crate::api::models::CoverArtEdit {
     }
 }
 
+impl SseEncode for i32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
+    }
+}
+
 impl SseEncode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_i64::<NativeEndian>(self).unwrap();
+    }
+}
+
+impl SseEncode for crate::api::models::KeybindingAction {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::models::KeybindingAction::PlayPause => 0,
+                crate::api::models::KeybindingAction::PreviousTrack => 1,
+                crate::api::models::KeybindingAction::NextTrack => 2,
+                crate::api::models::KeybindingAction::OmniSearch => 3,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::models::KeybindingData {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::models::KeybindingAction>::sse_encode(self.action, serializer);
+        <Option<String>>::sse_encode(self.key_code, serializer);
+        <bool>::sse_encode(self.primary, serializer);
+        <bool>::sse_encode(self.control, serializer);
+        <bool>::sse_encode(self.meta, serializer);
+        <bool>::sse_encode(self.alt, serializer);
+        <bool>::sse_encode(self.shift, serializer);
     }
 }
 
@@ -3717,6 +4025,16 @@ impl SseEncode for Vec<crate::api::models::ArtistViewData> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::api::models::ArtistViewData>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::models::KeybindingData> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::models::KeybindingData>::sse_encode(item, serializer);
         }
     }
 }
@@ -3930,13 +4248,6 @@ impl SseEncode for usize {
             .cursor
             .write_u64::<NativeEndian>(self as _)
             .unwrap();
-    }
-}
-
-impl SseEncode for i32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
     }
 }
 

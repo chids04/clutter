@@ -69,6 +69,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CoverArtEdit dco_decode_box_autoadd_cover_art_edit(dynamic raw);
 
   @protected
+  KeybindingData dco_decode_box_autoadd_keybinding_data(dynamic raw);
+
+  @protected
   PlaybackStateData dco_decode_box_autoadd_playback_state_data(dynamic raw);
 
   @protected
@@ -87,7 +90,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CoverArtEdit dco_decode_cover_art_edit(dynamic raw);
 
   @protected
+  int dco_decode_i_32(dynamic raw);
+
+  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
+
+  @protected
+  KeybindingAction dco_decode_keybinding_action(dynamic raw);
+
+  @protected
+  KeybindingData dco_decode_keybinding_data(dynamic raw);
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
@@ -97,6 +109,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<ArtistViewData> dco_decode_list_artist_view_data(dynamic raw);
+
+  @protected
+  List<KeybindingData> dco_decode_list_keybinding_data(dynamic raw);
 
   @protected
   List<PinnedItemData> dco_decode_list_pinned_item_data(dynamic raw);
@@ -212,6 +227,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  KeybindingData sse_decode_box_autoadd_keybinding_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PlaybackStateData sse_decode_box_autoadd_playback_state_data(
     SseDeserializer deserializer,
   );
@@ -238,7 +258,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CoverArtEdit sse_decode_cover_art_edit(SseDeserializer deserializer);
 
   @protected
+  int sse_decode_i_32(SseDeserializer deserializer);
+
+  @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  KeybindingAction sse_decode_keybinding_action(SseDeserializer deserializer);
+
+  @protected
+  KeybindingData sse_decode_keybinding_data(SseDeserializer deserializer);
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
@@ -250,6 +279,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<ArtistViewData> sse_decode_list_artist_view_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<KeybindingData> sse_decode_list_keybinding_data(
     SseDeserializer deserializer,
   );
 
@@ -332,9 +366,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt sse_decode_usize(SseDeserializer deserializer);
 
   @protected
-  int sse_decode_i_32(SseDeserializer deserializer);
-
-  @protected
   void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     LibraryApi self,
@@ -398,6 +429,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_keybinding_data(
+    KeybindingData self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_playback_state_data(
     PlaybackStateData self,
     SseSerializer serializer,
@@ -431,7 +468,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_cover_art_edit(CoverArtEdit self, SseSerializer serializer);
 
   @protected
+  void sse_encode_i_32(int self, SseSerializer serializer);
+
+  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_keybinding_action(
+    KeybindingAction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_keybinding_data(
+    KeybindingData self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
@@ -445,6 +497,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_artist_view_data(
     List<ArtistViewData> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_keybinding_data(
+    List<KeybindingData> self,
     SseSerializer serializer,
   );
 
@@ -546,9 +604,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_usize(BigInt self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_i_32(int self, SseSerializer serializer);
 }
 
 // Section: wire_class

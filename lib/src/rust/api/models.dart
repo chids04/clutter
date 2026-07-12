@@ -8,7 +8,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'models.freezed.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These functions are ignored because they are not marked as `pub`: `as_str`, `from_str`, `into_row`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 @freezed
 sealed class AlbumChoice with _$AlbumChoice {
@@ -136,6 +137,51 @@ sealed class CoverArtEdit with _$CoverArtEdit {
   const factory CoverArtEdit.remove() = CoverArtEdit_Remove;
   const factory CoverArtEdit.replace({required String sourcePath}) =
       CoverArtEdit_Replace;
+}
+
+enum KeybindingAction { playPause, previousTrack, nextTrack, omniSearch }
+
+class KeybindingData {
+  final KeybindingAction action;
+  final String? keyCode;
+  final bool primary;
+  final bool control;
+  final bool meta;
+  final bool alt;
+  final bool shift;
+
+  const KeybindingData({
+    required this.action,
+    this.keyCode,
+    required this.primary,
+    required this.control,
+    required this.meta,
+    required this.alt,
+    required this.shift,
+  });
+
+  @override
+  int get hashCode =>
+      action.hashCode ^
+      keyCode.hashCode ^
+      primary.hashCode ^
+      control.hashCode ^
+      meta.hashCode ^
+      alt.hashCode ^
+      shift.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is KeybindingData &&
+          runtimeType == other.runtimeType &&
+          action == other.action &&
+          keyCode == other.keyCode &&
+          primary == other.primary &&
+          control == other.control &&
+          meta == other.meta &&
+          alt == other.alt &&
+          shift == other.shift;
 }
 
 class PinnedItemData {

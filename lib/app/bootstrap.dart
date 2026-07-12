@@ -8,7 +8,10 @@ import 'package:provider/provider.dart';
 import 'package:clutter/app/clutter_app.dart';
 import 'package:clutter/features/library/application/music_library.dart';
 import 'package:clutter/features/library/data/library_repository.dart';
+import 'package:clutter/features/keybindings/application/keybinding_controller.dart';
+import 'package:clutter/features/keybindings/data/keybinding_repository.dart';
 import 'package:clutter/features/playback/infrastructure/audio_service.dart';
+import 'package:clutter/shared/platform/desktop_platform.dart';
 import 'package:clutter/src/rust/api/library.dart';
 import 'package:clutter/src/rust/frb_generated.dart';
 
@@ -28,16 +31,26 @@ Future<void> bootstrap() async {
     baseDir: documents.path,
   );
   final repository = RustLibraryRepository(api);
+  final keybindings = isDesktopPlatform
+      ? KeybindingController(RustKeybindingRepository(api))
+      : null;
+  if (keybindings != null) await keybindings.load();
 
   runApp(
-    ChangeNotifierProvider(
-      // provider owns this notifier, so it will also call dispose for us
-      create: (_) => MusicLibrary(
-        catalogRepository: repository,
-        playbackPersistence: repository,
-        player: audio,
-        musicDir: music,
-      ),
+    MultiProvider(
+      providers: [
+        // provider owns these notifiers and disposes them with the app tree
+        ChangeNotifierProvider(
+          create: (_) => MusicLibrary(
+            catalogRepository: repository,
+            playbackPersistence: repository,
+            player: audio,
+            musicDir: music,
+          ),
+        ),
+        if (keybindings != null)
+          ChangeNotifierProvider(create: (_) => keybindings),
+      ],
       child: const ClutterApp(),
     ),
   );

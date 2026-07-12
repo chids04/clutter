@@ -3,6 +3,7 @@ use crate::storage::sqlite::SqliteLibraryStore;
 
 mod catalog;
 mod editing;
+mod keybindings;
 mod playback;
 mod playlists;
 

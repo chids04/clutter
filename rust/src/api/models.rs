@@ -1,5 +1,6 @@
 use crate::storage::sqlite::{
-    AlbumRow, ArtistRow, ArtworkUpdate, PinnedItemRow, PlaybackStateRow, PlaylistRow, SongRow,
+    AlbumRow, ArtistRow, ArtworkUpdate, KeybindingRow, PinnedItemRow, PlaybackStateRow,
+    PlaylistRow, SongRow,
 };
 
 #[derive(Debug, Clone)]
@@ -201,6 +202,74 @@ impl From<PinnedItemRow> for PinnedItemData {
             item_id: row.item_id,
             kind: row.kind,
             position: row.position,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeybindingAction {
+    PlayPause,
+    PreviousTrack,
+    NextTrack,
+    OmniSearch,
+}
+
+impl KeybindingAction {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::PlayPause => "play_pause",
+            Self::PreviousTrack => "previous_track",
+            Self::NextTrack => "next_track",
+            Self::OmniSearch => "omni_search",
+        }
+    }
+
+    fn from_str(value: &str) -> Self {
+        match value {
+            "play_pause" => Self::PlayPause,
+            "previous_track" => Self::PreviousTrack,
+            "next_track" => Self::NextTrack,
+            "omni_search" => Self::OmniSearch,
+            _ => unreachable!("storage only returns known keybinding actions"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeybindingData {
+    pub action: KeybindingAction,
+    pub key_code: Option<String>,
+    pub primary: bool,
+    pub control: bool,
+    pub meta: bool,
+    pub alt: bool,
+    pub shift: bool,
+}
+
+impl KeybindingData {
+    pub(crate) fn into_row(self) -> KeybindingRow {
+        KeybindingRow {
+            action: self.action.as_str().into(),
+            key_code: self.key_code,
+            primary: self.primary,
+            control: self.control,
+            meta: self.meta,
+            alt: self.alt,
+            shift: self.shift,
+        }
+    }
+}
+
+impl From<KeybindingRow> for KeybindingData {
+    fn from(row: KeybindingRow) -> Self {
+        Self {
+            action: KeybindingAction::from_str(&row.action),
+            key_code: row.key_code,
+            primary: row.primary,
+            control: row.control,
+            meta: row.meta,
+            alt: row.alt,
+            shift: row.shift,
         }
     }
 }

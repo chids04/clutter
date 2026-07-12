@@ -47,6 +47,7 @@ lib/
 │   ├── scanning/              scan paths and folder selection
 │   ├── playback/              queue policy, audio port, handler, and media bar
 │   ├── metadata_editor/       song, album, artist, and playlist editors
+│   ├── keybindings/           desktop shortcut state, key translation, and editor
 │   ├── search/                search dialog and search page
 │   ├── quick_play/            pinned-item sidebar
 │   └── settings/              settings and scan-directory controls
@@ -65,7 +66,8 @@ Bootstrap performs the side-effecting startup sequence:
 3. Start the platform audio service.
 4. Open the Rust library API.
 5. Wrap the API in `RustLibraryRepository`.
-6. Construct `MusicLibrary` and provide it to the widget tree.
+6. On desktop, load persisted keybindings through their Rust repository adapter.
+7. Construct the controllers and provide them to the widget tree.
 
 Theme and navigation live separately from startup so they can be understood and changed without touching database or platform initialisation.
 
@@ -116,6 +118,12 @@ This division is important:
 - opening an audio file and publishing system media controls are platform behaviour.
 
 `PlaybackQueue` contains the mutable queue/history collections and exposes read-only views. Keeping collection manipulation separate makes ordering and looping behaviour easy to unit-test.
+
+### Desktop keybindings
+
+Rust owns the saved shortcut definitions, defaults, supported key-code validation, and duplicate-chord rejection. `KeybindingController` loads that configuration through `KeybindingRepository`; Dart only translates Flutter hardware key events into the canonical key codes understood by Rust.
+
+`DesktopShortcutScope` is installed only on Linux, macOS, and Windows. It dispatches configured actions to the existing playback and search commands, ignores text-entry focus, and does not act behind modal routes. The settings editor is desktop-only and captures one main key plus optional modifiers. Escape is reserved for cancelling capture, and actions may be left unbound.
 
 ### Widget responsibilities
 
@@ -192,6 +200,7 @@ SQLite is the source of truth for:
 - playlists and playlist membership;
 - pins and recently played items;
 - scan paths and playback state;
+- desktop keybinding definitions;
 - relative paths to managed artwork and audio files.
 
 Paths inside the application base directory are stored relatively. Mobile application container paths can change between launches, so absolute sandbox paths would become stale.
@@ -234,6 +243,8 @@ Use these placement rules:
 | Cached library or search state | Library catalog controller |
 | Scan progress or folder selection | Scan controller |
 | Queue or playback policy | Playback controller or playback queue |
+| Keybinding defaults, validation, conflicts, or persistence | Rust keybinding storage/core |
+| Desktop key capture or shortcut editing UI | Dart keybindings feature |
 | Platform audio implementation | Playback infrastructure |
 | Feature-specific UI | That feature's presentation folder |
 | Reusable UI primitive | Shared presentation |

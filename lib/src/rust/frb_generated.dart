@@ -67,7 +67,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -1555731542;
+  int get rustContentHash => 1461996016;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -136,6 +136,10 @@ abstract class RustLibApi extends BaseApi {
     required LibraryApi that,
     required int offset,
     required int limit,
+  });
+
+  Future<List<KeybindingData>> crateApiLibraryLibraryApiGetKeybindings({
+    required LibraryApi that,
   });
 
   Future<List<String>> crateApiLibraryLibraryApiGetLikedSongIds({
@@ -234,6 +238,10 @@ abstract class RustLibApi extends BaseApi {
     required String songId,
   });
 
+  Future<List<KeybindingData>> crateApiLibraryLibraryApiResetKeybindings({
+    required LibraryApi that,
+  });
+
   Future<void> crateApiLibraryLibraryApiResetLibrary({
     required LibraryApi that,
   });
@@ -295,6 +303,11 @@ abstract class RustLibApi extends BaseApi {
     required LibraryApi that,
     required String artistId,
     required CoverArtEdit cover,
+  });
+
+  Future<KeybindingData> crateApiLibraryLibraryApiUpdateKeybinding({
+    required LibraryApi that,
+    required KeybindingData binding,
   });
 
   Future<PlaylistViewData> crateApiLibraryLibraryApiUpdatePlaylist({
@@ -753,7 +766,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<List<String>> crateApiLibraryLibraryApiGetLikedSongIds({
+  Future<List<KeybindingData>> crateApiLibraryLibraryApiGetKeybindings({
     required LibraryApi that,
   }) {
     return handler.executeNormal(
@@ -768,6 +781,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             generalizedFrbRustBinding,
             serializer,
             funcId: 12,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_keybinding_data,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiLibraryLibraryApiGetKeybindingsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetKeybindingsConstMeta =>
+      const TaskConstMeta(
+        debugName: "LibraryApi_get_keybindings",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<List<String>> crateApiLibraryLibraryApiGetLikedSongIds({
+    required LibraryApi that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 13,
             port: port_,
           );
         },
@@ -803,7 +852,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 14,
             port: port_,
           );
         },
@@ -840,7 +889,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 15,
             port: port_,
           );
         },
@@ -881,7 +930,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 16,
             port: port_,
           );
         },
@@ -919,7 +968,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 17,
             port: port_,
           );
         },
@@ -955,7 +1004,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 18,
             port: port_,
           );
         },
@@ -993,7 +1042,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 19,
             port: port_,
           );
         },
@@ -1031,7 +1080,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 20,
             port: port_,
           );
         },
@@ -1070,7 +1119,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 21,
             port: port_,
           );
         },
@@ -1108,7 +1157,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 22,
             port: port_,
           );
         },
@@ -1148,7 +1197,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 23,
             port: port_,
           );
         },
@@ -1179,7 +1228,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_32,
@@ -1208,7 +1257,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_32,
@@ -1237,7 +1286,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_32,
@@ -1266,7 +1315,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_32,
@@ -1301,7 +1350,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 28,
             port: port_,
           );
         },
@@ -1338,7 +1387,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 29,
             port: port_,
           );
         },
@@ -1380,7 +1429,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 30,
             port: port_,
           );
         },
@@ -1420,7 +1469,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 30,
+            funcId: 31,
             port: port_,
           );
         },
@@ -1458,7 +1507,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 32,
             port: port_,
           );
         },
@@ -1498,7 +1547,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 32,
+            funcId: 33,
             port: port_,
           );
         },
@@ -1520,6 +1569,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<List<KeybindingData>> crateApiLibraryLibraryApiResetKeybindings({
+    required LibraryApi that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 34,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_keybinding_data,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiLibraryLibraryApiResetKeybindingsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiLibraryLibraryApiResetKeybindingsConstMeta =>
+      const TaskConstMeta(
+        debugName: "LibraryApi_reset_keybindings",
+        argNames: ["that"],
+      );
+
+  @override
   Future<void> crateApiLibraryLibraryApiResetLibrary({
     required LibraryApi that,
   }) {
@@ -1534,7 +1619,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 33,
+            funcId: 35,
             port: port_,
           );
         },
@@ -1576,7 +1661,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 36,
             port: port_,
           );
         },
@@ -1616,7 +1701,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 37,
             port: port_,
           );
         },
@@ -1656,7 +1741,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 38,
             port: port_,
           );
         },
@@ -1696,7 +1781,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 39,
             port: port_,
           );
         },
@@ -1736,7 +1821,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 40,
             port: port_,
           );
         },
@@ -1776,7 +1861,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 39,
+            funcId: 41,
             port: port_,
           );
         },
@@ -1814,7 +1899,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 42,
             port: port_,
           );
         },
@@ -1854,7 +1939,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 43,
             port: port_,
           );
         },
@@ -1892,7 +1977,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 44,
             port: port_,
           );
         },
@@ -1932,7 +2017,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 45,
             port: port_,
           );
         },
@@ -1954,6 +2039,44 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<KeybindingData> crateApiLibraryLibraryApiUpdateKeybinding({
+    required LibraryApi that,
+    required KeybindingData binding,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_keybinding_data(binding, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 46,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_keybinding_data,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiLibraryLibraryApiUpdateKeybindingConstMeta,
+        argValues: [that, binding],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiLibraryLibraryApiUpdateKeybindingConstMeta =>
+      const TaskConstMeta(
+        debugName: "LibraryApi_update_keybinding",
+        argNames: ["that", "binding"],
+      );
+
+  @override
   Future<PlaylistViewData> crateApiLibraryLibraryApiUpdatePlaylist({
     required LibraryApi that,
     required PlaylistEditRequest request,
@@ -1970,7 +2093,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 47,
             port: port_,
           );
         },
@@ -2008,7 +2131,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 48,
             port: port_,
           );
         },
@@ -2038,7 +2161,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 49,
             port: port_,
           );
         },
@@ -2184,6 +2307,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  KeybindingData dco_decode_box_autoadd_keybinding_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_keybinding_data(raw);
+  }
+
+  @protected
   PlaybackStateData dco_decode_box_autoadd_playback_state_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_playback_state_data(raw);
@@ -2231,9 +2360,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int dco_decode_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeI64(raw);
+  }
+
+  @protected
+  KeybindingAction dco_decode_keybinding_action(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return KeybindingAction.values[raw as int];
+  }
+
+  @protected
+  KeybindingData dco_decode_keybinding_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return KeybindingData(
+      action: dco_decode_keybinding_action(arr[0]),
+      keyCode: dco_decode_opt_String(arr[1]),
+      primary: dco_decode_bool(arr[2]),
+      control: dco_decode_bool(arr[3]),
+      meta: dco_decode_bool(arr[4]),
+      alt: dco_decode_bool(arr[5]),
+      shift: dco_decode_bool(arr[6]),
+    );
   }
 
   @protected
@@ -2252,6 +2410,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<ArtistViewData> dco_decode_list_artist_view_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_artist_view_data).toList();
+  }
+
+  @protected
+  List<KeybindingData> dco_decode_list_keybinding_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_keybinding_data).toList();
   }
 
   @protected
@@ -2594,6 +2758,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  KeybindingData sse_decode_box_autoadd_keybinding_data(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_keybinding_data(deserializer));
+  }
+
+  @protected
   PlaybackStateData sse_decode_box_autoadd_playback_state_data(
     SseDeserializer deserializer,
   ) {
@@ -2650,9 +2822,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int sse_decode_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getInt32();
+  }
+
+  @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  KeybindingAction sse_decode_keybinding_action(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return KeybindingAction.values[inner];
+  }
+
+  @protected
+  KeybindingData sse_decode_keybinding_data(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_action = sse_decode_keybinding_action(deserializer);
+    var var_keyCode = sse_decode_opt_String(deserializer);
+    var var_primary = sse_decode_bool(deserializer);
+    var var_control = sse_decode_bool(deserializer);
+    var var_meta = sse_decode_bool(deserializer);
+    var var_alt = sse_decode_bool(deserializer);
+    var var_shift = sse_decode_bool(deserializer);
+    return KeybindingData(
+      action: var_action,
+      keyCode: var_keyCode,
+      primary: var_primary,
+      control: var_control,
+      meta: var_meta,
+      alt: var_alt,
+      shift: var_shift,
+    );
   }
 
   @protected
@@ -2691,6 +2897,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <ArtistViewData>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_artist_view_data(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<KeybindingData> sse_decode_list_keybinding_data(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <KeybindingData>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_keybinding_data(deserializer));
     }
     return ans_;
   }
@@ -2964,12 +3184,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  int sse_decode_i_32(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getInt32();
-  }
-
-  @protected
   void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     LibraryApi self,
@@ -3102,6 +3316,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_keybinding_data(
+    KeybindingData self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_keybinding_data(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_playback_state_data(
     PlaybackStateData self,
     SseSerializer serializer,
@@ -3161,9 +3384,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_i_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putInt32(self);
+  }
+
+  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
+  void sse_encode_keybinding_action(
+    KeybindingAction self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_keybinding_data(
+    KeybindingData self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_keybinding_action(self.action, serializer);
+    sse_encode_opt_String(self.keyCode, serializer);
+    sse_encode_bool(self.primary, serializer);
+    sse_encode_bool(self.control, serializer);
+    sse_encode_bool(self.meta, serializer);
+    sse_encode_bool(self.alt, serializer);
+    sse_encode_bool(self.shift, serializer);
   }
 
   @protected
@@ -3196,6 +3449,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_artist_view_data(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_keybinding_data(
+    List<KeybindingData> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_keybinding_data(item, serializer);
     }
   }
 
@@ -3422,12 +3687,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putBigUint64(self);
   }
-
-  @protected
-  void sse_encode_i_32(int self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putInt32(self);
-  }
 }
 
 @sealed
@@ -3467,8 +3726,8 @@ class LibraryApiImpl extends RustOpaque implements LibraryApi {
   Future<void> deletePlaylist({required String id}) => RustLib.instance.api
       .crateApiLibraryLibraryApiDeletePlaylist(that: this, id: id);
 
-  /// Remove a scan path and every song indexed beneath it. Returns the
-  /// number of songs purged so the UI can surface it in a toast.
+  /// remove a scan path and every song indexed beneath it. returns the
+  /// number of songs purged so the ui can surface it in a toast.
   Future<int> deleteScanPath({required String path}) => RustLib.instance.api
       .crateApiLibraryLibraryApiDeleteScanPath(that: this, path: path);
 
@@ -3510,6 +3769,9 @@ class LibraryApiImpl extends RustOpaque implements LibraryApi {
     offset: offset,
     limit: limit,
   );
+
+  Future<List<KeybindingData>> getKeybindings() =>
+      RustLib.instance.api.crateApiLibraryLibraryApiGetKeybindings(that: this);
 
   Future<List<String>> getLikedSongIds() =>
       RustLib.instance.api.crateApiLibraryLibraryApiGetLikedSongIds(that: this);
@@ -3615,6 +3877,9 @@ class LibraryApiImpl extends RustOpaque implements LibraryApi {
     songId: songId,
   );
 
+  Future<List<KeybindingData>> resetKeybindings() => RustLib.instance.api
+      .crateApiLibraryLibraryApiResetKeybindings(that: this);
+
   Future<void> resetLibrary() =>
       RustLib.instance.api.crateApiLibraryLibraryApiResetLibrary(that: this);
 
@@ -3629,8 +3894,8 @@ class LibraryApiImpl extends RustOpaque implements LibraryApi {
     loopOne: loopOne,
   );
 
-  /// Recursively scan `path` for audio files and write their metadata into
-  /// SQLite. Files already present (matched by `file_path`) are skipped.
+  /// recursively scan `path` for audio files and write their metadata into
+  /// sqlite. files already present (matched by `file_path`) are skipped.
   Future<void> scanDirectory({
     required String path,
     required ScanConfig config,
@@ -3676,8 +3941,8 @@ class LibraryApiImpl extends RustOpaque implements LibraryApi {
     limit: limit,
   );
 
-  /// Fork an album onto a freshly-created artist row with the same name.
-  /// Returns the new artist's id. Used by the UI to resolve ambiguity when
+  /// fork an album onto a freshly-created artist row with the same name.
+  /// returns the new artist's id. used by the ui to resolve ambiguity when
   /// the scanner merged two distinct same-named artists into one row.
   Future<String> splitAlbumToNewArtist({required String albumId}) =>
       RustLib.instance.api.crateApiLibraryLibraryApiSplitAlbumToNewArtist(
@@ -3706,6 +3971,12 @@ class LibraryApiImpl extends RustOpaque implements LibraryApi {
     artistId: artistId,
     cover: cover,
   );
+
+  Future<KeybindingData> updateKeybinding({required KeybindingData binding}) =>
+      RustLib.instance.api.crateApiLibraryLibraryApiUpdateKeybinding(
+        that: this,
+        binding: binding,
+      );
 
   Future<PlaylistViewData> updatePlaylist({
     required PlaylistEditRequest request,

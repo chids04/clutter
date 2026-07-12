@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 mod editing;
+mod keybindings;
 mod models;
 
 pub use models::*;

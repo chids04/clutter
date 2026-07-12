@@ -325,6 +325,24 @@ impl LibraryApi {
             .move_pinned_item(&item_id, &kind, new_index as usize)
     }
 
+    pub fn get_keybindings(&self) -> Result<Vec<KeybindingData>, String> {
+        self.core
+            .get_keybindings()
+            .map(|bindings| bindings.into_iter().map(KeybindingData::from).collect())
+    }
+
+    pub fn update_keybinding(&self, binding: KeybindingData) -> Result<KeybindingData, String> {
+        self.core
+            .update_keybinding(binding.into_row())
+            .map(KeybindingData::from)
+    }
+
+    pub fn reset_keybindings(&self) -> Result<Vec<KeybindingData>, String> {
+        self.core
+            .reset_keybindings()
+            .map(|bindings| bindings.into_iter().map(KeybindingData::from).collect())
+    }
+
     pub fn reset_library(&self) -> Result<(), String> {
         self.core.reset_library()
     }

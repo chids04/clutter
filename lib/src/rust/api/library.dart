@@ -20,8 +20,8 @@ abstract class LibraryApi implements RustOpaqueInterface {
 
   Future<void> deletePlaylist({required String id});
 
-  /// Remove a scan path and every song indexed beneath it. Returns the
-  /// number of songs purged so the UI can surface it in a toast.
+  /// remove a scan path and every song indexed beneath it. returns the
+  /// number of songs purged so the ui can surface it in a toast.
   Future<int> deleteScanPath({required String path});
 
   Future<void> deleteSong({required String id});
@@ -43,6 +43,8 @@ abstract class LibraryApi implements RustOpaqueInterface {
     required int offset,
     required int limit,
   });
+
+  Future<List<KeybindingData>> getKeybindings();
 
   Future<List<String>> getLikedSongIds();
 
@@ -82,8 +84,8 @@ abstract class LibraryApi implements RustOpaqueInterface {
 
   int getTotalSongs();
 
-  /// Open (or create) the SQLite database at `db_path` and ensure the covers
-  /// directory exists. Must be called once from Dart before any other method.
+  /// open (or create) the sqlite database at `db_path` and ensure the covers
+  /// directory exists. must be called once from dart before any other method.
   static Future<LibraryApi> init({
     required String dbPath,
     required String coversDir,
@@ -111,6 +113,8 @@ abstract class LibraryApi implements RustOpaqueInterface {
     required String songId,
   });
 
+  Future<List<KeybindingData>> resetKeybindings();
+
   Future<void> resetLibrary();
 
   Future<void> savePlaybackState({
@@ -119,8 +123,8 @@ abstract class LibraryApi implements RustOpaqueInterface {
     required bool loopOne,
   });
 
-  /// Recursively scan `path` for audio files and write their metadata into
-  /// SQLite. Files already present (matched by `file_path`) are skipped.
+  /// recursively scan `path` for audio files and write their metadata into
+  /// sqlite. files already present (matched by `file_path`) are skipped.
   Future<void> scanDirectory({
     required String path,
     required ScanConfig config,
@@ -146,8 +150,8 @@ abstract class LibraryApi implements RustOpaqueInterface {
     required int limit,
   });
 
-  /// Fork an album onto a freshly-created artist row with the same name.
-  /// Returns the new artist's id. Used by the UI to resolve ambiguity when
+  /// fork an album onto a freshly-created artist row with the same name.
+  /// returns the new artist's id. used by the ui to resolve ambiguity when
   /// the scanner merged two distinct same-named artists into one row.
   Future<String> splitAlbumToNewArtist({required String albumId});
 
@@ -159,6 +163,8 @@ abstract class LibraryApi implements RustOpaqueInterface {
     required String artistId,
     required CoverArtEdit cover,
   });
+
+  Future<KeybindingData> updateKeybinding({required KeybindingData binding});
 
   Future<PlaylistViewData> updatePlaylist({
     required PlaylistEditRequest request,

@@ -115,3 +115,30 @@ CREATE TABLE IF NOT EXISTS playback_state (
     updated_at  INTEGER NOT NULL,
     FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS keybindings (
+    action           TEXT PRIMARY KEY CHECK (action IN ('play_pause', 'previous_track', 'next_track', 'omni_search')),
+    key_code         TEXT,
+    primary_modifier INTEGER NOT NULL DEFAULT 0,
+    control_modifier INTEGER NOT NULL DEFAULT 0,
+    meta_modifier    INTEGER NOT NULL DEFAULT 0,
+    alt_modifier     INTEGER NOT NULL DEFAULT 0,
+    shift_modifier   INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS keybindings_unique_chord
+ON keybindings (
+    key_code,
+    primary_modifier,
+    control_modifier,
+    meta_modifier,
+    alt_modifier,
+    shift_modifier
+)
+WHERE key_code IS NOT NULL;
+
+INSERT OR IGNORE INTO keybindings (action, key_code) VALUES ('play_pause', 'space');
+INSERT OR IGNORE INTO keybindings (action, key_code) VALUES ('previous_track', 'key_h');
+INSERT OR IGNORE INTO keybindings (action, key_code) VALUES ('next_track', 'key_l');
+INSERT OR IGNORE INTO keybindings (action, key_code, primary_modifier)
+VALUES ('omni_search', 'key_s', 1);

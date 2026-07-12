@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:clutter/features/library/application/music_library.dart';
 import 'package:clutter/shared/presentation/base_view.dart';
 import 'package:clutter/shared/presentation/confirm_dialog.dart';
+import 'package:clutter/features/keybindings/presentation/keybindings_view.dart';
+import 'package:clutter/shared/platform/desktop_platform.dart';
 
 class SettingsView extends CView {
   const SettingsView({super.key}) : super(viewTitle: 'settings');
@@ -20,7 +22,19 @@ class _SettingsViewState extends CViewState<SettingsView> {
       padding: EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
-        children: const <Widget>[Expanded(child: DirectoriesView())],
+        children: <Widget>[
+          if (isDesktopPlatform)
+            ListTile(
+              leading: const Icon(Icons.keyboard),
+              title: const Text('keyboard shortcuts'),
+              subtitle: const Text('change desktop playback and search keys'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const KeybindingsView()),
+              ),
+            ),
+          const Expanded(child: DirectoriesView()),
+        ],
       ),
     );
   }

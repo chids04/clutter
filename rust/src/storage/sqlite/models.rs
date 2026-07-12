@@ -103,6 +103,17 @@ pub enum PlaylistVisualUpdate {
     Image(String),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeybindingRow {
+    pub action: String,
+    pub key_code: Option<String>,
+    pub primary: bool,
+    pub control: bool,
+    pub meta: bool,
+    pub alt: bool,
+    pub shift: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub(super) struct PlaylistBackup {
     pub playlists: Vec<PlaylistBackupPlaylist>,

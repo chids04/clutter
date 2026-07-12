@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/gestures.dart';
@@ -14,16 +13,14 @@ import 'package:clutter/features/search/presentation/search_view.dart';
 import 'package:clutter/features/playback/presentation/media_bar.dart';
 import 'package:clutter/features/quick_play/presentation/quick_play_sidebar.dart';
 import 'package:clutter/features/search/presentation/omni_search_overlay.dart';
+import 'package:clutter/features/keybindings/presentation/desktop_shortcut_scope.dart';
+import 'package:clutter/shared/platform/desktop_platform.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
   @override
   State<AppShell> createState() => _AppShellState();
-}
-
-class _OpenOmniSearchIntent extends Intent {
-  const _OpenOmniSearchIntent();
 }
 
 class _AppShellState extends State<AppShell> {
@@ -116,83 +113,68 @@ class _AppShellState extends State<AppShell> {
       _TabNavigator(child: const SettingsView()),
     ];
 
-    final shortcutActivator = SingleActivator(
-      LogicalKeyboardKey.keyS,
-      meta: Platform.isMacOS,
-      control: !Platform.isMacOS,
-    );
+    final content = Focus(
+      focusNode: _shortcutFocusNode,
+      autofocus: true,
+      skipTraversal: true,
+      child: Scaffold(
+        body: QuickPlaySidebar(
+          child: IndexedStack(index: _selectedIndex, children: widgetOptions),
+        ),
 
-    return Shortcuts(
-      shortcuts: <ShortcutActivator, Intent>{
-        shortcutActivator: const _OpenOmniSearchIntent(),
-      },
-      child: Actions(
-        actions: <Type, Action<Intent>>{
-          _OpenOmniSearchIntent: CallbackAction<_OpenOmniSearchIntent>(
-            onInvoke: (_) {
-              unawaited(_openOmniSearch());
-              return null;
-            },
-          ),
-        },
-        child: Focus(
-          focusNode: _shortcutFocusNode,
-          autofocus: true,
-          skipTraversal: true,
-          child: Scaffold(
-            body: QuickPlaySidebar(
-              child: IndexedStack(
-                index: _selectedIndex,
-                children: widgetOptions,
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color:
+                        Theme.of(context).dividerTheme.color ??
+                        Colors.transparent,
+                  ),
+                ),
               ),
             ),
-
-            bottomNavigationBar: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(
-                        color:
-                            Theme.of(context).dividerTheme.color ??
-                            Colors.transparent,
-                      ),
-                    ),
-                  ),
-                ),
-                const _ToastPill(),
-                MediaBar(
-                  activeLibraryPageListenable: _libraryPage,
-                  onLibraryPageSelected: _openLibraryPage,
-                ),
-
-                _SearchLongPressBottomNav(
-                  onSearchLongPress: _openOmniSearchFromLongPress,
-                  child: BottomNavigationBar(
-                    items: const <BottomNavigationBarItem>[
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.library_music),
-                        label: 'library',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.search),
-                        label: 'search',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.settings),
-                        label: 'settings',
-                      ),
-                    ],
-                    currentIndex: _selectedIndex,
-                    onTap: _selectTab,
-                  ),
-                ),
-              ],
+            const _ToastPill(),
+            MediaBar(
+              activeLibraryPageListenable: _libraryPage,
+              onLibraryPageSelected: _openLibraryPage,
             ),
-          ),
+
+            _SearchLongPressBottomNav(
+              onSearchLongPress: _openOmniSearchFromLongPress,
+              child: BottomNavigationBar(
+                items: const <BottomNavigationBarItem>[
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.library_music),
+                    label: 'library',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.search),
+                    label: 'search',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.settings),
+                    label: 'settings',
+                  ),
+                ],
+                currentIndex: _selectedIndex,
+                onTap: _selectTab,
+              ),
+            ),
+          ],
         ),
       ),
+    );
+    if (!isDesktopPlatform) return content;
+    final library = context.read<MusicLibrary>();
+    return DesktopShortcutScope(
+      onPlayPause: library.togglePlay,
+      onPreviousTrack: library.playPrevious,
+      onNextTrack: library.playNext,
+      onOmniSearch: _openOmniSearch,
+      child: content,
     );
   }
 }
