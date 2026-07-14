@@ -129,8 +129,8 @@ class MusicLibrary extends ChangeNotifier {
       catalog.searchSongs(query, limit: limit);
   Future<List<AlbumViewData>> searchAlbums(String query, {int limit = 200}) =>
       catalog.searchAlbums(query, limit: limit);
-  Future<List<ArtistViewData>> searchArtists(String query) =>
-      catalog.searchArtists(query);
+  Future<List<ArtistViewData>> searchArtists(String query, {int limit = 200}) =>
+      catalog.searchArtists(query, limit: limit);
   Future<List<PlaylistViewData>> searchPlaylists(
     String query, {
     int limit = 200,
@@ -164,6 +164,15 @@ class MusicLibrary extends ChangeNotifier {
     }, () => catalog.updateSong(request));
     showToast('song updated');
     return updated;
+  }
+
+  Future<SongViewData> importExtractedSong(
+    ExtractedSongImportRequest request,
+  ) async {
+    final imported = await catalog.importExtractedSong(request);
+    playback.reconcile(catalog.songs);
+    showToast('imported ${imported.title}');
+    return imported;
   }
 
   Future<AlbumViewData> updateAlbum(AlbumEditRequest request) async {

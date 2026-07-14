@@ -250,6 +250,14 @@ class LibraryCatalogController extends ChangeNotifier {
     return _songs.firstWhere((song) => song.id == updated.id);
   }
 
+  Future<SongViewData> importExtractedSong(
+    ExtractedSongImportRequest request,
+  ) async {
+    final imported = await repository.importExtractedSong(request);
+    await reloadAll();
+    return _songs.firstWhere((song) => song.id == imported.id);
+  }
+
   Future<AlbumViewData> updateAlbum(AlbumEditRequest request) async {
     final updated = await repository.updateAlbum(request);
     await reloadAll();

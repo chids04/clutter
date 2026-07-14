@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use crate::media::tags::{
-    write_metadata, MetadataWrite, RawCover, RawMetadata, MISSING_ALBUM, MISSING_ARTIST,
-    MISSING_TITLE,
+    extract_raw_metadata, write_metadata, MetadataWrite, RawCover, RawMetadata, MISSING_ALBUM,
+    MISSING_ARTIST, MISSING_TITLE,
 };
 use log::{debug, warn};
 use rusqlite::{params, Connection, OptionalExtension};
@@ -102,6 +102,11 @@ impl SqliteLibraryStore {
         row.file_path = self.to_abs(&row.file_path);
         row.cover_path = row.cover_path.map(|c| self.to_abs(&c));
         row.song_cover_path = row.song_cover_path.map(|c| self.to_abs(&c));
+        row.crop = row.crop.map(|mut crop| {
+            crop.original_file_path = self.to_abs(&crop.original_file_path);
+            crop.retained_file_path = self.to_abs(&crop.retained_file_path);
+            crop
+        });
         row
     }
 
@@ -873,6 +878,7 @@ impl SqliteLibraryStore {
     pub fn delete_song(&self, song_id: &str) -> Result<(), String> {
         let mut conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
         let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
+        let retained = retained_originals(&tx, "WHERE song_id = ?1", params![song_id])?;
         let album_id: Option<String> = tx
             .query_row(
                 "SELECT album_id FROM songs WHERE id = ?1",
@@ -892,6 +898,7 @@ impl SqliteLibraryStore {
             cleanup_orphan_album(&tx, &self.base_dir, &aid)?;
         }
         tx.commit().map_err(|e| format!("commit: {e}"))?;
+        remove_retained_originals(&self.base_dir, retained);
         Ok(())
     }
 
@@ -911,10 +918,16 @@ impl SqliteLibraryStore {
         if exists.is_none() {
             return Err("album not found".into());
         }
+        let retained = retained_originals(
+            &tx,
+            "WHERE song_id IN (SELECT id FROM songs WHERE album_id = ?1)",
+            params![album_id],
+        )?;
         tx.execute("DELETE FROM songs WHERE album_id = ?1", params![album_id])
             .map_err(|e| format!("delete album songs: {e}"))?;
         remove_album_row(&tx, &self.base_dir, album_id)?;
         tx.commit().map_err(|e| format!("commit: {e}"))?;
+        remove_retained_originals(&self.base_dir, retained);
         Ok(())
     }
 
@@ -929,6 +942,11 @@ impl SqliteLibraryStore {
         let path = self.to_rel(Path::new(path));
         let path = path.as_str();
         let prefix = format!("{}/%", path.trim_end_matches('/'));
+        let retained = retained_originals(
+            &tx,
+            "WHERE song_id IN (SELECT id FROM songs WHERE file_path LIKE ?1 OR file_path = ?2)",
+            params![prefix, path],
+        )?;
         let affected_albums: Vec<String> = {
             let mut stmt = tx
                 .prepare(
@@ -953,6 +971,7 @@ impl SqliteLibraryStore {
         tx.execute("DELETE FROM scan_paths WHERE path = ?1", params![path])
             .map_err(|e| format!("delete scan path: {e}"))?;
         tx.commit().map_err(|e| format!("commit: {e}"))?;
+        remove_retained_originals(&self.base_dir, retained);
         Ok(removed as u32)
     }
 
@@ -1182,6 +1201,7 @@ impl SqliteLibraryStore {
     pub fn reset_library(&self) -> Result<(), String> {
         let mut conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
         let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
+        let retained = retained_originals(&tx, "", [])?;
         tx.execute("DELETE FROM songs", [])
             .map_err(|e| format!("delete songs: {e}"))?;
         tx.execute("DELETE FROM albums", [])
@@ -1198,6 +1218,7 @@ impl SqliteLibraryStore {
             .map_err(|e| format!("delete pinned_items: {e}"))?;
         ensure_liked_songs_playlist(&tx).map_err(|e| format!("reseed liked songs: {e}"))?;
         tx.commit().map_err(|e| format!("commit: {e}"))?;
+        remove_retained_originals(&self.base_dir, retained);
         // preserve user playlist artwork because playlists are restored from
         // their backup after the next scan; clear scanned and artist artwork.
         if let Ok(entries) = fs::read_dir(&self.covers_dir) {
@@ -1295,10 +1316,12 @@ const SONG_QUERY_BASE: &str = "\
             JOIN artists aa_name ON aa_name.id = aa.artist_id \
             WHERE aa.album_id = al.id ORDER BY aa.position), \
            s.cover_path \
+           , crop.original_file_path, crop.retained_file_path, crop.start_ms, crop.end_ms \
     FROM songs s \
     LEFT JOIN albums al ON s.album_id = al.id \
     LEFT JOIN song_artists pasa ON pasa.song_id = s.id AND pasa.is_featured = 0 \
-    LEFT JOIN artists pa ON pasa.artist_id = pa.id";
+    LEFT JOIN artists pa ON pasa.artist_id = pa.id \
+    LEFT JOIN song_audio_crops crop ON crop.song_id = s.id";
 
 fn query_songs(conn: &Connection, filter: SongFilter) -> rusqlite::Result<Vec<SongRow>> {
     match filter {
@@ -1885,6 +1908,14 @@ fn map_song_row(row: &rusqlite::Row) -> rusqlite::Result<SongRow> {
             .get::<_, Option<String>>(7)?
             .unwrap_or_else(|| MISSING_ARTIST.to_string()),
         featured_artists,
+        crop: row
+            .get::<_, Option<String>>(13)?
+            .map(|retained_file_path| SongCropRow {
+                original_file_path: row.get::<_, String>(12).unwrap_or_default(),
+                retained_file_path,
+                start_ms: row.get::<_, i64>(14).unwrap_or_default(),
+                end_ms: row.get::<_, i64>(15).unwrap_or_default(),
+            }),
     })
 }
 
@@ -2102,6 +2133,28 @@ fn remove_stored_file(base_dir: &Path, stored: &str) {
     }
 }
 
+fn retained_originals<P: rusqlite::Params>(
+    conn: &Connection,
+    filter: &str,
+    params: P,
+) -> Result<Vec<String>, String> {
+    let sql = format!("SELECT retained_file_path FROM song_audio_crops {filter}");
+    let mut statement = conn
+        .prepare(&sql)
+        .map_err(|error| format!("prepare retained originals: {error}"))?;
+    let rows = statement
+        .query_map(params, |row| row.get::<_, String>(0))
+        .map_err(|error| format!("query retained originals: {error}"))?;
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|error| format!("read retained originals: {error}"))
+}
+
+fn remove_retained_originals(base_dir: &Path, paths: Vec<String>) {
+    for path in paths {
+        remove_stored_file(base_dir, &path);
+    }
+}
+
 fn album_artist_names(conn: &Connection, album_id: &str) -> rusqlite::Result<Vec<String>> {
     let mut stmt = conn.prepare(
         "SELECT a.name FROM album_artists aa JOIN artists a ON a.id = aa.artist_id WHERE aa.album_id = ?1 ORDER BY aa.position",
@@ -2112,6 +2165,7 @@ fn album_artist_names(conn: &Connection, album_id: &str) -> rusqlite::Result<Vec
 
 struct PreparedAudioUpdate {
     original: PathBuf,
+    destination: PathBuf,
     staged: PathBuf,
     backup: PathBuf,
 }
@@ -2125,6 +2179,7 @@ struct MetadataOperationJournal {
 #[derive(Debug, Serialize, Deserialize)]
 struct MetadataOperationFile {
     original: String,
+    destination: String,
     staged: String,
     backup: String,
 }
@@ -2140,6 +2195,7 @@ fn write_metadata_operation_journal(
             .iter()
             .map(|file| MetadataOperationFile {
                 original: file.original.to_string_lossy().into_owned(),
+                destination: file.destination.to_string_lossy().into_owned(),
                 staged: file.staged.to_string_lossy().into_owned(),
                 backup: file.backup.to_string_lossy().into_owned(),
             })
@@ -2174,13 +2230,14 @@ fn recover_metadata_operation(conn: &Connection, path: &Path) -> Result<(), Stri
         .is_some();
     for file in &journal.files {
         let original = Path::new(&file.original);
+        let destination = Path::new(&file.destination);
         let staged = Path::new(&file.staged);
         let backup = Path::new(&file.backup);
         if committed {
             let _ = fs::remove_file(backup);
             let _ = fs::remove_file(staged);
         } else if backup.exists() {
-            let _ = fs::remove_file(original);
+            let _ = fs::remove_file(destination);
             fs::rename(backup, original)
                 .map_err(|e| format!("restore interrupted metadata edit: {e}"))?;
             let _ = fs::remove_file(staged);
@@ -2201,7 +2258,14 @@ impl Drop for PreparedAudioUpdate {
 impl PreparedAudioUpdate {
     fn activate(&self) -> Result<(), String> {
         fs::rename(&self.original, &self.backup).map_err(|e| format!("backup audio file: {e}"))?;
-        if let Err(e) = fs::rename(&self.staged, &self.original) {
+        if self.destination != self.original && self.destination.exists() {
+            let _ = fs::rename(&self.backup, &self.original);
+            return Err(format!(
+                "cropped audio destination already exists: {}",
+                self.destination.display()
+            ));
+        }
+        if let Err(e) = fs::rename(&self.staged, &self.destination) {
             let _ = fs::rename(&self.backup, &self.original);
             return Err(format!("replace audio file: {e}"));
         }
@@ -2209,7 +2273,7 @@ impl PreparedAudioUpdate {
     }
 
     fn rollback(&self) {
-        let _ = fs::remove_file(&self.original);
+        let _ = fs::remove_file(&self.destination);
         let _ = fs::rename(&self.backup, &self.original);
         let _ = fs::remove_file(&self.staged);
     }
@@ -2274,6 +2338,65 @@ fn prepare_audio_update(
     })?;
     Ok(PreparedAudioUpdate {
         original: original.to_path_buf(),
+        destination: original.to_path_buf(),
+        staged,
+        backup,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn prepare_audio_replacement(
+    original: &Path,
+    destination: &Path,
+    replacement: &Path,
+    title: &str,
+    primary_artist: &str,
+    featured_artists: &[String],
+    album: &str,
+    album_artists: &[String],
+    track_num: i64,
+    disc_num: i64,
+    artwork: Option<&Path>,
+) -> Result<PreparedAudioUpdate, String> {
+    if !original.is_file() || !replacement.is_file() {
+        return Err("source or replacement audio file is unavailable".into());
+    }
+    let parent = destination
+        .parent()
+        .ok_or_else(|| "audio destination has no parent directory".to_string())?;
+    let file_name = destination
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| "invalid audio destination filename".to_string())?;
+    let extension = destination
+        .extension()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| "audio destination has no extension".to_string())?;
+    let nonce = Uuid::new_v4();
+    let staged = parent.join(format!(".{file_name}.clutter-{nonce}.{extension}"));
+    let backup = original.with_file_name(format!(".{file_name}.clutter-{nonce}.backup"));
+    fs::copy(replacement, &staged).map_err(|error| format!("stage cropped audio: {error}"))?;
+    let metadata = MetadataWrite {
+        title,
+        primary_artist,
+        featured_artists,
+        album,
+        album_artists,
+        track_num,
+        disc_num,
+        artwork_path: artwork,
+    };
+    if let Err(error) = write_metadata(&staged, &metadata) {
+        let _ = fs::remove_file(&staged);
+        return Err(error);
+    }
+    extract_raw_metadata(&staged).map_err(|error| {
+        let _ = fs::remove_file(&staged);
+        format!("verify cropped audio: {error}")
+    })?;
+    Ok(PreparedAudioUpdate {
+        original: original.to_path_buf(),
+        destination: destination.to_path_buf(),
         staged,
         backup,
     })
@@ -2932,20 +3055,24 @@ mod tests {
         fs::write(&image, tiny_png()).unwrap();
 
         let updated = store
-            .update_song_metadata(SongMetadataUpdate {
-                song_id: song.id,
-                title: "New Title".into(),
-                primary_artist: "Lead".into(),
-                featured_artists: vec!["Feature".into()],
-                track_num: 2,
-                disc_num: 1,
-                album: AlbumSelection::New {
-                    title: "Joint Album".into(),
-                    artists: vec!["Lead".into(), "Partner".into()],
+            .update_song_metadata(
+                SongMetadataUpdate {
+                    song_id: song.id,
+                    title: "New Title".into(),
+                    primary_artist: "Lead".into(),
+                    featured_artists: vec!["Feature".into()],
+                    track_num: 2,
+                    disc_num: 1,
+                    album: AlbumSelection::New {
+                        title: "Joint Album".into(),
+                        artists: vec!["Lead".into(), "Partner".into()],
+                    },
+                    cover: ArtworkUpdate::Replace(image.to_string_lossy().into_owned()),
+                    write_file_tags: false,
+                    audio: SongAudioUpdate::Keep,
                 },
-                cover: ArtworkUpdate::Replace(image.to_string_lossy().into_owned()),
-                write_file_tags: false,
-            })
+                tmp.path(),
+            )
             .expect("update song");
 
         assert_eq!(updated.title, "New Title");
@@ -3065,6 +3192,7 @@ mod tests {
             id: "uncommitted".into(),
             files: vec![MetadataOperationFile {
                 original: original.to_string_lossy().into_owned(),
+                destination: original.to_string_lossy().into_owned(),
                 staged: staged.to_string_lossy().into_owned(),
                 backup: backup.to_string_lossy().into_owned(),
             }],
@@ -3080,6 +3208,40 @@ mod tests {
         assert!(!staged.exists());
         assert!(!backup.exists());
         assert!(!store.operation_journal_path.exists());
+    }
+
+    #[test]
+    fn interrupted_path_change_removes_destination_and_restores_original() {
+        let (store, tmp) = new_store();
+        let original = tmp.path().join("track.wav");
+        let destination = tmp.path().join("track.mp3");
+        let staged = tmp.path().join("track.staged.mp3");
+        let backup = tmp.path().join("track.backup");
+        fs::write(&destination, b"cropped").unwrap();
+        fs::write(&staged, b"staged").unwrap();
+        fs::write(&backup, b"original").unwrap();
+        let journal = MetadataOperationJournal {
+            id: "path-change".into(),
+            files: vec![MetadataOperationFile {
+                original: original.to_string_lossy().into_owned(),
+                destination: destination.to_string_lossy().into_owned(),
+                staged: staged.to_string_lossy().into_owned(),
+                backup: backup.to_string_lossy().into_owned(),
+            }],
+        };
+        fs::write(
+            &store.operation_journal_path,
+            serde_json::to_vec(&journal).unwrap(),
+        )
+        .unwrap();
+
+        let conn = store.conn.lock().unwrap();
+        recover_metadata_operation(&conn, &store.operation_journal_path).unwrap();
+
+        assert_eq!(fs::read(&original).unwrap(), b"original");
+        assert!(!destination.exists());
+        assert!(!staged.exists());
+        assert!(!backup.exists());
     }
 
     fn tiny_png() -> &'static [u8] {

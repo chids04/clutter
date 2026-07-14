@@ -8,8 +8,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'models.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `as_str`, `from_str`, `into_row`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These functions are ignored because they are not marked as `pub`: `as_str`, `from_str`, `into_internal`, `into_row`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 @freezed
 sealed class AlbumChoice with _$AlbumChoice {
@@ -137,6 +137,82 @@ sealed class CoverArtEdit with _$CoverArtEdit {
   const factory CoverArtEdit.remove() = CoverArtEdit_Remove;
   const factory CoverArtEdit.replace({required String sourcePath}) =
       CoverArtEdit_Replace;
+}
+
+class ExtractedSongCropRequest {
+  final String originalSourcePath;
+  final PlatformInt64 startMs;
+  final PlatformInt64 endMs;
+
+  const ExtractedSongCropRequest({
+    required this.originalSourcePath,
+    required this.startMs,
+    required this.endMs,
+  });
+
+  @override
+  int get hashCode =>
+      originalSourcePath.hashCode ^ startMs.hashCode ^ endMs.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExtractedSongCropRequest &&
+          runtimeType == other.runtimeType &&
+          originalSourcePath == other.originalSourcePath &&
+          startMs == other.startMs &&
+          endMs == other.endMs;
+}
+
+class ExtractedSongImportRequest {
+  final String sourcePath;
+  final String title;
+  final String primaryArtist;
+  final List<String> featuredArtists;
+  final PlatformInt64 trackNum;
+  final PlatformInt64 discNum;
+  final AlbumChoice album;
+  final CoverArtEdit cover;
+  final ExtractedSongCropRequest? crop;
+
+  const ExtractedSongImportRequest({
+    required this.sourcePath,
+    required this.title,
+    required this.primaryArtist,
+    required this.featuredArtists,
+    required this.trackNum,
+    required this.discNum,
+    required this.album,
+    required this.cover,
+    this.crop,
+  });
+
+  @override
+  int get hashCode =>
+      sourcePath.hashCode ^
+      title.hashCode ^
+      primaryArtist.hashCode ^
+      featuredArtists.hashCode ^
+      trackNum.hashCode ^
+      discNum.hashCode ^
+      album.hashCode ^
+      cover.hashCode ^
+      crop.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExtractedSongImportRequest &&
+          runtimeType == other.runtimeType &&
+          sourcePath == other.sourcePath &&
+          title == other.title &&
+          primaryArtist == other.primaryArtist &&
+          featuredArtists == other.featuredArtists &&
+          trackNum == other.trackNum &&
+          discNum == other.discNum &&
+          album == other.album &&
+          cover == other.cover &&
+          crop == other.crop;
 }
 
 enum KeybindingAction { playPause, previousTrack, nextTrack, omniSearch }
@@ -323,6 +399,44 @@ class ScanConfig {
           isDeezer == other.isDeezer;
 }
 
+@freezed
+sealed class SongAudioEdit with _$SongAudioEdit {
+  const SongAudioEdit._();
+
+  const factory SongAudioEdit.keep() = SongAudioEdit_Keep;
+  const factory SongAudioEdit.applyCrop({
+    required String sourcePath,
+    required PlatformInt64 startMs,
+    required PlatformInt64 endMs,
+  }) = SongAudioEdit_ApplyCrop;
+  const factory SongAudioEdit.restoreOriginal() = SongAudioEdit_RestoreOriginal;
+}
+
+class SongCropData {
+  final String originalAudioPath;
+  final PlatformInt64 startMs;
+  final PlatformInt64 endMs;
+
+  const SongCropData({
+    required this.originalAudioPath,
+    required this.startMs,
+    required this.endMs,
+  });
+
+  @override
+  int get hashCode =>
+      originalAudioPath.hashCode ^ startMs.hashCode ^ endMs.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SongCropData &&
+          runtimeType == other.runtimeType &&
+          originalAudioPath == other.originalAudioPath &&
+          startMs == other.startMs &&
+          endMs == other.endMs;
+}
+
 class SongEditRequest {
   final String songId;
   final String title;
@@ -332,6 +446,7 @@ class SongEditRequest {
   final PlatformInt64 discNum;
   final AlbumChoice album;
   final CoverArtEdit cover;
+  final SongAudioEdit audio;
 
   const SongEditRequest({
     required this.songId,
@@ -342,6 +457,7 @@ class SongEditRequest {
     required this.discNum,
     required this.album,
     required this.cover,
+    required this.audio,
   });
 
   @override
@@ -353,7 +469,8 @@ class SongEditRequest {
       trackNum.hashCode ^
       discNum.hashCode ^
       album.hashCode ^
-      cover.hashCode;
+      cover.hashCode ^
+      audio.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -367,7 +484,8 @@ class SongEditRequest {
           trackNum == other.trackNum &&
           discNum == other.discNum &&
           album == other.album &&
-          cover == other.cover;
+          cover == other.cover &&
+          audio == other.audio;
 }
 
 class SongViewData {
@@ -383,6 +501,7 @@ class SongViewData {
   final String albumId;
   final List<String> albumArtists;
   final String? songCoverPath;
+  final SongCropData? crop;
 
   const SongViewData({
     required this.id,
@@ -397,6 +516,7 @@ class SongViewData {
     required this.albumId,
     required this.albumArtists,
     this.songCoverPath,
+    this.crop,
   });
 
   @override
@@ -412,7 +532,8 @@ class SongViewData {
       album.hashCode ^
       albumId.hashCode ^
       albumArtists.hashCode ^
-      songCoverPath.hashCode;
+      songCoverPath.hashCode ^
+      crop.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -430,5 +551,6 @@ class SongViewData {
           album == other.album &&
           albumId == other.albumId &&
           albumArtists == other.albumArtists &&
-          songCoverPath == other.songCoverPath;
+          songCoverPath == other.songCoverPath &&
+          crop == other.crop;
 }

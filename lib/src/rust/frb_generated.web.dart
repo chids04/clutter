@@ -71,6 +71,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CoverArtEdit dco_decode_box_autoadd_cover_art_edit(dynamic raw);
 
   @protected
+  ExtractedSongCropRequest dco_decode_box_autoadd_extracted_song_crop_request(
+    dynamic raw,
+  );
+
+  @protected
+  ExtractedSongImportRequest
+  dco_decode_box_autoadd_extracted_song_import_request(dynamic raw);
+
+  @protected
   KeybindingData dco_decode_box_autoadd_keybinding_data(dynamic raw);
 
   @protected
@@ -83,6 +92,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ScanConfig dco_decode_box_autoadd_scan_config(dynamic raw);
 
   @protected
+  SongCropData dco_decode_box_autoadd_song_crop_data(dynamic raw);
+
+  @protected
   SongEditRequest dco_decode_box_autoadd_song_edit_request(dynamic raw);
 
   @protected
@@ -90,6 +102,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CoverArtEdit dco_decode_cover_art_edit(dynamic raw);
+
+  @protected
+  ExtractedSongCropRequest dco_decode_extracted_song_crop_request(dynamic raw);
+
+  @protected
+  ExtractedSongImportRequest dco_decode_extracted_song_import_request(
+    dynamic raw,
+  );
 
   @protected
   int dco_decode_i_32(dynamic raw);
@@ -134,9 +154,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ArtistViewData? dco_decode_opt_box_autoadd_artist_view_data(dynamic raw);
 
   @protected
+  ExtractedSongCropRequest?
+  dco_decode_opt_box_autoadd_extracted_song_crop_request(dynamic raw);
+
+  @protected
   PlaybackStateData? dco_decode_opt_box_autoadd_playback_state_data(
     dynamic raw,
   );
+
+  @protected
+  SongCropData? dco_decode_opt_box_autoadd_song_crop_data(dynamic raw);
 
   @protected
   SongViewData? dco_decode_opt_box_autoadd_song_view_data(dynamic raw);
@@ -158,6 +185,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ScanConfig dco_decode_scan_config(dynamic raw);
+
+  @protected
+  SongAudioEdit dco_decode_song_audio_edit(dynamic raw);
+
+  @protected
+  SongCropData dco_decode_song_crop_data(dynamic raw);
 
   @protected
   SongEditRequest dco_decode_song_edit_request(dynamic raw);
@@ -229,6 +262,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ExtractedSongCropRequest sse_decode_box_autoadd_extracted_song_crop_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExtractedSongImportRequest
+  sse_decode_box_autoadd_extracted_song_import_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   KeybindingData sse_decode_box_autoadd_keybinding_data(
     SseDeserializer deserializer,
   );
@@ -247,6 +291,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ScanConfig sse_decode_box_autoadd_scan_config(SseDeserializer deserializer);
 
   @protected
+  SongCropData sse_decode_box_autoadd_song_crop_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   SongEditRequest sse_decode_box_autoadd_song_edit_request(
     SseDeserializer deserializer,
   );
@@ -258,6 +307,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CoverArtEdit sse_decode_cover_art_edit(SseDeserializer deserializer);
+
+  @protected
+  ExtractedSongCropRequest sse_decode_extracted_song_crop_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExtractedSongImportRequest sse_decode_extracted_song_import_request(
+    SseDeserializer deserializer,
+  );
 
   @protected
   int sse_decode_i_32(SseDeserializer deserializer);
@@ -316,7 +375,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ExtractedSongCropRequest?
+  sse_decode_opt_box_autoadd_extracted_song_crop_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PlaybackStateData? sse_decode_opt_box_autoadd_playback_state_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SongCropData? sse_decode_opt_box_autoadd_song_crop_data(
     SseDeserializer deserializer,
   );
 
@@ -348,6 +418,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ScanConfig sse_decode_scan_config(SseDeserializer deserializer);
+
+  @protected
+  SongAudioEdit sse_decode_song_audio_edit(SseDeserializer deserializer);
+
+  @protected
+  SongCropData sse_decode_song_crop_data(SseDeserializer deserializer);
 
   @protected
   SongEditRequest sse_decode_song_edit_request(SseDeserializer deserializer);
@@ -431,6 +507,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_extracted_song_crop_request(
+    ExtractedSongCropRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_extracted_song_import_request(
+    ExtractedSongImportRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_keybinding_data(
     KeybindingData self,
     SseSerializer serializer,
@@ -455,6 +543,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_song_crop_data(
+    SongCropData self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_song_edit_request(
     SongEditRequest self,
     SseSerializer serializer,
@@ -468,6 +562,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_cover_art_edit(CoverArtEdit self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_extracted_song_crop_request(
+    ExtractedSongCropRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_extracted_song_import_request(
+    ExtractedSongImportRequest self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
@@ -542,8 +648,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_extracted_song_crop_request(
+    ExtractedSongCropRequest? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_playback_state_data(
     PlaybackStateData? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_song_crop_data(
+    SongCropData? self,
     SseSerializer serializer,
   );
 
@@ -585,6 +703,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_scan_config(ScanConfig self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_song_audio_edit(SongAudioEdit self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_song_crop_data(SongCropData self, SseSerializer serializer);
 
   @protected
   void sse_encode_song_edit_request(

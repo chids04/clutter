@@ -47,7 +47,9 @@ lib/
 │   ├── scanning/              scan paths and folder selection
 │   ├── playback/              queue policy, audio port, handler, and media bar
 │   ├── metadata_editor/       song, album, artist, and playlist editors
+│   ├── audio_crop/            waveform, bounded preview, ffmpeg crop, and progress
 │   ├── keybindings/           desktop shortcut state, key translation, and editor
+│   ├── video_import/           video picking, ffmpeg extraction, progress, and import form
 │   ├── search/                search dialog and search page
 │   ├── quick_play/            pinned-item sidebar
 │   └── settings/              settings and scan-directory controls
@@ -124,6 +126,22 @@ This division is important:
 Rust owns the saved shortcut definitions, defaults, supported key-code validation, and duplicate-chord rejection. `KeybindingController` loads that configuration through `KeybindingRepository`; Dart only translates Flutter hardware key events into the canonical key codes understood by Rust.
 
 `DesktopShortcutScope` is installed only on Linux, macOS, and Windows. It dispatches configured actions to the existing playback and search commands, ignores text-entry focus, and does not act behind modal routes. The settings editor is desktop-only and captures one main key plus optional modifiers. Escape is reserved for cancelling capture, and actions may be left unbound.
+
+### Video imports
+
+Dart owns the platform video picker and ffmpegkitnext session because those are Flutter platform integrations. The video import controller probes the selected video, reports extraction progress, cancels the active session, and keeps the resulting mp3 temporary until the user confirms its metadata.
+
+Rust owns the final commit. It validates and writes tags, moves the mp3 into the managed imports directory, applies the normal artist and album identity rules, and inserts the song into sqlite. This keeps an abandoned or failed extraction out of the library database.
+
+The Flutter plugin currently exposes this feature on Android, iOS, and macOS only. See [ffmpegkitnext setup](FFMPEG_KIT.md) for the native build process.
+
+### Reversible audio cropping
+
+Dart owns the temporary crop workflow because waveform generation, bounded preview, and ffmpegkitnext are platform integrations. The crop controller keeps the playhead inside the selected range, while the metadata form owns pending selection and temporary-output cleanup.
+
+Rust owns the durable result. A cropped song keeps one full-length original under the managed `Music/originals` directory and stores its crop boundaries in SQLite. Re-cropping always starts from that retained file. Restore writes current tags onto the original audio, swaps it back atomically, and removes the cropped MP3 and retained copy only after commit.
+
+`SongViewData.crop` is the source of truth for cropped state. Dart must not infer it from file extensions or names. Cropping is currently available on Android, iOS, and macOS, matching the bundled ffmpegkitnext targets.
 
 ### Widget responsibilities
 
@@ -202,6 +220,7 @@ SQLite is the source of truth for:
 - scan paths and playback state;
 - desktop keybinding definitions;
 - relative paths to managed artwork and audio files.
+- retained full-length originals and their active crop boundaries.
 
 Paths inside the application base directory are stored relatively. Mobile application container paths can change between launches, so absolute sandbox paths would become stale.
 
@@ -217,6 +236,8 @@ Song and album edits can affect both SQLite and audio files. The edit path there
 6. Write a recovery journal.
 7. Activate staged files and commit SQLite.
 8. Remove backups, the recovery record, and superseded artwork.
+
+Crop and restore operations use the same sequence. For a first crop, Rust also verifies and retains the full-length source before replacing the active file. The song ID never changes, so playlists, likes, pins, playback history, and queue references remain valid.
 
 If activation or commit fails, prepared files are rolled back. On startup, an interrupted operation is recovered using the journal and database operation record.
 
@@ -245,6 +266,10 @@ Use these placement rules:
 | Queue or playback policy | Playback controller or playback queue |
 | Keybinding defaults, validation, conflicts, or persistence | Rust keybinding storage/core |
 | Desktop key capture or shortcut editing UI | Dart keybindings feature |
+| Video picking, extraction progress, and cancellation | Dart video import feature |
+| Waveform generation, crop preview, and temporary MP3 encoding | Dart audio crop feature |
+| Retained originals, cropped state, and restore transactions | Rust core/storage |
+| Final extracted-song tags, file placement, and indexing | Rust core/storage |
 | Platform audio implementation | Playback infrastructure |
 | Feature-specific UI | That feature's presentation folder |
 | Reusable UI primitive | Shared presentation |

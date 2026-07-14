@@ -2,6 +2,12 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        val ffmpegKitProject = rootProject.findProject(":ffmpeg_kit_next_flutter")
+        if (ffmpegKitProject != null) {
+            maven {
+                url = uri("${ffmpegKitProject.projectDir}/libs-maven")
+            }
+        }
     }
 }
 

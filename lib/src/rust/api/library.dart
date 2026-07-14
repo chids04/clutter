@@ -84,6 +84,10 @@ abstract class LibraryApi implements RustOpaqueInterface {
 
   int getTotalSongs();
 
+  Future<SongViewData> importExtractedSong({
+    required ExtractedSongImportRequest request,
+  });
+
   /// open (or create) the sqlite database at `db_path` and ensure the covers
   /// directory exists. must be called once from dart before any other method.
   static Future<LibraryApi> init({

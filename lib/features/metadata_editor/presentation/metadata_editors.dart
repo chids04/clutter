@@ -4,8 +4,14 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import 'package:clutter/features/audio_crop/data/ffmpeg_audio_crop_service.dart';
+import 'package:clutter/features/audio_crop/domain/audio_crop_models.dart';
+import 'package:clutter/features/audio_crop/presentation/audio_crop_controls.dart';
+import 'package:clutter/features/audio_crop/presentation/audio_crop_editor.dart';
+import 'package:clutter/features/audio_crop/presentation/audio_crop_encoding_dialog.dart';
 import 'package:clutter/features/library/application/music_library.dart';
 import 'package:clutter/features/library/domain/library_entities.dart';
+import 'package:clutter/features/metadata_editor/presentation/widgets/artist_autocomplete_field.dart';
 import 'package:clutter/shared/presentation/cover_image.dart';
 
 Future<SongViewData?> showSongEditor(
@@ -52,7 +58,7 @@ Future<PlaylistViewData?> showPlaylistEditor(
   );
 }
 
-Future<String?> _pickImage() async {
+Future<String?> pickArtwork() async {
   final result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
     allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
@@ -90,6 +96,10 @@ class _SongEditorState extends State<_SongEditor> {
   String? _pickedCover;
   bool _removeCover = false;
   bool _saving = false;
+  final AudioCropService _cropService = FfmpegAudioCropService();
+  AudioCropSelection? _cropSelection;
+  String? _preparedCropPath;
+  bool _restoreOriginal = false;
 
   @override
   void initState() {
@@ -119,6 +129,10 @@ class _SongEditorState extends State<_SongEditor> {
     ]) {
       controller.dispose();
     }
+    final prepared = _preparedCropPath;
+    if (prepared != null) {
+      unawaited(_cropService.removeTemporaryFile(prepared));
+    }
     super.dispose();
   }
 
@@ -134,6 +148,11 @@ class _SongEditorState extends State<_SongEditor> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
+      final audio = await _prepareAudioEdit();
+      if (audio == null) {
+        if (mounted) setState(() => _saving = false);
+        return;
+      }
       final albumChoice = _selectedAlbumId != null
           ? AlbumChoice.existing(albumId: _selectedAlbumId!)
           : AlbumChoice.new_(
@@ -155,8 +174,10 @@ class _SongEditorState extends State<_SongEditor> {
           discNum: int.tryParse(_disc.text) ?? 0,
           album: albumChoice,
           cover: cover,
+          audio: audio,
         ),
       );
+      _preparedCropPath = null;
       if (mounted) Navigator.of(context).pop(updated);
     } catch (error) {
       if (mounted) {
@@ -166,6 +187,71 @@ class _SongEditorState extends State<_SongEditor> {
         setState(() => _saving = false);
       }
     }
+  }
+
+  Future<SongAudioEdit?> _prepareAudioEdit() async {
+    if (_restoreOriginal) return const SongAudioEdit.restoreOriginal();
+    final selection = _cropSelection;
+    if (selection == null) return const SongAudioEdit.keep();
+    var prepared = _preparedCropPath;
+    if (prepared == null) {
+      prepared = await encodeAudioCrop(
+        context,
+        service: _cropService,
+        sourcePath: _cropSourcePath,
+        selection: selection,
+      );
+      if (prepared == null) return null;
+      _preparedCropPath = prepared;
+    }
+    return SongAudioEdit.applyCrop(
+      sourcePath: prepared,
+      startMs: selection.start.inMilliseconds,
+      endMs: selection.end.inMilliseconds,
+    );
+  }
+
+  String get _cropSourcePath =>
+      widget.song.crop?.originalAudioPath ?? widget.song.filePath;
+
+  Future<void> _openCropEditor() async {
+    final saved = widget.song.crop;
+    final selection = await showAudioCropEditor(
+      context,
+      sourcePath: _cropSourcePath,
+      service: _cropService,
+      onPreviewStarted: widget.library.pause,
+      initialStart: _restoreOriginal
+          ? Duration.zero
+          : _cropSelection?.start ??
+                (saved == null ? null : Duration(milliseconds: saved.startMs)),
+      initialEnd: _restoreOriginal
+          ? null
+          : _cropSelection?.end ??
+                (saved == null ? null : Duration(milliseconds: saved.endMs)),
+    );
+    if (selection == null || !mounted) return;
+    await _discardPreparedCrop();
+    if (!mounted) return;
+    final unchanged =
+        saved != null &&
+        selection.start.inMilliseconds == saved.startMs &&
+        selection.end.inMilliseconds == saved.endMs;
+    setState(() {
+      _restoreOriginal = selection.isFullRange && saved != null;
+      _cropSelection = selection.isFullRange || unchanged ? null : selection;
+    });
+  }
+
+  Future<void> _discardPreparedCrop() async {
+    final path = _preparedCropPath;
+    _preparedCropPath = null;
+    if (path != null) await _cropService.removeTemporaryFile(path);
+  }
+
+  Future<void> _cancel() async {
+    await _discardPreparedCrop();
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -178,11 +264,11 @@ class _SongEditorState extends State<_SongEditor> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _ArtworkChooser(
+              ArtworkChooser(
                 path: _pickedCover ?? widget.song.coverPath,
                 removeLabel: 'use album artwork',
                 onChoose: () async {
-                  final path = await _pickImage();
+                  final path = await pickArtwork();
                   if (path != null) {
                     setState(() {
                       _pickedCover = path;
@@ -195,20 +281,41 @@ class _SongEditorState extends State<_SongEditor> {
                   _removeCover = true;
                 }),
               ),
+              if (supportsAudioCropping)
+                AudioCropControls(
+                  savedCropStart: widget.song.crop == null
+                      ? null
+                      : Duration(milliseconds: widget.song.crop!.startMs),
+                  savedCropEnd: widget.song.crop == null
+                      ? null
+                      : Duration(milliseconds: widget.song.crop!.endMs),
+                  pendingSelection: _cropSelection,
+                  restorePending: _restoreOriginal,
+                  onOpen: _openCropEditor,
+                  onRestore: widget.song.crop == null
+                      ? null
+                      : () => setState(() {
+                          _restoreOriginal = true;
+                          _cropSelection = null;
+                          unawaited(_discardPreparedCrop());
+                        }),
+                  onUndoRestore: () => setState(() => _restoreOriginal = false),
+                ),
               TextField(
                 controller: _title,
                 decoration: const InputDecoration(labelText: 'title'),
               ),
-              TextField(
+              ArtistAutocompleteField(
                 controller: _primary,
-                decoration: const InputDecoration(labelText: 'primary artist'),
+                searchArtists: widget.library.searchArtists,
+                label: 'primary artist',
               ),
-              TextField(
+              ArtistAutocompleteField(
                 controller: _features,
-                decoration: const InputDecoration(
-                  labelText: 'featured artists',
-                  helperText: 'separate artists with commas',
-                ),
+                searchArtists: widget.library.searchArtists,
+                label: 'featured artists',
+                helperText: 'separate artists with commas',
+                multiple: true,
               ),
               TextField(
                 controller: _album,
@@ -237,12 +344,12 @@ class _SongEditorState extends State<_SongEditor> {
                     },
                   ),
                 ),
-              TextField(
+              ArtistAutocompleteField(
                 controller: _albumArtists,
-                decoration: const InputDecoration(
-                  labelText: 'album artists',
-                  helperText: 'separate artists with commas',
-                ),
+                searchArtists: widget.library.searchArtists,
+                label: 'album artists',
+                helperText: 'separate artists with commas',
+                multiple: true,
                 onChanged: (_) => _selectedAlbumId = null,
               ),
               Row(
@@ -270,7 +377,7 @@ class _SongEditorState extends State<_SongEditor> {
       ),
       actions: [
         TextButton(
-          onPressed: _saving ? null : () => Navigator.pop(context),
+          onPressed: _saving ? null : _cancel,
           child: const Text('cancel'),
         ),
         FilledButton(
@@ -346,37 +453,39 @@ class _AlbumEditorState extends State<_AlbumEditor> {
     title: const Text('edit album'),
     content: SizedBox(
       width: 460,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ArtworkChooser(
-            path: _pickedCover ?? widget.album.coverPath,
-            onChoose: () async {
-              final path = await _pickImage();
-              if (path != null) {
-                setState(() {
-                  _pickedCover = path;
-                  _removeCover = false;
-                });
-              }
-            },
-            onRemove: () => setState(() {
-              _pickedCover = null;
-              _removeCover = true;
-            }),
-          ),
-          TextField(
-            controller: _title,
-            decoration: const InputDecoration(labelText: 'album title'),
-          ),
-          TextField(
-            controller: _artists,
-            decoration: const InputDecoration(
-              labelText: 'album artists',
-              helperText: 'separate artists with commas',
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ArtworkChooser(
+              path: _pickedCover ?? widget.album.coverPath,
+              onChoose: () async {
+                final path = await pickArtwork();
+                if (path != null) {
+                  setState(() {
+                    _pickedCover = path;
+                    _removeCover = false;
+                  });
+                }
+              },
+              onRemove: () => setState(() {
+                _pickedCover = null;
+                _removeCover = true;
+              }),
             ),
-          ),
-        ],
+            TextField(
+              controller: _title,
+              decoration: const InputDecoration(labelText: 'album title'),
+            ),
+            ArtistAutocompleteField(
+              controller: _artists,
+              searchArtists: widget.library.searchArtists,
+              label: 'album artists',
+              helperText: 'separate artists with commas',
+              multiple: true,
+            ),
+          ],
+        ),
       ),
     ),
     actions: [
@@ -407,11 +516,11 @@ class _ArtistImageEditorState extends State<_ArtistImageEditor> {
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: Text('edit ${widget.artist.name} image'),
-    content: _ArtworkChooser(
+    content: ArtworkChooser(
       path: _picked ?? widget.artist.coverPath,
       removeLabel: 'use album artwork',
       onChoose: () async {
-        final path = await _pickImage();
+        final path = await pickArtwork();
         if (path != null) {
           setState(() {
             _picked = path;
@@ -515,11 +624,11 @@ class _PlaylistEditorState extends State<_PlaylistEditor> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _ArtworkChooser(
+            ArtworkChooser(
               path: _image ?? widget.playlist.imagePath,
               removeLabel: 'use initials',
               onChoose: () async {
-                final path = await _pickImage();
+                final path = await pickArtwork();
                 if (path != null) {
                   setState(() {
                     _image = path;
@@ -604,8 +713,9 @@ class _PlaylistEditorState extends State<_PlaylistEditor> {
   );
 }
 
-class _ArtworkChooser extends StatelessWidget {
-  const _ArtworkChooser({
+class ArtworkChooser extends StatelessWidget {
+  const ArtworkChooser({
+    super.key,
     required this.path,
     required this.onChoose,
     required this.onRemove,

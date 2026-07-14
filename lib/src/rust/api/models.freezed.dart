@@ -1477,3 +1477,488 @@ abstract class PlaylistVisualEdit_Image extends PlaylistVisualEdit {
   _$$PlaylistVisualEdit_ImageImplCopyWith<_$PlaylistVisualEdit_ImageImpl>
   get copyWith => throw _privateConstructorUsedError;
 }
+
+/// @nodoc
+mixin _$SongAudioEdit {
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() keep,
+    required TResult Function(String sourcePath, int startMs, int endMs)
+    applyCrop,
+    required TResult Function() restoreOriginal,
+  }) => throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? keep,
+    TResult? Function(String sourcePath, int startMs, int endMs)? applyCrop,
+    TResult? Function()? restoreOriginal,
+  }) => throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? keep,
+    TResult Function(String sourcePath, int startMs, int endMs)? applyCrop,
+    TResult Function()? restoreOriginal,
+    required TResult orElse(),
+  }) => throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(SongAudioEdit_Keep value) keep,
+    required TResult Function(SongAudioEdit_ApplyCrop value) applyCrop,
+    required TResult Function(SongAudioEdit_RestoreOriginal value)
+    restoreOriginal,
+  }) => throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(SongAudioEdit_Keep value)? keep,
+    TResult? Function(SongAudioEdit_ApplyCrop value)? applyCrop,
+    TResult? Function(SongAudioEdit_RestoreOriginal value)? restoreOriginal,
+  }) => throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(SongAudioEdit_Keep value)? keep,
+    TResult Function(SongAudioEdit_ApplyCrop value)? applyCrop,
+    TResult Function(SongAudioEdit_RestoreOriginal value)? restoreOriginal,
+    required TResult orElse(),
+  }) => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $SongAudioEditCopyWith<$Res> {
+  factory $SongAudioEditCopyWith(
+    SongAudioEdit value,
+    $Res Function(SongAudioEdit) then,
+  ) = _$SongAudioEditCopyWithImpl<$Res, SongAudioEdit>;
+}
+
+/// @nodoc
+class _$SongAudioEditCopyWithImpl<$Res, $Val extends SongAudioEdit>
+    implements $SongAudioEditCopyWith<$Res> {
+  _$SongAudioEditCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of SongAudioEdit
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+abstract class _$$SongAudioEdit_KeepImplCopyWith<$Res> {
+  factory _$$SongAudioEdit_KeepImplCopyWith(
+    _$SongAudioEdit_KeepImpl value,
+    $Res Function(_$SongAudioEdit_KeepImpl) then,
+  ) = __$$SongAudioEdit_KeepImplCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$SongAudioEdit_KeepImplCopyWithImpl<$Res>
+    extends _$SongAudioEditCopyWithImpl<$Res, _$SongAudioEdit_KeepImpl>
+    implements _$$SongAudioEdit_KeepImplCopyWith<$Res> {
+  __$$SongAudioEdit_KeepImplCopyWithImpl(
+    _$SongAudioEdit_KeepImpl _value,
+    $Res Function(_$SongAudioEdit_KeepImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of SongAudioEdit
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+
+class _$SongAudioEdit_KeepImpl extends SongAudioEdit_Keep {
+  const _$SongAudioEdit_KeepImpl() : super._();
+
+  @override
+  String toString() {
+    return 'SongAudioEdit.keep()';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$SongAudioEdit_KeepImpl);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() keep,
+    required TResult Function(String sourcePath, int startMs, int endMs)
+    applyCrop,
+    required TResult Function() restoreOriginal,
+  }) {
+    return keep();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? keep,
+    TResult? Function(String sourcePath, int startMs, int endMs)? applyCrop,
+    TResult? Function()? restoreOriginal,
+  }) {
+    return keep?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? keep,
+    TResult Function(String sourcePath, int startMs, int endMs)? applyCrop,
+    TResult Function()? restoreOriginal,
+    required TResult orElse(),
+  }) {
+    if (keep != null) {
+      return keep();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(SongAudioEdit_Keep value) keep,
+    required TResult Function(SongAudioEdit_ApplyCrop value) applyCrop,
+    required TResult Function(SongAudioEdit_RestoreOriginal value)
+    restoreOriginal,
+  }) {
+    return keep(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(SongAudioEdit_Keep value)? keep,
+    TResult? Function(SongAudioEdit_ApplyCrop value)? applyCrop,
+    TResult? Function(SongAudioEdit_RestoreOriginal value)? restoreOriginal,
+  }) {
+    return keep?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(SongAudioEdit_Keep value)? keep,
+    TResult Function(SongAudioEdit_ApplyCrop value)? applyCrop,
+    TResult Function(SongAudioEdit_RestoreOriginal value)? restoreOriginal,
+    required TResult orElse(),
+  }) {
+    if (keep != null) {
+      return keep(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class SongAudioEdit_Keep extends SongAudioEdit {
+  const factory SongAudioEdit_Keep() = _$SongAudioEdit_KeepImpl;
+  const SongAudioEdit_Keep._() : super._();
+}
+
+/// @nodoc
+abstract class _$$SongAudioEdit_ApplyCropImplCopyWith<$Res> {
+  factory _$$SongAudioEdit_ApplyCropImplCopyWith(
+    _$SongAudioEdit_ApplyCropImpl value,
+    $Res Function(_$SongAudioEdit_ApplyCropImpl) then,
+  ) = __$$SongAudioEdit_ApplyCropImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String sourcePath, int startMs, int endMs});
+}
+
+/// @nodoc
+class __$$SongAudioEdit_ApplyCropImplCopyWithImpl<$Res>
+    extends _$SongAudioEditCopyWithImpl<$Res, _$SongAudioEdit_ApplyCropImpl>
+    implements _$$SongAudioEdit_ApplyCropImplCopyWith<$Res> {
+  __$$SongAudioEdit_ApplyCropImplCopyWithImpl(
+    _$SongAudioEdit_ApplyCropImpl _value,
+    $Res Function(_$SongAudioEdit_ApplyCropImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of SongAudioEdit
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? sourcePath = null,
+    Object? startMs = null,
+    Object? endMs = null,
+  }) {
+    return _then(
+      _$SongAudioEdit_ApplyCropImpl(
+        sourcePath: null == sourcePath
+            ? _value.sourcePath
+            : sourcePath // ignore: cast_nullable_to_non_nullable
+                  as String,
+        startMs: null == startMs
+            ? _value.startMs
+            : startMs // ignore: cast_nullable_to_non_nullable
+                  as int,
+        endMs: null == endMs
+            ? _value.endMs
+            : endMs // ignore: cast_nullable_to_non_nullable
+                  as int,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+
+class _$SongAudioEdit_ApplyCropImpl extends SongAudioEdit_ApplyCrop {
+  const _$SongAudioEdit_ApplyCropImpl({
+    required this.sourcePath,
+    required this.startMs,
+    required this.endMs,
+  }) : super._();
+
+  @override
+  final String sourcePath;
+  @override
+  final int startMs;
+  @override
+  final int endMs;
+
+  @override
+  String toString() {
+    return 'SongAudioEdit.applyCrop(sourcePath: $sourcePath, startMs: $startMs, endMs: $endMs)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SongAudioEdit_ApplyCropImpl &&
+            (identical(other.sourcePath, sourcePath) ||
+                other.sourcePath == sourcePath) &&
+            (identical(other.startMs, startMs) || other.startMs == startMs) &&
+            (identical(other.endMs, endMs) || other.endMs == endMs));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, sourcePath, startMs, endMs);
+
+  /// Create a copy of SongAudioEdit
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SongAudioEdit_ApplyCropImplCopyWith<_$SongAudioEdit_ApplyCropImpl>
+  get copyWith =>
+      __$$SongAudioEdit_ApplyCropImplCopyWithImpl<
+        _$SongAudioEdit_ApplyCropImpl
+      >(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() keep,
+    required TResult Function(String sourcePath, int startMs, int endMs)
+    applyCrop,
+    required TResult Function() restoreOriginal,
+  }) {
+    return applyCrop(sourcePath, startMs, endMs);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? keep,
+    TResult? Function(String sourcePath, int startMs, int endMs)? applyCrop,
+    TResult? Function()? restoreOriginal,
+  }) {
+    return applyCrop?.call(sourcePath, startMs, endMs);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? keep,
+    TResult Function(String sourcePath, int startMs, int endMs)? applyCrop,
+    TResult Function()? restoreOriginal,
+    required TResult orElse(),
+  }) {
+    if (applyCrop != null) {
+      return applyCrop(sourcePath, startMs, endMs);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(SongAudioEdit_Keep value) keep,
+    required TResult Function(SongAudioEdit_ApplyCrop value) applyCrop,
+    required TResult Function(SongAudioEdit_RestoreOriginal value)
+    restoreOriginal,
+  }) {
+    return applyCrop(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(SongAudioEdit_Keep value)? keep,
+    TResult? Function(SongAudioEdit_ApplyCrop value)? applyCrop,
+    TResult? Function(SongAudioEdit_RestoreOriginal value)? restoreOriginal,
+  }) {
+    return applyCrop?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(SongAudioEdit_Keep value)? keep,
+    TResult Function(SongAudioEdit_ApplyCrop value)? applyCrop,
+    TResult Function(SongAudioEdit_RestoreOriginal value)? restoreOriginal,
+    required TResult orElse(),
+  }) {
+    if (applyCrop != null) {
+      return applyCrop(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class SongAudioEdit_ApplyCrop extends SongAudioEdit {
+  const factory SongAudioEdit_ApplyCrop({
+    required final String sourcePath,
+    required final int startMs,
+    required final int endMs,
+  }) = _$SongAudioEdit_ApplyCropImpl;
+  const SongAudioEdit_ApplyCrop._() : super._();
+
+  String get sourcePath;
+  int get startMs;
+  int get endMs;
+
+  /// Create a copy of SongAudioEdit
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SongAudioEdit_ApplyCropImplCopyWith<_$SongAudioEdit_ApplyCropImpl>
+  get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$SongAudioEdit_RestoreOriginalImplCopyWith<$Res> {
+  factory _$$SongAudioEdit_RestoreOriginalImplCopyWith(
+    _$SongAudioEdit_RestoreOriginalImpl value,
+    $Res Function(_$SongAudioEdit_RestoreOriginalImpl) then,
+  ) = __$$SongAudioEdit_RestoreOriginalImplCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$SongAudioEdit_RestoreOriginalImplCopyWithImpl<$Res>
+    extends
+        _$SongAudioEditCopyWithImpl<$Res, _$SongAudioEdit_RestoreOriginalImpl>
+    implements _$$SongAudioEdit_RestoreOriginalImplCopyWith<$Res> {
+  __$$SongAudioEdit_RestoreOriginalImplCopyWithImpl(
+    _$SongAudioEdit_RestoreOriginalImpl _value,
+    $Res Function(_$SongAudioEdit_RestoreOriginalImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of SongAudioEdit
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+
+class _$SongAudioEdit_RestoreOriginalImpl
+    extends SongAudioEdit_RestoreOriginal {
+  const _$SongAudioEdit_RestoreOriginalImpl() : super._();
+
+  @override
+  String toString() {
+    return 'SongAudioEdit.restoreOriginal()';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SongAudioEdit_RestoreOriginalImpl);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() keep,
+    required TResult Function(String sourcePath, int startMs, int endMs)
+    applyCrop,
+    required TResult Function() restoreOriginal,
+  }) {
+    return restoreOriginal();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? keep,
+    TResult? Function(String sourcePath, int startMs, int endMs)? applyCrop,
+    TResult? Function()? restoreOriginal,
+  }) {
+    return restoreOriginal?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? keep,
+    TResult Function(String sourcePath, int startMs, int endMs)? applyCrop,
+    TResult Function()? restoreOriginal,
+    required TResult orElse(),
+  }) {
+    if (restoreOriginal != null) {
+      return restoreOriginal();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(SongAudioEdit_Keep value) keep,
+    required TResult Function(SongAudioEdit_ApplyCrop value) applyCrop,
+    required TResult Function(SongAudioEdit_RestoreOriginal value)
+    restoreOriginal,
+  }) {
+    return restoreOriginal(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(SongAudioEdit_Keep value)? keep,
+    TResult? Function(SongAudioEdit_ApplyCrop value)? applyCrop,
+    TResult? Function(SongAudioEdit_RestoreOriginal value)? restoreOriginal,
+  }) {
+    return restoreOriginal?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(SongAudioEdit_Keep value)? keep,
+    TResult Function(SongAudioEdit_ApplyCrop value)? applyCrop,
+    TResult Function(SongAudioEdit_RestoreOriginal value)? restoreOriginal,
+    required TResult orElse(),
+  }) {
+    if (restoreOriginal != null) {
+      return restoreOriginal(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class SongAudioEdit_RestoreOriginal extends SongAudioEdit {
+  const factory SongAudioEdit_RestoreOriginal() =
+      _$SongAudioEdit_RestoreOriginalImpl;
+  const SongAudioEdit_RestoreOriginal._() : super._();
+}

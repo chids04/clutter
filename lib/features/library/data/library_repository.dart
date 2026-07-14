@@ -29,6 +29,7 @@ abstract interface class LibraryCatalogRepository {
   Future<void> addSongToPlaylist(String playlistId, String songId);
   Future<void> removeSongFromPlaylist(String playlistId, String songId);
   Future<SongViewData> updateSong(SongEditRequest request);
+  Future<SongViewData> importExtractedSong(ExtractedSongImportRequest request);
   Future<AlbumViewData> updateAlbum(AlbumEditRequest request);
   Future<ArtistViewData> updateArtistImage(String artistId, CoverArtEdit cover);
   Future<PlaylistViewData> updatePlaylist(PlaylistEditRequest request);
@@ -125,6 +126,10 @@ class RustLibraryRepository
   @override
   Future<SongViewData> updateSong(SongEditRequest request) =>
       _api.updateSong(request: request);
+  @override
+  Future<SongViewData> importExtractedSong(
+    ExtractedSongImportRequest request,
+  ) => _api.importExtractedSong(request: request);
   @override
   Future<AlbumViewData> updateAlbum(AlbumEditRequest request) =>
       _api.updateAlbum(request: request);

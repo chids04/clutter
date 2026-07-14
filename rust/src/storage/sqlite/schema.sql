@@ -44,6 +44,15 @@ CREATE TABLE IF NOT EXISTS songs (
 CREATE INDEX IF NOT EXISTS songs_album ON songs(album_id);
 CREATE INDEX IF NOT EXISTS songs_added_at ON songs(added_at DESC);
 
+CREATE TABLE IF NOT EXISTS song_audio_crops (
+    song_id            TEXT PRIMARY KEY,
+    original_file_path TEXT NOT NULL,
+    retained_file_path TEXT NOT NULL UNIQUE,
+    start_ms            INTEGER NOT NULL,
+    end_ms              INTEGER NOT NULL,
+    FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS song_artists (
     song_id     TEXT NOT NULL,
     artist_id   TEXT NOT NULL,

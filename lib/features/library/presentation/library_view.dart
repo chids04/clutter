@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -8,7 +10,10 @@ import 'package:clutter/features/library/presentation/albums_view.dart';
 import 'package:clutter/features/library/presentation/artists_view.dart';
 import 'package:clutter/features/library/presentation/playlists_view.dart';
 import 'package:clutter/features/library/presentation/songs_view.dart';
+import 'package:clutter/features/library/presentation/widgets/library_action_style.dart';
 import 'package:clutter/features/library/presentation/widgets/song_delegate.dart';
+import 'package:clutter/features/video_import/data/platform_video_picker.dart';
+import 'package:clutter/features/video_import/presentation/video_import_flow.dart';
 
 class LibraryView extends StatelessWidget {
   final ValueListenable<LibraryPage> currentPageListenable;
@@ -57,6 +62,30 @@ class LibraryView extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: Row(children: [Text(currentPage.label)]),
+            actions: [
+              if (supportsVideoImport)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: PopupMenuButton<_LibraryAddAction>(
+                    tooltip: 'add to library',
+                    padding: EdgeInsets.zero,
+                    onSelected: (action) {
+                      if (action == _LibraryAddAction.importFromVideo) {
+                        unawaited(
+                          runVideoImport(context, context.read<MusicLibrary>()),
+                        );
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: _LibraryAddAction.importFromVideo,
+                        child: Text('import from video'),
+                      ),
+                    ],
+                    child: const CompactLibraryAddSurface(),
+                  ),
+                ),
+            ],
             centerTitle: false,
             elevation: 0.0,
             shape: Border(
@@ -70,6 +99,8 @@ class LibraryView extends StatelessWidget {
           floatingActionButton: currentPage == LibraryPage.playlists
               ? FloatingActionButton(
                   tooltip: "new playlist",
+                  backgroundColor: LibraryActionStyle.background,
+                  foregroundColor: LibraryActionStyle.foreground,
                   onPressed: () => _promptCreatePlaylist(context),
                   child: const Icon(Icons.add),
                 )
@@ -88,6 +119,8 @@ class LibraryView extends StatelessWidget {
     );
   }
 }
+
+enum _LibraryAddAction { importFromVideo }
 
 class DisplayOptDropdown extends StatefulWidget {
   const DisplayOptDropdown({

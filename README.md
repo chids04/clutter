@@ -6,4 +6,6 @@ clutter scans your music, manages songs, albums, artists, and playlists, support
 
 dart owns the interface and platform playback while rust owns library data, scanning, and metadata changes.
 
+## images
+
 see [the architecture guide](docs/ARCHITECTURE.md) for the project structure.

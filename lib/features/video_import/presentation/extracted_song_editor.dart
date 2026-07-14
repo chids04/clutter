@@ -1,0 +1,309 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import 'package:clutter/features/audio_crop/data/ffmpeg_audio_crop_service.dart';
+import 'package:clutter/features/audio_crop/domain/audio_crop_models.dart';
+import 'package:clutter/features/audio_crop/presentation/audio_crop_controls.dart';
+import 'package:clutter/features/audio_crop/presentation/audio_crop_editor.dart';
+import 'package:clutter/features/audio_crop/presentation/audio_crop_encoding_dialog.dart';
+import 'package:clutter/features/library/application/music_library.dart';
+import 'package:clutter/features/library/domain/library_entities.dart';
+import 'package:clutter/features/metadata_editor/presentation/metadata_editors.dart';
+import 'package:clutter/features/metadata_editor/presentation/widgets/artist_autocomplete_field.dart';
+import 'package:clutter/features/video_import/domain/video_import_models.dart';
+import 'package:clutter/shared/services/log.dart';
+
+Future<bool> showExtractedSongEditor(
+  BuildContext context,
+  ExtractedAudio audio,
+  MusicLibrary library,
+) async {
+  return await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _ExtractedSongEditor(audio: audio, library: library),
+      ) ??
+      false;
+}
+
+class _ExtractedSongEditor extends StatefulWidget {
+  final ExtractedAudio audio;
+  final MusicLibrary library;
+
+  const _ExtractedSongEditor({required this.audio, required this.library});
+
+  @override
+  State<_ExtractedSongEditor> createState() => _ExtractedSongEditorState();
+}
+
+class _ExtractedSongEditorState extends State<_ExtractedSongEditor> {
+  late final TextEditingController _title = TextEditingController(
+    text: widget.audio.suggestedTitle,
+  );
+  late final TextEditingController _primary = TextEditingController(
+    text: 'Unknown Artist',
+  );
+  late final TextEditingController _features = TextEditingController();
+  late final TextEditingController _album = TextEditingController(
+    text: 'Unknown Album',
+  );
+  late final TextEditingController _albumArtists = TextEditingController(
+    text: 'Unknown Artist',
+  );
+  late final TextEditingController _track = TextEditingController(text: '1');
+  late final TextEditingController _disc = TextEditingController(text: '1');
+  Timer? _debounce;
+  List<AlbumViewData> _suggestions = const [];
+  String? _selectedAlbumId;
+  String? _coverPath;
+  bool _saving = false;
+  final AudioCropService _cropService = FfmpegAudioCropService();
+  AudioCropSelection? _cropSelection;
+  String? _preparedCropPath;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    for (final controller in [
+      _title,
+      _primary,
+      _features,
+      _album,
+      _albumArtists,
+      _track,
+      _disc,
+    ]) {
+      controller.dispose();
+    }
+    final prepared = _preparedCropPath;
+    if (prepared != null) {
+      unawaited(_cropService.removeTemporaryFile(prepared));
+    }
+    super.dispose();
+  }
+
+  void _searchAlbums(String value) {
+    _selectedAlbumId = null;
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 250), () async {
+      final results = await widget.library.searchAlbums(value, limit: 8);
+      if (mounted) setState(() => _suggestions = results);
+    });
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    final cropInput = await _prepareCropInput();
+    if (cropInput == null) {
+      if (mounted) setState(() => _saving = false);
+      return;
+    }
+    final album = _selectedAlbumId == null
+        ? AlbumChoice.new_(
+            title: _album.text,
+            artists: _names(_albumArtists.text),
+          )
+        : AlbumChoice.existing(albumId: _selectedAlbumId!);
+    try {
+      await widget.library.importExtractedSong(
+        ExtractedSongImportRequest(
+          sourcePath: cropInput.sourcePath,
+          title: _title.text,
+          primaryArtist: _primary.text,
+          featuredArtists: _names(_features.text),
+          trackNum: int.tryParse(_track.text) ?? 0,
+          discNum: int.tryParse(_disc.text) ?? 0,
+          album: album,
+          cover: _coverPath == null
+              ? const CoverArtEdit.keep()
+              : CoverArtEdit.replace(sourcePath: _coverPath!),
+          crop: cropInput.crop,
+        ),
+      );
+      _preparedCropPath = null;
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (error) {
+      Log.e('save extracted song failed', error);
+      widget.library.showToast('could not import song');
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<_PreparedImportCrop?> _prepareCropInput() async {
+    final selection = _cropSelection;
+    if (selection == null) {
+      return _PreparedImportCrop(sourcePath: widget.audio.path);
+    }
+    var prepared = _preparedCropPath;
+    if (prepared == null) {
+      prepared = await encodeAudioCrop(
+        context,
+        service: _cropService,
+        sourcePath: widget.audio.path,
+        selection: selection,
+      );
+      if (prepared == null) return null;
+      _preparedCropPath = prepared;
+    }
+    return _PreparedImportCrop(
+      sourcePath: prepared,
+      crop: ExtractedSongCropRequest(
+        originalSourcePath: widget.audio.path,
+        startMs: selection.start.inMilliseconds,
+        endMs: selection.end.inMilliseconds,
+      ),
+    );
+  }
+
+  Future<void> _openCropEditor() async {
+    final selection = await showAudioCropEditor(
+      context,
+      sourcePath: widget.audio.path,
+      service: _cropService,
+      onPreviewStarted: widget.library.pause,
+      initialStart: _cropSelection?.start,
+      initialEnd: _cropSelection?.end,
+    );
+    if (selection == null || !mounted) return;
+    await _discardPreparedCrop();
+    if (!mounted) return;
+    setState(() => _cropSelection = selection.isFullRange ? null : selection);
+  }
+
+  Future<void> _discardPreparedCrop() async {
+    final path = _preparedCropPath;
+    _preparedCropPath = null;
+    if (path != null) await _cropService.removeTemporaryFile(path);
+  }
+
+  Future<void> _cancel() async {
+    await _discardPreparedCrop();
+    if (mounted) Navigator.of(context).pop(false);
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('tag extracted audio'),
+    content: SizedBox(
+      width: 520,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ArtworkChooser(
+              path: _coverPath,
+              onChoose: () async {
+                final path = await pickArtwork();
+                if (path != null && mounted) setState(() => _coverPath = path);
+              },
+              onRemove: () => setState(() => _coverPath = null),
+            ),
+            if (supportsAudioCropping)
+              AudioCropControls(
+                savedCropStart: null,
+                savedCropEnd: null,
+                pendingSelection: _cropSelection,
+                restorePending: false,
+                onOpen: _openCropEditor,
+              ),
+            TextField(
+              controller: _title,
+              decoration: const InputDecoration(labelText: 'title'),
+            ),
+            ArtistAutocompleteField(
+              controller: _primary,
+              searchArtists: widget.library.searchArtists,
+              label: 'primary artist',
+            ),
+            ArtistAutocompleteField(
+              controller: _features,
+              searchArtists: widget.library.searchArtists,
+              label: 'featured artists',
+              helperText: 'separate artists with commas',
+              multiple: true,
+            ),
+            TextField(
+              controller: _album,
+              decoration: const InputDecoration(labelText: 'album'),
+              onChanged: _searchAlbums,
+            ),
+            if (_suggestions.isNotEmpty) _albumSuggestions(),
+            ArtistAutocompleteField(
+              controller: _albumArtists,
+              searchArtists: widget.library.searchArtists,
+              label: 'album artists',
+              helperText: 'separate artists with commas',
+              multiple: true,
+              onChanged: (_) => _selectedAlbumId = null,
+            ),
+            Row(
+              children: [
+                Expanded(child: _numberField(_track, 'track')),
+                const SizedBox(width: 12),
+                Expanded(child: _numberField(_disc, 'disc')),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: _saving ? null : _cancel,
+        child: const Text('cancel'),
+      ),
+      FilledButton(
+        onPressed: _saving ? null : _save,
+        child: _saving
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Text('import'),
+      ),
+    ],
+  );
+
+  Widget _albumSuggestions() => ConstrainedBox(
+    constraints: const BoxConstraints(maxHeight: 160),
+    child: ListView.builder(
+      shrinkWrap: true,
+      itemCount: _suggestions.length,
+      itemBuilder: (_, index) {
+        final album = _suggestions[index];
+        return ListTile(
+          dense: true,
+          title: Text(album.title),
+          subtitle: Text(album.artists.join(', ')),
+          onTap: () => setState(() {
+            _selectedAlbumId = album.id;
+            _album.text = album.title;
+            _albumArtists.text = album.artists.join(', ');
+            _suggestions = const [];
+          }),
+        );
+      },
+    ),
+  );
+
+  Widget _numberField(TextEditingController controller, String label) =>
+      TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(labelText: label),
+      );
+}
+
+List<String> _names(String raw) => raw
+    .split(',')
+    .map((value) => value.trim())
+    .where((value) => value.isNotEmpty)
+    .toList();
+
+class _PreparedImportCrop {
+  const _PreparedImportCrop({required this.sourcePath, this.crop});
+
+  final String sourcePath;
+  final ExtractedSongCropRequest? crop;
+}

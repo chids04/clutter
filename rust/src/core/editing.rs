@@ -6,7 +6,7 @@ use crate::storage::sqlite::{
 
 impl LibraryCore {
     pub fn update_song_metadata(&self, update: SongMetadataUpdate) -> Result<SongRow, String> {
-        self.store.update_song_metadata(update)
+        self.store.update_song_metadata(update, &self.originals_dir)
     }
 
     pub fn update_album_metadata(&self, update: AlbumMetadataUpdate) -> Result<AlbumRow, String> {

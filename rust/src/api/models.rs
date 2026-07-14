@@ -1,6 +1,6 @@
 use crate::storage::sqlite::{
-    AlbumRow, ArtistRow, ArtworkUpdate, KeybindingRow, PinnedItemRow, PlaybackStateRow,
-    PlaylistRow, SongRow,
+    AlbumRow, AlbumSelection, ArtistRow, ArtworkUpdate, ExtractedSongCrop, ExtractedSongImport,
+    KeybindingRow, PinnedItemRow, PlaybackStateRow, PlaylistRow, SongAudioUpdate, SongRow,
 };
 
 #[derive(Debug, Clone)]
@@ -23,6 +23,14 @@ pub struct SongViewData {
     pub album_id: String,
     pub album_artists: Vec<String>,
     pub song_cover_path: Option<String>,
+    pub crop: Option<SongCropData>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SongCropData {
+    pub original_audio_path: String,
+    pub start_ms: i64,
+    pub end_ms: i64,
 }
 
 impl From<SongRow> for SongViewData {
@@ -40,6 +48,11 @@ impl From<SongRow> for SongViewData {
             album_id: row.album_id,
             album_artists: row.album_artists,
             song_cover_path: row.song_cover_path,
+            crop: row.crop.map(|crop| SongCropData {
+                original_audio_path: crop.retained_file_path,
+                start_ms: crop.start_ms,
+                end_ms: crop.end_ms,
+            }),
         }
     }
 }
@@ -147,6 +160,79 @@ pub struct SongEditRequest {
     pub disc_num: i64,
     pub album: AlbumChoice,
     pub cover: CoverArtEdit,
+    pub audio: SongAudioEdit,
+}
+
+#[derive(Debug, Clone)]
+pub enum SongAudioEdit {
+    Keep,
+    ApplyCrop {
+        source_path: String,
+        start_ms: i64,
+        end_ms: i64,
+    },
+    RestoreOriginal,
+}
+
+impl From<SongAudioEdit> for SongAudioUpdate {
+    fn from(value: SongAudioEdit) -> Self {
+        match value {
+            SongAudioEdit::Keep => Self::Keep,
+            SongAudioEdit::ApplyCrop {
+                source_path,
+                start_ms,
+                end_ms,
+            } => Self::ApplyCrop {
+                source_path,
+                start_ms,
+                end_ms,
+            },
+            SongAudioEdit::RestoreOriginal => Self::RestoreOriginal,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ExtractedSongImportRequest {
+    pub source_path: String,
+    pub title: String,
+    pub primary_artist: String,
+    pub featured_artists: Vec<String>,
+    pub track_num: i64,
+    pub disc_num: i64,
+    pub album: AlbumChoice,
+    pub cover: CoverArtEdit,
+    pub crop: Option<ExtractedSongCropRequest>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExtractedSongCropRequest {
+    pub original_source_path: String,
+    pub start_ms: i64,
+    pub end_ms: i64,
+}
+
+impl ExtractedSongImportRequest {
+    pub(crate) fn into_internal(self) -> ExtractedSongImport {
+        ExtractedSongImport {
+            source_path: self.source_path,
+            title: self.title,
+            primary_artist: self.primary_artist,
+            featured_artists: self.featured_artists,
+            track_num: self.track_num,
+            disc_num: self.disc_num,
+            album: match self.album {
+                AlbumChoice::Existing { album_id } => AlbumSelection::Existing(album_id),
+                AlbumChoice::New { title, artists } => AlbumSelection::New { title, artists },
+            },
+            cover: self.cover.into(),
+            crop: self.crop.map(|crop| ExtractedSongCrop {
+                original_source_path: crop.original_source_path,
+                start_ms: crop.start_ms,
+                end_ms: crop.end_ms,
+            }),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

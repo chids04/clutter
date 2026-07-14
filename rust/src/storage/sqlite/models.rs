@@ -14,6 +14,15 @@ pub struct SongRow {
     pub song_cover_path: Option<String>,
     pub primary_artist: String,
     pub featured_artists: Vec<String>,
+    pub crop: Option<SongCropRow>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SongCropRow {
+    pub original_file_path: String,
+    pub retained_file_path: String,
+    pub start_ms: i64,
+    pub end_ms: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -84,6 +93,38 @@ pub struct SongMetadataUpdate {
     pub album: AlbumSelection,
     pub cover: ArtworkUpdate,
     pub write_file_tags: bool,
+    pub audio: SongAudioUpdate,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SongAudioUpdate {
+    Keep,
+    ApplyCrop {
+        source_path: String,
+        start_ms: i64,
+        end_ms: i64,
+    },
+    RestoreOriginal,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExtractedSongImport {
+    pub source_path: String,
+    pub title: String,
+    pub primary_artist: String,
+    pub featured_artists: Vec<String>,
+    pub track_num: i64,
+    pub disc_num: i64,
+    pub album: AlbumSelection,
+    pub cover: ArtworkUpdate,
+    pub crop: Option<ExtractedSongCrop>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExtractedSongCrop {
+    pub original_source_path: String,
+    pub start_ms: i64,
+    pub end_ms: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

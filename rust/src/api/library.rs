@@ -31,6 +31,15 @@ impl LibraryApi {
         self.core.scan_directory(&path, config.is_deezer)
     }
 
+    pub fn import_extracted_song(
+        &self,
+        request: ExtractedSongImportRequest,
+    ) -> Result<SongViewData, String> {
+        self.core
+            .import_extracted_song(request.into_internal())
+            .map(SongViewData::from)
+    }
+
     #[frb(sync)]
     pub fn get_total_songs(&self) -> u32 {
         self.core.get_total_songs()
@@ -214,6 +223,7 @@ impl LibraryApi {
                 album,
                 cover: request.cover.into(),
                 write_file_tags: true,
+                audio: request.audio.into(),
             })
             .map(SongViewData::from)
     }
@@ -388,6 +398,41 @@ mod tests {
         (lib, tmp)
     }
 
+    fn song_edit_request(song: &SongViewData, audio: SongAudioEdit) -> SongEditRequest {
+        SongEditRequest {
+            song_id: song.id.clone(),
+            title: song.title.clone(),
+            primary_artist: song.primary_artist.clone(),
+            featured_artists: song.featured_artists.clone(),
+            track_num: song.track_num,
+            disc_num: song.disc_num,
+            album: AlbumChoice::Existing {
+                album_id: song.album_id.clone(),
+            },
+            cover: CoverArtEdit::Keep,
+            audio,
+        }
+    }
+
+    fn tiny_wav() -> Vec<u8> {
+        let samples = vec![0_u8; 1_600];
+        let mut bytes = Vec::with_capacity(44 + samples.len());
+        bytes.extend_from_slice(b"RIFF");
+        bytes.extend_from_slice(&(36_u32 + samples.len() as u32).to_le_bytes());
+        bytes.extend_from_slice(b"WAVEfmt ");
+        bytes.extend_from_slice(&16_u32.to_le_bytes());
+        bytes.extend_from_slice(&1_u16.to_le_bytes());
+        bytes.extend_from_slice(&1_u16.to_le_bytes());
+        bytes.extend_from_slice(&8_000_u32.to_le_bytes());
+        bytes.extend_from_slice(&16_000_u32.to_le_bytes());
+        bytes.extend_from_slice(&2_u16.to_le_bytes());
+        bytes.extend_from_slice(&16_u16.to_le_bytes());
+        bytes.extend_from_slice(b"data");
+        bytes.extend_from_slice(&(samples.len() as u32).to_le_bytes());
+        bytes.extend_from_slice(&samples);
+        bytes
+    }
+
     #[test]
     fn scan_populates_sqlite_and_queries_work() {
         let (lib, _tmp) = new_library();
@@ -485,11 +530,251 @@ mod tests {
                     album_id: song.album_id,
                 },
                 cover: CoverArtEdit::Keep,
+                audio: SongAudioEdit::Keep,
             })
             .expect("edit song");
         assert_eq!(updated.title, "Edited in Clutter");
         let raw = extract_raw_metadata(&copy).expect("read rewritten tags");
         assert_eq!(raw.title.as_deref(), Some("Edited in Clutter"));
+    }
+
+    #[test]
+    fn crop_retains_original_and_restore_returns_to_full_source() {
+        let (lib, tmp) = new_library();
+        let music_dir = tmp.path().join("crop-edit");
+        std::fs::create_dir_all(&music_dir).unwrap();
+        let original = music_dir.join("track.mp3");
+        std::fs::copy(test_album_dir().join("01 - Rockstar Made.mp3"), &original).unwrap();
+        lib.scan_directory(
+            music_dir.to_string_lossy().into_owned(),
+            ScanConfig { is_deezer: true },
+        )
+        .unwrap();
+        let song = lib.get_songs_paginated(0, 1).pop().unwrap();
+        let playlist = lib.create_playlist("crop test".into()).unwrap();
+        lib.add_song_to_playlist(playlist.clone(), song.id.clone())
+            .unwrap();
+        let replacement = tmp.path().join("cropped.mp3");
+        std::fs::copy(test_album_dir().join("02 - Go2DaMoon.mp3"), &replacement).unwrap();
+
+        let cropped = lib
+            .update_song(song_edit_request(
+                &song,
+                SongAudioEdit::ApplyCrop {
+                    source_path: replacement.to_string_lossy().into_owned(),
+                    start_ms: 1_000,
+                    end_ms: 3_000,
+                },
+            ))
+            .expect("crop song");
+        let crop = cropped.crop.as_ref().expect("crop state");
+        let retained = PathBuf::from(&crop.original_audio_path);
+        assert!(retained.exists());
+        assert_eq!((crop.start_ms, crop.end_ms), (1_000, 3_000));
+        assert!(
+            !replacement.exists(),
+            "successful crop consumes its temp file"
+        );
+
+        let second_replacement = tmp.path().join("cropped-again.mp3");
+        std::fs::copy(
+            test_album_dir().join("03 - Stop Breathing.mp3"),
+            &second_replacement,
+        )
+        .unwrap();
+        let recropped = lib
+            .update_song(song_edit_request(
+                &cropped,
+                SongAudioEdit::ApplyCrop {
+                    source_path: second_replacement.to_string_lossy().into_owned(),
+                    start_ms: 500,
+                    end_ms: 4_000,
+                },
+            ))
+            .expect("recrop song");
+        let recrop = recropped.crop.as_ref().unwrap();
+        assert_eq!(recrop.original_audio_path, crop.original_audio_path);
+        assert_eq!((recrop.start_ms, recrop.end_ms), (500, 4_000));
+
+        let mut restore = song_edit_request(&recropped, SongAudioEdit::RestoreOriginal);
+        restore.title = "Restored with current metadata".into();
+        let restored = lib.update_song(restore).expect("restore song");
+        assert!(restored.crop.is_none());
+        assert_eq!(restored.file_path, original.to_string_lossy());
+        assert!(original.exists());
+        assert!(!retained.exists(), "restore removes the managed original");
+        assert_eq!(lib.get_songs_in_playlist(playlist).len(), 1);
+        let tags = extract_raw_metadata(&original).unwrap();
+        assert_eq!(
+            tags.title.as_deref(),
+            Some("Restored with current metadata")
+        );
+    }
+
+    #[test]
+    fn rejected_crop_keeps_song_and_temporary_output() {
+        let (lib, tmp) = new_library();
+        let music_dir = tmp.path().join("bad-crop");
+        std::fs::create_dir_all(&music_dir).unwrap();
+        let original = music_dir.join("track.mp3");
+        std::fs::copy(test_album_dir().join("01 - Rockstar Made.mp3"), &original).unwrap();
+        lib.scan_directory(
+            music_dir.to_string_lossy().into_owned(),
+            ScanConfig { is_deezer: true },
+        )
+        .unwrap();
+        let song = lib.get_songs_paginated(0, 1).pop().unwrap();
+        let replacement = tmp.path().join("retry.mp3");
+        std::fs::copy(test_album_dir().join("02 - Go2DaMoon.mp3"), &replacement).unwrap();
+
+        let result = lib.update_song(song_edit_request(
+            &song,
+            SongAudioEdit::ApplyCrop {
+                source_path: replacement.to_string_lossy().into_owned(),
+                start_ms: 500,
+                end_ms: 550,
+            },
+        ));
+
+        assert!(result.is_err());
+        assert!(replacement.exists());
+        let unchanged = lib.get_song_by_id(song.id).unwrap();
+        assert!(unchanged.crop.is_none());
+        assert_eq!(unchanged.file_path, original.to_string_lossy());
+    }
+
+    #[test]
+    fn crop_changes_non_mp3_path_and_restore_returns_original_extension() {
+        let (lib, tmp) = new_library();
+        let music_dir = tmp.path().join("format-crop");
+        std::fs::create_dir_all(&music_dir).unwrap();
+        let original = music_dir.join("track.wav");
+        std::fs::write(&original, tiny_wav()).unwrap();
+        lib.scan_directory(
+            music_dir.to_string_lossy().into_owned(),
+            ScanConfig { is_deezer: true },
+        )
+        .unwrap();
+        let song = lib.get_songs_paginated(0, 1).pop().unwrap();
+        let replacement = tmp.path().join("format-crop.mp3");
+        std::fs::copy(test_album_dir().join("02 - Go2DaMoon.mp3"), &replacement).unwrap();
+
+        let cropped = lib
+            .update_song(song_edit_request(
+                &song,
+                SongAudioEdit::ApplyCrop {
+                    source_path: replacement.to_string_lossy().into_owned(),
+                    start_ms: 100,
+                    end_ms: 1_000,
+                },
+            ))
+            .expect("crop renamed format");
+        assert!(cropped.file_path.ends_with("track.mp3"));
+        assert!(!original.exists());
+
+        let restored = lib
+            .update_song(song_edit_request(&cropped, SongAudioEdit::RestoreOriginal))
+            .expect("restore renamed format");
+        assert_eq!(restored.file_path, original.to_string_lossy());
+        assert!(original.exists());
+    }
+
+    #[test]
+    fn extracted_song_import_writes_tags_and_indexes_managed_file() {
+        let (lib, tmp) = new_library();
+        let source = tmp.path().join("extracted.mp3");
+        std::fs::copy(test_album_dir().join("01 - Rockstar Made.mp3"), &source).unwrap();
+
+        let imported = lib
+            .import_extracted_song(ExtractedSongImportRequest {
+                source_path: source.to_string_lossy().into_owned(),
+                title: "Imported Track".into(),
+                primary_artist: "Import Artist".into(),
+                featured_artists: vec!["Guest".into()],
+                track_num: 1,
+                disc_num: 1,
+                album: AlbumChoice::New {
+                    title: "Import Album".into(),
+                    artists: vec!["Import Artist".into()],
+                },
+                cover: CoverArtEdit::Keep,
+                crop: None,
+            })
+            .expect("import song");
+
+        assert_eq!(imported.title, "Imported Track");
+        assert_eq!(imported.album, "Import Album");
+        assert_eq!(imported.featured_artists, vec!["Guest"]);
+        assert!(Path::new(&imported.file_path).exists());
+        assert!(imported.file_path.contains("Music/imports"));
+        assert!(!source.exists(), "temporary extraction should be removed");
+        let tags = extract_raw_metadata(Path::new(&imported.file_path)).unwrap();
+        assert_eq!(tags.title.as_deref(), Some("Imported Track"));
+    }
+
+    #[test]
+    fn cropped_import_retains_full_extraction() {
+        let (lib, tmp) = new_library();
+        let cropped = tmp.path().join("cropped-import.mp3");
+        let original = tmp.path().join("full-import.mp3");
+        std::fs::copy(test_album_dir().join("01 - Rockstar Made.mp3"), &cropped).unwrap();
+        std::fs::copy(test_album_dir().join("02 - Go2DaMoon.mp3"), &original).unwrap();
+
+        let imported = lib
+            .import_extracted_song(ExtractedSongImportRequest {
+                source_path: cropped.to_string_lossy().into_owned(),
+                title: "Cropped Import".into(),
+                primary_artist: "Import Artist".into(),
+                featured_artists: vec![],
+                track_num: 1,
+                disc_num: 1,
+                album: AlbumChoice::New {
+                    title: "Import Album".into(),
+                    artists: vec!["Import Artist".into()],
+                },
+                cover: CoverArtEdit::Keep,
+                crop: Some(ExtractedSongCropRequest {
+                    original_source_path: original.to_string_lossy().into_owned(),
+                    start_ms: 2_000,
+                    end_ms: 5_000,
+                }),
+            })
+            .expect("import cropped song");
+
+        let crop = imported.crop.expect("stored crop");
+        let retained = PathBuf::from(&crop.original_audio_path);
+        assert!(retained.exists());
+        assert_eq!((crop.start_ms, crop.end_ms), (2_000, 5_000));
+        assert!(!cropped.exists());
+        assert!(!original.exists());
+        lib.delete_song(imported.id).unwrap();
+        assert!(!retained.exists(), "delete removes the retained original");
+    }
+
+    #[test]
+    fn rejected_extracted_song_keeps_temporary_file() {
+        let (lib, tmp) = new_library();
+        let source = tmp.path().join("extracted.mp3");
+        std::fs::copy(test_album_dir().join("01 - Rockstar Made.mp3"), &source).unwrap();
+
+        let result = lib.import_extracted_song(ExtractedSongImportRequest {
+            source_path: source.to_string_lossy().into_owned(),
+            title: "Imported Track".into(),
+            primary_artist: "Import Artist".into(),
+            featured_artists: vec![],
+            track_num: 0,
+            disc_num: 1,
+            album: AlbumChoice::New {
+                title: "Import Album".into(),
+                artists: vec!["Import Artist".into()],
+            },
+            cover: CoverArtEdit::Keep,
+            crop: None,
+        });
+
+        assert!(result.is_err());
+        assert!(source.exists(), "failed import must remain retryable");
+        assert_eq!(lib.get_total_songs(), 0);
     }
 
     #[test]

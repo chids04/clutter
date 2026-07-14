@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1461996016;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1311563588;
 
 // Section: executor
 
@@ -1469,6 +1469,60 @@ fn wire__crate__api__library__LibraryApi_get_total_songs_impl(
         },
     )
 }
+fn wire__crate__api__library__LibraryApi_import_extracted_song_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "LibraryApi_import_extracted_song",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<LibraryApi>,
+            >>::sse_decode(&mut deserializer);
+            let api_request =
+                <crate::api::models::ExtractedSongImportRequest>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok = crate::api::library::LibraryApi::import_extracted_song(
+                        &*api_that_guard,
+                        api_request,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__library__LibraryApi_init_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2775,6 +2829,47 @@ impl SseDecode for crate::api::models::CoverArtEdit {
     }
 }
 
+impl SseDecode for crate::api::models::ExtractedSongCropRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_originalSourcePath = <String>::sse_decode(deserializer);
+        let mut var_startMs = <i64>::sse_decode(deserializer);
+        let mut var_endMs = <i64>::sse_decode(deserializer);
+        return crate::api::models::ExtractedSongCropRequest {
+            original_source_path: var_originalSourcePath,
+            start_ms: var_startMs,
+            end_ms: var_endMs,
+        };
+    }
+}
+
+impl SseDecode for crate::api::models::ExtractedSongImportRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_sourcePath = <String>::sse_decode(deserializer);
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_primaryArtist = <String>::sse_decode(deserializer);
+        let mut var_featuredArtists = <Vec<String>>::sse_decode(deserializer);
+        let mut var_trackNum = <i64>::sse_decode(deserializer);
+        let mut var_discNum = <i64>::sse_decode(deserializer);
+        let mut var_album = <crate::api::models::AlbumChoice>::sse_decode(deserializer);
+        let mut var_cover = <crate::api::models::CoverArtEdit>::sse_decode(deserializer);
+        let mut var_crop =
+            <Option<crate::api::models::ExtractedSongCropRequest>>::sse_decode(deserializer);
+        return crate::api::models::ExtractedSongImportRequest {
+            source_path: var_sourcePath,
+            title: var_title,
+            primary_artist: var_primaryArtist,
+            featured_artists: var_featuredArtists,
+            track_num: var_trackNum,
+            disc_num: var_discNum,
+            album: var_album,
+            cover: var_cover,
+            crop: var_crop,
+        };
+    }
+}
+
 impl SseDecode for i32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2955,6 +3050,19 @@ impl SseDecode for Option<crate::api::models::ArtistViewData> {
     }
 }
 
+impl SseDecode for Option<crate::api::models::ExtractedSongCropRequest> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::models::ExtractedSongCropRequest>::sse_decode(
+                deserializer,
+            ));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::api::models::PlaybackStateData> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2962,6 +3070,17 @@ impl SseDecode for Option<crate::api::models::PlaybackStateData> {
             return Some(<crate::api::models::PlaybackStateData>::sse_decode(
                 deserializer,
             ));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::models::SongCropData> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::models::SongCropData>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -3079,6 +3198,48 @@ impl SseDecode for crate::api::models::ScanConfig {
     }
 }
 
+impl SseDecode for crate::api::models::SongAudioEdit {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                return crate::api::models::SongAudioEdit::Keep;
+            }
+            1 => {
+                let mut var_sourcePath = <String>::sse_decode(deserializer);
+                let mut var_startMs = <i64>::sse_decode(deserializer);
+                let mut var_endMs = <i64>::sse_decode(deserializer);
+                return crate::api::models::SongAudioEdit::ApplyCrop {
+                    source_path: var_sourcePath,
+                    start_ms: var_startMs,
+                    end_ms: var_endMs,
+                };
+            }
+            2 => {
+                return crate::api::models::SongAudioEdit::RestoreOriginal;
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseDecode for crate::api::models::SongCropData {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_originalAudioPath = <String>::sse_decode(deserializer);
+        let mut var_startMs = <i64>::sse_decode(deserializer);
+        let mut var_endMs = <i64>::sse_decode(deserializer);
+        return crate::api::models::SongCropData {
+            original_audio_path: var_originalAudioPath,
+            start_ms: var_startMs,
+            end_ms: var_endMs,
+        };
+    }
+}
+
 impl SseDecode for crate::api::models::SongEditRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -3090,6 +3251,7 @@ impl SseDecode for crate::api::models::SongEditRequest {
         let mut var_discNum = <i64>::sse_decode(deserializer);
         let mut var_album = <crate::api::models::AlbumChoice>::sse_decode(deserializer);
         let mut var_cover = <crate::api::models::CoverArtEdit>::sse_decode(deserializer);
+        let mut var_audio = <crate::api::models::SongAudioEdit>::sse_decode(deserializer);
         return crate::api::models::SongEditRequest {
             song_id: var_songId,
             title: var_title,
@@ -3099,6 +3261,7 @@ impl SseDecode for crate::api::models::SongEditRequest {
             disc_num: var_discNum,
             album: var_album,
             cover: var_cover,
+            audio: var_audio,
         };
     }
 }
@@ -3118,6 +3281,7 @@ impl SseDecode for crate::api::models::SongViewData {
         let mut var_albumId = <String>::sse_decode(deserializer);
         let mut var_albumArtists = <Vec<String>>::sse_decode(deserializer);
         let mut var_songCoverPath = <Option<String>>::sse_decode(deserializer);
+        let mut var_crop = <Option<crate::api::models::SongCropData>>::sse_decode(deserializer);
         return crate::api::models::SongViewData {
             id: var_id,
             title: var_title,
@@ -3131,6 +3295,7 @@ impl SseDecode for crate::api::models::SongViewData {
             album_id: var_albumId,
             album_artists: var_albumArtists,
             song_cover_path: var_songCoverPath,
+            crop: var_crop,
         };
     }
 }
@@ -3308,122 +3473,128 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        28 => wire__crate__api__library__LibraryApi_init_impl(port, ptr, rust_vec_len, data_len),
-        29 => wire__crate__api__library__LibraryApi_load_playback_state_impl(
+        28 => wire__crate__api__library__LibraryApi_import_extracted_song_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        30 => wire__crate__api__library__LibraryApi_move_pinned_item_impl(
+        29 => wire__crate__api__library__LibraryApi_init_impl(port, ptr, rust_vec_len, data_len),
+        30 => wire__crate__api__library__LibraryApi_load_playback_state_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        31 => {
+        31 => wire__crate__api__library__LibraryApi_move_pinned_item_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        32 => {
             wire__crate__api__library__LibraryApi_pin_item_impl(port, ptr, rust_vec_len, data_len)
         }
-        32 => wire__crate__api__library__LibraryApi_record_play_impl(
+        33 => wire__crate__api__library__LibraryApi_record_play_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        33 => wire__crate__api__library__LibraryApi_remove_song_from_playlist_impl(
+        34 => wire__crate__api__library__LibraryApi_remove_song_from_playlist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        34 => wire__crate__api__library__LibraryApi_reset_keybindings_impl(
+        35 => wire__crate__api__library__LibraryApi_reset_keybindings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        35 => wire__crate__api__library__LibraryApi_reset_library_impl(
+        36 => wire__crate__api__library__LibraryApi_reset_library_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__library__LibraryApi_save_playback_state_impl(
+        37 => wire__crate__api__library__LibraryApi_save_playback_state_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => wire__crate__api__library__LibraryApi_scan_directory_impl(
+        38 => wire__crate__api__library__LibraryApi_scan_directory_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => wire__crate__api__library__LibraryApi_search_albums_impl(
+        39 => wire__crate__api__library__LibraryApi_search_albums_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__library__LibraryApi_search_artists_impl(
+        40 => wire__crate__api__library__LibraryApi_search_artists_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        40 => wire__crate__api__library__LibraryApi_search_playlists_impl(
+        41 => wire__crate__api__library__LibraryApi_search_playlists_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        41 => wire__crate__api__library__LibraryApi_search_songs_impl(
+        42 => wire__crate__api__library__LibraryApi_search_songs_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => wire__crate__api__library__LibraryApi_split_album_to_new_artist_impl(
+        43 => wire__crate__api__library__LibraryApi_split_album_to_new_artist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => {
+        44 => {
             wire__crate__api__library__LibraryApi_unpin_item_impl(port, ptr, rust_vec_len, data_len)
         }
-        44 => wire__crate__api__library__LibraryApi_update_album_impl(
+        45 => wire__crate__api__library__LibraryApi_update_album_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__library__LibraryApi_update_artist_image_impl(
+        46 => wire__crate__api__library__LibraryApi_update_artist_image_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        46 => wire__crate__api__library__LibraryApi_update_keybinding_impl(
+        47 => wire__crate__api__library__LibraryApi_update_keybinding_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        47 => wire__crate__api__library__LibraryApi_update_playlist_impl(
+        48 => wire__crate__api__library__LibraryApi_update_playlist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        48 => wire__crate__api__library__LibraryApi_update_song_impl(
+        49 => wire__crate__api__library__LibraryApi_update_song_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        49 => wire__crate__api__init__init_app_impl(port, ptr, rust_vec_len, data_len),
+        50 => wire__crate__api__init__init_app_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -3599,6 +3770,56 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::models::CoverArtEdit>
     for crate::api::models::CoverArtEdit
 {
     fn into_into_dart(self) -> crate::api::models::CoverArtEdit {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::models::ExtractedSongCropRequest {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.original_source_path.into_into_dart().into_dart(),
+            self.start_ms.into_into_dart().into_dart(),
+            self.end_ms.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::models::ExtractedSongCropRequest
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::models::ExtractedSongCropRequest>
+    for crate::api::models::ExtractedSongCropRequest
+{
+    fn into_into_dart(self) -> crate::api::models::ExtractedSongCropRequest {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::models::ExtractedSongImportRequest {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.source_path.into_into_dart().into_dart(),
+            self.title.into_into_dart().into_dart(),
+            self.primary_artist.into_into_dart().into_dart(),
+            self.featured_artists.into_into_dart().into_dart(),
+            self.track_num.into_into_dart().into_dart(),
+            self.disc_num.into_into_dart().into_dart(),
+            self.album.into_into_dart().into_dart(),
+            self.cover.into_into_dart().into_dart(),
+            self.crop.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::models::ExtractedSongImportRequest
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::models::ExtractedSongImportRequest>
+    for crate::api::models::ExtractedSongImportRequest
+{
+    fn into_into_dart(self) -> crate::api::models::ExtractedSongImportRequest {
         self
     }
 }
@@ -3789,6 +4010,62 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::models::ScanConfig>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::models::SongAudioEdit {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::api::models::SongAudioEdit::Keep => [0.into_dart()].into_dart(),
+            crate::api::models::SongAudioEdit::ApplyCrop {
+                source_path,
+                start_ms,
+                end_ms,
+            } => [
+                1.into_dart(),
+                source_path.into_into_dart().into_dart(),
+                start_ms.into_into_dart().into_dart(),
+                end_ms.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            crate::api::models::SongAudioEdit::RestoreOriginal => [2.into_dart()].into_dart(),
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::models::SongAudioEdit
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::models::SongAudioEdit>
+    for crate::api::models::SongAudioEdit
+{
+    fn into_into_dart(self) -> crate::api::models::SongAudioEdit {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::models::SongCropData {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.original_audio_path.into_into_dart().into_dart(),
+            self.start_ms.into_into_dart().into_dart(),
+            self.end_ms.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::models::SongCropData
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::models::SongCropData>
+    for crate::api::models::SongCropData
+{
+    fn into_into_dart(self) -> crate::api::models::SongCropData {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::models::SongEditRequest {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -3800,6 +4077,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::models::SongEditRequest {
             self.disc_num.into_into_dart().into_dart(),
             self.album.into_into_dart().into_dart(),
             self.cover.into_into_dart().into_dart(),
+            self.audio.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -3831,6 +4109,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::models::SongViewData {
             self.album_id.into_into_dart().into_dart(),
             self.album_artists.into_into_dart().into_dart(),
             self.song_cover_path.into_into_dart().into_dart(),
+            self.crop.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -3951,6 +4230,30 @@ impl SseEncode for crate::api::models::CoverArtEdit {
                 unimplemented!("");
             }
         }
+    }
+}
+
+impl SseEncode for crate::api::models::ExtractedSongCropRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.original_source_path, serializer);
+        <i64>::sse_encode(self.start_ms, serializer);
+        <i64>::sse_encode(self.end_ms, serializer);
+    }
+}
+
+impl SseEncode for crate::api::models::ExtractedSongImportRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.source_path, serializer);
+        <String>::sse_encode(self.title, serializer);
+        <String>::sse_encode(self.primary_artist, serializer);
+        <Vec<String>>::sse_encode(self.featured_artists, serializer);
+        <i64>::sse_encode(self.track_num, serializer);
+        <i64>::sse_encode(self.disc_num, serializer);
+        <crate::api::models::AlbumChoice>::sse_encode(self.album, serializer);
+        <crate::api::models::CoverArtEdit>::sse_encode(self.cover, serializer);
+        <Option<crate::api::models::ExtractedSongCropRequest>>::sse_encode(self.crop, serializer);
     }
 }
 
@@ -4099,12 +4402,32 @@ impl SseEncode for Option<crate::api::models::ArtistViewData> {
     }
 }
 
+impl SseEncode for Option<crate::api::models::ExtractedSongCropRequest> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::models::ExtractedSongCropRequest>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::api::models::PlaybackStateData> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::api::models::PlaybackStateData>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::models::SongCropData> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::models::SongCropData>::sse_encode(value, serializer);
         }
     }
 }
@@ -4190,6 +4513,42 @@ impl SseEncode for crate::api::models::ScanConfig {
     }
 }
 
+impl SseEncode for crate::api::models::SongAudioEdit {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::api::models::SongAudioEdit::Keep => {
+                <i32>::sse_encode(0, serializer);
+            }
+            crate::api::models::SongAudioEdit::ApplyCrop {
+                source_path,
+                start_ms,
+                end_ms,
+            } => {
+                <i32>::sse_encode(1, serializer);
+                <String>::sse_encode(source_path, serializer);
+                <i64>::sse_encode(start_ms, serializer);
+                <i64>::sse_encode(end_ms, serializer);
+            }
+            crate::api::models::SongAudioEdit::RestoreOriginal => {
+                <i32>::sse_encode(2, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseEncode for crate::api::models::SongCropData {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.original_audio_path, serializer);
+        <i64>::sse_encode(self.start_ms, serializer);
+        <i64>::sse_encode(self.end_ms, serializer);
+    }
+}
+
 impl SseEncode for crate::api::models::SongEditRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4201,6 +4560,7 @@ impl SseEncode for crate::api::models::SongEditRequest {
         <i64>::sse_encode(self.disc_num, serializer);
         <crate::api::models::AlbumChoice>::sse_encode(self.album, serializer);
         <crate::api::models::CoverArtEdit>::sse_encode(self.cover, serializer);
+        <crate::api::models::SongAudioEdit>::sse_encode(self.audio, serializer);
     }
 }
 
@@ -4219,6 +4579,7 @@ impl SseEncode for crate::api::models::SongViewData {
         <String>::sse_encode(self.album_id, serializer);
         <Vec<String>>::sse_encode(self.album_artists, serializer);
         <Option<String>>::sse_encode(self.song_cover_path, serializer);
+        <Option<crate::api::models::SongCropData>>::sse_encode(self.crop, serializer);
     }
 }
 
