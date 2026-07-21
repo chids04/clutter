@@ -30,8 +30,10 @@
 	<true/>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>Import Apple Music songs into Clutter</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Take a picture to use as cover art</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Extract audio data from videos</string>
+	<string>Choose cover art or videos from your photo library</string>
 	<key>UIFileSharingEnabled</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

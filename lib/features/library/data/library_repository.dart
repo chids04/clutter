@@ -11,6 +11,7 @@ abstract interface class LibraryCatalogRepository {
   Future<List<AlbumViewData>> getAlbums(int offset, int limit);
   Future<List<ArtistViewData>> getArtists(int offset, int limit);
   Future<List<PlaylistViewData>> getPlaylists(int offset, int limit);
+  Future<ArtworkEditData?> getArtworkEdit(ArtworkOwner owner, String ownerId);
   Future<List<String>> getScanPaths();
   Future<List<PinnedItemData>> getPinnedItems();
   Future<String?> getLikedPlaylistId();
@@ -78,6 +79,9 @@ class RustLibraryRepository
   @override
   Future<List<PlaylistViewData>> getPlaylists(int offset, int limit) =>
       _api.getPlaylistsPaginated(offset: offset, limit: limit);
+  @override
+  Future<ArtworkEditData?> getArtworkEdit(ArtworkOwner owner, String ownerId) =>
+      _api.getArtworkEdit(owner: owner, ownerId: ownerId);
   @override
   Future<List<String>> getScanPaths() => _api.getScanPaths();
   @override

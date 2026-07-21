@@ -16,8 +16,5 @@ class AudioplayersCropPreview implements CropPreviewPlayer {
   Future<void> pause() => _player.pause();
 
   @override
-  Future<void> seek(Duration position) => _player.seek(position);
-
-  @override
   Future<void> dispose() => _player.dispose();
 }

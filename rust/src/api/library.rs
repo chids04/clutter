@@ -4,7 +4,7 @@ use log::info;
 pub use super::models::*;
 use crate::core::LibraryCore;
 use crate::storage::sqlite::{
-    AlbumMetadataUpdate, AlbumSelection, PlaylistVisualUpdate, SongMetadataUpdate,
+    AlbumMetadataUpdate, AlbumSelection, ArtworkOwnerKind, PlaylistVisualUpdate, SongMetadataUpdate,
 };
 
 #[frb(opaque)]
@@ -55,6 +55,20 @@ impl LibraryApi {
 
     pub fn get_song_by_id(&self, id: String) -> Option<SongViewData> {
         self.core.get_song_by_id(&id).map(SongViewData::from)
+    }
+
+    pub fn get_artwork_edit(
+        &self,
+        owner: ArtworkOwner,
+        owner_id: String,
+    ) -> Option<ArtworkEditData> {
+        let owner = match owner {
+            ArtworkOwner::Song => ArtworkOwnerKind::Song,
+            ArtworkOwner::Album => ArtworkOwnerKind::Album,
+            ArtworkOwner::Artist => ArtworkOwnerKind::Artist,
+            ArtworkOwner::Playlist => ArtworkOwnerKind::Playlist,
+        };
+        self.core.get_artwork_edit(owner, &owner_id).map(Into::into)
     }
 
     #[frb(sync)]
@@ -258,7 +272,15 @@ impl LibraryApi {
             PlaylistVisualEdit::Keep => PlaylistVisualUpdate::Keep,
             PlaylistVisualEdit::Initials => PlaylistVisualUpdate::Initials,
             PlaylistVisualEdit::Icon { key } => PlaylistVisualUpdate::Icon(key),
-            PlaylistVisualEdit::Image { source_path } => PlaylistVisualUpdate::Image(source_path),
+            PlaylistVisualEdit::Image {
+                original_source_path,
+                cropped_source_path,
+                crop,
+            } => PlaylistVisualUpdate::Image {
+                original_source_path,
+                cropped_source_path,
+                crop: crop.into(),
+            },
         };
         self.core
             .update_playlist_metadata(&request.playlist_id, &request.name, visual)

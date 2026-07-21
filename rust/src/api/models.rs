@@ -1,6 +1,7 @@
 use crate::storage::sqlite::{
-    AlbumRow, AlbumSelection, ArtistRow, ArtworkUpdate, ExtractedSongCrop, ExtractedSongImport,
-    KeybindingRow, PinnedItemRow, PlaybackStateRow, PlaylistRow, SongAudioUpdate, SongRow,
+    AlbumRow, AlbumSelection, ArtistRow, ArtworkCropRect, ArtworkEditRow, ArtworkUpdate,
+    ExtractedSongCrop, ExtractedSongImport, KeybindingRow, PinnedItemRow, PlaybackStateRow,
+    PlaylistRow, SongAudioUpdate, SongRow,
 };
 
 #[derive(Debug, Clone)]
@@ -131,7 +132,58 @@ impl From<ArtistRow> for ArtistViewData {
 pub enum CoverArtEdit {
     Keep,
     Remove,
-    Replace { source_path: String },
+    Replace {
+        original_source_path: String,
+        cropped_source_path: String,
+        crop: ArtworkCropRectData,
+    },
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ArtworkCropRectData {
+    pub left: f64,
+    pub top: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct ArtworkEditData {
+    pub original_path: String,
+    pub crop: ArtworkCropRectData,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ArtworkOwner {
+    Song,
+    Album,
+    Artist,
+    Playlist,
+}
+
+impl From<ArtworkCropRectData> for ArtworkCropRect {
+    fn from(value: ArtworkCropRectData) -> Self {
+        Self {
+            left: value.left,
+            top: value.top,
+            width: value.width,
+            height: value.height,
+        }
+    }
+}
+
+impl From<ArtworkEditRow> for ArtworkEditData {
+    fn from(value: ArtworkEditRow) -> Self {
+        Self {
+            original_path: value.original_path,
+            crop: ArtworkCropRectData {
+                left: value.crop.left,
+                top: value.crop.top,
+                width: value.crop.width,
+                height: value.crop.height,
+            },
+        }
+    }
 }
 
 impl From<CoverArtEdit> for ArtworkUpdate {
@@ -139,7 +191,15 @@ impl From<CoverArtEdit> for ArtworkUpdate {
         match value {
             CoverArtEdit::Keep => ArtworkUpdate::Keep,
             CoverArtEdit::Remove => ArtworkUpdate::Remove,
-            CoverArtEdit::Replace { source_path } => ArtworkUpdate::Replace(source_path),
+            CoverArtEdit::Replace {
+                original_source_path,
+                cropped_source_path,
+                crop,
+            } => ArtworkUpdate::Replace {
+                original_source_path,
+                cropped_source_path,
+                crop: crop.into(),
+            },
         }
     }
 }
@@ -247,8 +307,14 @@ pub struct AlbumEditRequest {
 pub enum PlaylistVisualEdit {
     Keep,
     Initials,
-    Icon { key: String },
-    Image { source_path: String },
+    Icon {
+        key: String,
+    },
+    Image {
+        original_source_path: String,
+        cropped_source_path: String,
+        crop: ArtworkCropRectData,
+    },
 }
 
 #[derive(Debug, Clone)]

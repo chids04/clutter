@@ -397,19 +397,34 @@ mixin _$CoverArtEdit {
   TResult when<TResult extends Object?>({
     required TResult Function() keep,
     required TResult Function() remove,
-    required TResult Function(String sourcePath) replace,
+    required TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )
+    replace,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? keep,
     TResult? Function()? remove,
-    TResult? Function(String sourcePath)? replace,
+    TResult? Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    replace,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? keep,
     TResult Function()? remove,
-    TResult Function(String sourcePath)? replace,
+    TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    replace,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -500,7 +515,12 @@ class _$CoverArtEdit_KeepImpl extends CoverArtEdit_Keep {
   TResult when<TResult extends Object?>({
     required TResult Function() keep,
     required TResult Function() remove,
-    required TResult Function(String sourcePath) replace,
+    required TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )
+    replace,
   }) {
     return keep();
   }
@@ -510,7 +530,12 @@ class _$CoverArtEdit_KeepImpl extends CoverArtEdit_Keep {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? keep,
     TResult? Function()? remove,
-    TResult? Function(String sourcePath)? replace,
+    TResult? Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    replace,
   }) {
     return keep?.call();
   }
@@ -520,7 +545,12 @@ class _$CoverArtEdit_KeepImpl extends CoverArtEdit_Keep {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? keep,
     TResult Function()? remove,
-    TResult Function(String sourcePath)? replace,
+    TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    replace,
     required TResult orElse(),
   }) {
     if (keep != null) {
@@ -615,7 +645,12 @@ class _$CoverArtEdit_RemoveImpl extends CoverArtEdit_Remove {
   TResult when<TResult extends Object?>({
     required TResult Function() keep,
     required TResult Function() remove,
-    required TResult Function(String sourcePath) replace,
+    required TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )
+    replace,
   }) {
     return remove();
   }
@@ -625,7 +660,12 @@ class _$CoverArtEdit_RemoveImpl extends CoverArtEdit_Remove {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? keep,
     TResult? Function()? remove,
-    TResult? Function(String sourcePath)? replace,
+    TResult? Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    replace,
   }) {
     return remove?.call();
   }
@@ -635,7 +675,12 @@ class _$CoverArtEdit_RemoveImpl extends CoverArtEdit_Remove {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? keep,
     TResult Function()? remove,
-    TResult Function(String sourcePath)? replace,
+    TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    replace,
     required TResult orElse(),
   }) {
     if (remove != null) {
@@ -691,7 +736,11 @@ abstract class _$$CoverArtEdit_ReplaceImplCopyWith<$Res> {
     $Res Function(_$CoverArtEdit_ReplaceImpl) then,
   ) = __$$CoverArtEdit_ReplaceImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({String sourcePath});
+  $Res call({
+    String originalSourcePath,
+    String croppedSourcePath,
+    ArtworkCropRectData crop,
+  });
 }
 
 /// @nodoc
@@ -707,13 +756,25 @@ class __$$CoverArtEdit_ReplaceImplCopyWithImpl<$Res>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? sourcePath = null}) {
+  $Res call({
+    Object? originalSourcePath = null,
+    Object? croppedSourcePath = null,
+    Object? crop = null,
+  }) {
     return _then(
       _$CoverArtEdit_ReplaceImpl(
-        sourcePath: null == sourcePath
-            ? _value.sourcePath
-            : sourcePath // ignore: cast_nullable_to_non_nullable
+        originalSourcePath: null == originalSourcePath
+            ? _value.originalSourcePath
+            : originalSourcePath // ignore: cast_nullable_to_non_nullable
                   as String,
+        croppedSourcePath: null == croppedSourcePath
+            ? _value.croppedSourcePath
+            : croppedSourcePath // ignore: cast_nullable_to_non_nullable
+                  as String,
+        crop: null == crop
+            ? _value.crop
+            : crop // ignore: cast_nullable_to_non_nullable
+                  as ArtworkCropRectData,
       ),
     );
   }
@@ -722,14 +783,22 @@ class __$$CoverArtEdit_ReplaceImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$CoverArtEdit_ReplaceImpl extends CoverArtEdit_Replace {
-  const _$CoverArtEdit_ReplaceImpl({required this.sourcePath}) : super._();
+  const _$CoverArtEdit_ReplaceImpl({
+    required this.originalSourcePath,
+    required this.croppedSourcePath,
+    required this.crop,
+  }) : super._();
 
   @override
-  final String sourcePath;
+  final String originalSourcePath;
+  @override
+  final String croppedSourcePath;
+  @override
+  final ArtworkCropRectData crop;
 
   @override
   String toString() {
-    return 'CoverArtEdit.replace(sourcePath: $sourcePath)';
+    return 'CoverArtEdit.replace(originalSourcePath: $originalSourcePath, croppedSourcePath: $croppedSourcePath, crop: $crop)';
   }
 
   @override
@@ -737,12 +806,16 @@ class _$CoverArtEdit_ReplaceImpl extends CoverArtEdit_Replace {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$CoverArtEdit_ReplaceImpl &&
-            (identical(other.sourcePath, sourcePath) ||
-                other.sourcePath == sourcePath));
+            (identical(other.originalSourcePath, originalSourcePath) ||
+                other.originalSourcePath == originalSourcePath) &&
+            (identical(other.croppedSourcePath, croppedSourcePath) ||
+                other.croppedSourcePath == croppedSourcePath) &&
+            (identical(other.crop, crop) || other.crop == crop));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, sourcePath);
+  int get hashCode =>
+      Object.hash(runtimeType, originalSourcePath, croppedSourcePath, crop);
 
   /// Create a copy of CoverArtEdit
   /// with the given fields replaced by the non-null parameter values.
@@ -761,9 +834,14 @@ class _$CoverArtEdit_ReplaceImpl extends CoverArtEdit_Replace {
   TResult when<TResult extends Object?>({
     required TResult Function() keep,
     required TResult Function() remove,
-    required TResult Function(String sourcePath) replace,
+    required TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )
+    replace,
   }) {
-    return replace(sourcePath);
+    return replace(originalSourcePath, croppedSourcePath, crop);
   }
 
   @override
@@ -771,9 +849,14 @@ class _$CoverArtEdit_ReplaceImpl extends CoverArtEdit_Replace {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? keep,
     TResult? Function()? remove,
-    TResult? Function(String sourcePath)? replace,
+    TResult? Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    replace,
   }) {
-    return replace?.call(sourcePath);
+    return replace?.call(originalSourcePath, croppedSourcePath, crop);
   }
 
   @override
@@ -781,11 +864,16 @@ class _$CoverArtEdit_ReplaceImpl extends CoverArtEdit_Replace {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? keep,
     TResult Function()? remove,
-    TResult Function(String sourcePath)? replace,
+    TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    replace,
     required TResult orElse(),
   }) {
     if (replace != null) {
-      return replace(sourcePath);
+      return replace(originalSourcePath, croppedSourcePath, crop);
     }
     return orElse();
   }
@@ -826,11 +914,16 @@ class _$CoverArtEdit_ReplaceImpl extends CoverArtEdit_Replace {
 }
 
 abstract class CoverArtEdit_Replace extends CoverArtEdit {
-  const factory CoverArtEdit_Replace({required final String sourcePath}) =
-      _$CoverArtEdit_ReplaceImpl;
+  const factory CoverArtEdit_Replace({
+    required final String originalSourcePath,
+    required final String croppedSourcePath,
+    required final ArtworkCropRectData crop,
+  }) = _$CoverArtEdit_ReplaceImpl;
   const CoverArtEdit_Replace._() : super._();
 
-  String get sourcePath;
+  String get originalSourcePath;
+  String get croppedSourcePath;
+  ArtworkCropRectData get crop;
 
   /// Create a copy of CoverArtEdit
   /// with the given fields replaced by the non-null parameter values.
@@ -846,21 +939,36 @@ mixin _$PlaylistVisualEdit {
     required TResult Function() keep,
     required TResult Function() initials,
     required TResult Function(String key) icon,
-    required TResult Function(String sourcePath) image,
+    required TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )
+    image,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? keep,
     TResult? Function()? initials,
     TResult? Function(String key)? icon,
-    TResult? Function(String sourcePath)? image,
+    TResult? Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    image,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? keep,
     TResult Function()? initials,
     TResult Function(String key)? icon,
-    TResult Function(String sourcePath)? image,
+    TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    image,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -957,7 +1065,12 @@ class _$PlaylistVisualEdit_KeepImpl extends PlaylistVisualEdit_Keep {
     required TResult Function() keep,
     required TResult Function() initials,
     required TResult Function(String key) icon,
-    required TResult Function(String sourcePath) image,
+    required TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )
+    image,
   }) {
     return keep();
   }
@@ -968,7 +1081,12 @@ class _$PlaylistVisualEdit_KeepImpl extends PlaylistVisualEdit_Keep {
     TResult? Function()? keep,
     TResult? Function()? initials,
     TResult? Function(String key)? icon,
-    TResult? Function(String sourcePath)? image,
+    TResult? Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    image,
   }) {
     return keep?.call();
   }
@@ -979,7 +1097,12 @@ class _$PlaylistVisualEdit_KeepImpl extends PlaylistVisualEdit_Keep {
     TResult Function()? keep,
     TResult Function()? initials,
     TResult Function(String key)? icon,
-    TResult Function(String sourcePath)? image,
+    TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    image,
     required TResult orElse(),
   }) {
     if (keep != null) {
@@ -1082,7 +1205,12 @@ class _$PlaylistVisualEdit_InitialsImpl extends PlaylistVisualEdit_Initials {
     required TResult Function() keep,
     required TResult Function() initials,
     required TResult Function(String key) icon,
-    required TResult Function(String sourcePath) image,
+    required TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )
+    image,
   }) {
     return initials();
   }
@@ -1093,7 +1221,12 @@ class _$PlaylistVisualEdit_InitialsImpl extends PlaylistVisualEdit_Initials {
     TResult? Function()? keep,
     TResult? Function()? initials,
     TResult? Function(String key)? icon,
-    TResult? Function(String sourcePath)? image,
+    TResult? Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    image,
   }) {
     return initials?.call();
   }
@@ -1104,7 +1237,12 @@ class _$PlaylistVisualEdit_InitialsImpl extends PlaylistVisualEdit_Initials {
     TResult Function()? keep,
     TResult Function()? initials,
     TResult Function(String key)? icon,
-    TResult Function(String sourcePath)? image,
+    TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    image,
     required TResult orElse(),
   }) {
     if (initials != null) {
@@ -1234,7 +1372,12 @@ class _$PlaylistVisualEdit_IconImpl extends PlaylistVisualEdit_Icon {
     required TResult Function() keep,
     required TResult Function() initials,
     required TResult Function(String key) icon,
-    required TResult Function(String sourcePath) image,
+    required TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )
+    image,
   }) {
     return icon(key);
   }
@@ -1245,7 +1388,12 @@ class _$PlaylistVisualEdit_IconImpl extends PlaylistVisualEdit_Icon {
     TResult? Function()? keep,
     TResult? Function()? initials,
     TResult? Function(String key)? icon,
-    TResult? Function(String sourcePath)? image,
+    TResult? Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    image,
   }) {
     return icon?.call(key);
   }
@@ -1256,7 +1404,12 @@ class _$PlaylistVisualEdit_IconImpl extends PlaylistVisualEdit_Icon {
     TResult Function()? keep,
     TResult Function()? initials,
     TResult Function(String key)? icon,
-    TResult Function(String sourcePath)? image,
+    TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    image,
     required TResult orElse(),
   }) {
     if (icon != null) {
@@ -1324,7 +1477,11 @@ abstract class _$$PlaylistVisualEdit_ImageImplCopyWith<$Res> {
     $Res Function(_$PlaylistVisualEdit_ImageImpl) then,
   ) = __$$PlaylistVisualEdit_ImageImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({String sourcePath});
+  $Res call({
+    String originalSourcePath,
+    String croppedSourcePath,
+    ArtworkCropRectData crop,
+  });
 }
 
 /// @nodoc
@@ -1341,13 +1498,25 @@ class __$$PlaylistVisualEdit_ImageImplCopyWithImpl<$Res>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? sourcePath = null}) {
+  $Res call({
+    Object? originalSourcePath = null,
+    Object? croppedSourcePath = null,
+    Object? crop = null,
+  }) {
     return _then(
       _$PlaylistVisualEdit_ImageImpl(
-        sourcePath: null == sourcePath
-            ? _value.sourcePath
-            : sourcePath // ignore: cast_nullable_to_non_nullable
+        originalSourcePath: null == originalSourcePath
+            ? _value.originalSourcePath
+            : originalSourcePath // ignore: cast_nullable_to_non_nullable
                   as String,
+        croppedSourcePath: null == croppedSourcePath
+            ? _value.croppedSourcePath
+            : croppedSourcePath // ignore: cast_nullable_to_non_nullable
+                  as String,
+        crop: null == crop
+            ? _value.crop
+            : crop // ignore: cast_nullable_to_non_nullable
+                  as ArtworkCropRectData,
       ),
     );
   }
@@ -1356,14 +1525,22 @@ class __$$PlaylistVisualEdit_ImageImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$PlaylistVisualEdit_ImageImpl extends PlaylistVisualEdit_Image {
-  const _$PlaylistVisualEdit_ImageImpl({required this.sourcePath}) : super._();
+  const _$PlaylistVisualEdit_ImageImpl({
+    required this.originalSourcePath,
+    required this.croppedSourcePath,
+    required this.crop,
+  }) : super._();
 
   @override
-  final String sourcePath;
+  final String originalSourcePath;
+  @override
+  final String croppedSourcePath;
+  @override
+  final ArtworkCropRectData crop;
 
   @override
   String toString() {
-    return 'PlaylistVisualEdit.image(sourcePath: $sourcePath)';
+    return 'PlaylistVisualEdit.image(originalSourcePath: $originalSourcePath, croppedSourcePath: $croppedSourcePath, crop: $crop)';
   }
 
   @override
@@ -1371,12 +1548,16 @@ class _$PlaylistVisualEdit_ImageImpl extends PlaylistVisualEdit_Image {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$PlaylistVisualEdit_ImageImpl &&
-            (identical(other.sourcePath, sourcePath) ||
-                other.sourcePath == sourcePath));
+            (identical(other.originalSourcePath, originalSourcePath) ||
+                other.originalSourcePath == originalSourcePath) &&
+            (identical(other.croppedSourcePath, croppedSourcePath) ||
+                other.croppedSourcePath == croppedSourcePath) &&
+            (identical(other.crop, crop) || other.crop == crop));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, sourcePath);
+  int get hashCode =>
+      Object.hash(runtimeType, originalSourcePath, croppedSourcePath, crop);
 
   /// Create a copy of PlaylistVisualEdit
   /// with the given fields replaced by the non-null parameter values.
@@ -1395,9 +1576,14 @@ class _$PlaylistVisualEdit_ImageImpl extends PlaylistVisualEdit_Image {
     required TResult Function() keep,
     required TResult Function() initials,
     required TResult Function(String key) icon,
-    required TResult Function(String sourcePath) image,
+    required TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )
+    image,
   }) {
-    return image(sourcePath);
+    return image(originalSourcePath, croppedSourcePath, crop);
   }
 
   @override
@@ -1406,9 +1592,14 @@ class _$PlaylistVisualEdit_ImageImpl extends PlaylistVisualEdit_Image {
     TResult? Function()? keep,
     TResult? Function()? initials,
     TResult? Function(String key)? icon,
-    TResult? Function(String sourcePath)? image,
+    TResult? Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    image,
   }) {
-    return image?.call(sourcePath);
+    return image?.call(originalSourcePath, croppedSourcePath, crop);
   }
 
   @override
@@ -1417,11 +1608,16 @@ class _$PlaylistVisualEdit_ImageImpl extends PlaylistVisualEdit_Image {
     TResult Function()? keep,
     TResult Function()? initials,
     TResult Function(String key)? icon,
-    TResult Function(String sourcePath)? image,
+    TResult Function(
+      String originalSourcePath,
+      String croppedSourcePath,
+      ArtworkCropRectData crop,
+    )?
+    image,
     required TResult orElse(),
   }) {
     if (image != null) {
-      return image(sourcePath);
+      return image(originalSourcePath, croppedSourcePath, crop);
     }
     return orElse();
   }
@@ -1465,11 +1661,16 @@ class _$PlaylistVisualEdit_ImageImpl extends PlaylistVisualEdit_Image {
 }
 
 abstract class PlaylistVisualEdit_Image extends PlaylistVisualEdit {
-  const factory PlaylistVisualEdit_Image({required final String sourcePath}) =
-      _$PlaylistVisualEdit_ImageImpl;
+  const factory PlaylistVisualEdit_Image({
+    required final String originalSourcePath,
+    required final String croppedSourcePath,
+    required final ArtworkCropRectData crop,
+  }) = _$PlaylistVisualEdit_ImageImpl;
   const PlaylistVisualEdit_Image._() : super._();
 
-  String get sourcePath;
+  String get originalSourcePath;
+  String get croppedSourcePath;
+  ArtworkCropRectData get crop;
 
   /// Create a copy of PlaylistVisualEdit
   /// with the given fields replaced by the non-null parameter values.

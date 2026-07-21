@@ -137,6 +137,8 @@ class MusicLibrary extends ChangeNotifier {
   }) => catalog.searchPlaylists(query, limit: limit);
   Future<OmniSearchResults> searchOmni(String query, {int perTypeLimit = 8}) =>
       catalog.searchOmni(query, limit: perTypeLimit);
+  Future<ArtworkEditData?> getArtworkEdit(ArtworkOwner owner, String ownerId) =>
+      catalog.getArtworkEdit(owner, ownerId);
 
   Future<String> createPlaylist(String name) => catalog.createPlaylist(name);
   Future<void> deletePlaylist(String id) => catalog.deletePlaylist(id);

@@ -9,7 +9,7 @@ import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'models.freezed.dart';
 
 // These functions are ignored because they are not marked as `pub`: `as_str`, `from_str`, `into_internal`, `into_row`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 @freezed
 sealed class AlbumChoice with _$AlbumChoice {
@@ -129,14 +129,65 @@ class ArtistViewData {
           customCoverPath == other.customCoverPath;
 }
 
+class ArtworkCropRectData {
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+
+  const ArtworkCropRectData({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+  });
+
+  @override
+  int get hashCode =>
+      left.hashCode ^ top.hashCode ^ width.hashCode ^ height.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ArtworkCropRectData &&
+          runtimeType == other.runtimeType &&
+          left == other.left &&
+          top == other.top &&
+          width == other.width &&
+          height == other.height;
+}
+
+class ArtworkEditData {
+  final String originalPath;
+  final ArtworkCropRectData crop;
+
+  const ArtworkEditData({required this.originalPath, required this.crop});
+
+  @override
+  int get hashCode => originalPath.hashCode ^ crop.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ArtworkEditData &&
+          runtimeType == other.runtimeType &&
+          originalPath == other.originalPath &&
+          crop == other.crop;
+}
+
+enum ArtworkOwner { song, album, artist, playlist }
+
 @freezed
 sealed class CoverArtEdit with _$CoverArtEdit {
   const CoverArtEdit._();
 
   const factory CoverArtEdit.keep() = CoverArtEdit_Keep;
   const factory CoverArtEdit.remove() = CoverArtEdit_Remove;
-  const factory CoverArtEdit.replace({required String sourcePath}) =
-      CoverArtEdit_Replace;
+  const factory CoverArtEdit.replace({
+    required String originalSourcePath,
+    required String croppedSourcePath,
+    required ArtworkCropRectData crop,
+  }) = CoverArtEdit_Replace;
 }
 
 class ExtractedSongCropRequest {
@@ -379,8 +430,11 @@ sealed class PlaylistVisualEdit with _$PlaylistVisualEdit {
   const factory PlaylistVisualEdit.initials() = PlaylistVisualEdit_Initials;
   const factory PlaylistVisualEdit.icon({required String key}) =
       PlaylistVisualEdit_Icon;
-  const factory PlaylistVisualEdit.image({required String sourcePath}) =
-      PlaylistVisualEdit_Image;
+  const factory PlaylistVisualEdit.image({
+    required String originalSourcePath,
+    required String croppedSourcePath,
+    required ArtworkCropRectData crop,
+  }) = PlaylistVisualEdit_Image;
 }
 
 class ScanConfig {

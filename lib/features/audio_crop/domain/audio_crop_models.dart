@@ -42,6 +42,5 @@ abstract interface class CropPreviewPlayer {
   Stream<Duration> get positionStream;
   Future<void> play(String sourcePath, Duration position);
   Future<void> pause();
-  Future<void> seek(Duration position);
   Future<void> dispose();
 }

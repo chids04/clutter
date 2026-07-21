@@ -69,11 +69,48 @@ pub struct ArtistRow {
     pub song_count: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ArtworkUpdate {
     Keep,
-    Replace(String),
+    Replace {
+        original_source_path: String,
+        cropped_source_path: String,
+        crop: ArtworkCropRect,
+    },
     Remove,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ArtworkCropRect {
+    pub left: f64,
+    pub top: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArtworkOwnerKind {
+    Song,
+    Album,
+    Artist,
+    Playlist,
+}
+
+impl ArtworkOwnerKind {
+    pub(super) fn as_str(self) -> &'static str {
+        match self {
+            Self::Song => "song",
+            Self::Album => "album",
+            Self::Artist => "artist",
+            Self::Playlist => "playlist",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArtworkEditRow {
+    pub original_path: String,
+    pub crop: ArtworkCropRect,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -82,7 +119,7 @@ pub enum AlbumSelection {
     New { title: String, artists: Vec<String> },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SongMetadataUpdate {
     pub song_id: String,
     pub title: String,
@@ -107,7 +144,7 @@ pub enum SongAudioUpdate {
     RestoreOriginal,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExtractedSongImport {
     pub source_path: String,
     pub title: String,
@@ -127,7 +164,7 @@ pub struct ExtractedSongCrop {
     pub end_ms: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AlbumMetadataUpdate {
     pub album_id: String,
     pub title: String,
@@ -136,12 +173,16 @@ pub struct AlbumMetadataUpdate {
     pub write_file_tags: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PlaylistVisualUpdate {
     Keep,
     Initials,
     Icon(String),
-    Image(String),
+    Image {
+        original_source_path: String,
+        cropped_source_path: String,
+        crop: ArtworkCropRect,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

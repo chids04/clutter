@@ -67,7 +67,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -1311563588;
+  int get rustContentHash => 630934489;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -136,6 +136,12 @@ abstract class RustLibApi extends BaseApi {
     required LibraryApi that,
     required int offset,
     required int limit,
+  });
+
+  Future<ArtworkEditData?> crateApiLibraryLibraryApiGetArtworkEdit({
+    required LibraryApi that,
+    required ArtworkOwner owner,
+    required String ownerId,
   });
 
   Future<List<KeybindingData>> crateApiLibraryLibraryApiGetKeybindings({
@@ -771,6 +777,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<ArtworkEditData?> crateApiLibraryLibraryApiGetArtworkEdit({
+    required LibraryApi that,
+    required ArtworkOwner owner,
+    required String ownerId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
+            that,
+            serializer,
+          );
+          sse_encode_artwork_owner(owner, serializer);
+          sse_encode_String(ownerId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 12,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_artwork_edit_data,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiLibraryLibraryApiGetArtworkEditConstMeta,
+        argValues: [that, owner, ownerId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiLibraryLibraryApiGetArtworkEditConstMeta =>
+      const TaskConstMeta(
+        debugName: "LibraryApi_get_artwork_edit",
+        argNames: ["that", "owner", "ownerId"],
+      );
+
+  @override
   Future<List<KeybindingData>> crateApiLibraryLibraryApiGetKeybindings({
     required LibraryApi that,
   }) {
@@ -785,7 +831,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 13,
             port: port_,
           );
         },
@@ -821,7 +867,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 14,
             port: port_,
           );
         },
@@ -857,7 +903,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 15,
             port: port_,
           );
         },
@@ -894,7 +940,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 16,
             port: port_,
           );
         },
@@ -935,7 +981,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 17,
             port: port_,
           );
         },
@@ -973,7 +1019,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 18,
             port: port_,
           );
         },
@@ -1009,7 +1055,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 19,
             port: port_,
           );
         },
@@ -1047,7 +1093,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 20,
             port: port_,
           );
         },
@@ -1085,7 +1131,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 21,
             port: port_,
           );
         },
@@ -1124,7 +1170,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 22,
             port: port_,
           );
         },
@@ -1162,7 +1208,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 23,
             port: port_,
           );
         },
@@ -1202,7 +1248,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 24,
             port: port_,
           );
         },
@@ -1233,7 +1279,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_32,
@@ -1262,7 +1308,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_32,
@@ -1291,7 +1337,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_32,
@@ -1320,7 +1366,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_32,
@@ -1359,7 +1405,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 29,
             port: port_,
           );
         },
@@ -1396,7 +1442,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 30,
             port: port_,
           );
         },
@@ -1433,7 +1479,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 30,
+            funcId: 31,
             port: port_,
           );
         },
@@ -1475,7 +1521,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 32,
             port: port_,
           );
         },
@@ -1515,7 +1561,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 32,
+            funcId: 33,
             port: port_,
           );
         },
@@ -1553,7 +1599,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 33,
+            funcId: 34,
             port: port_,
           );
         },
@@ -1593,7 +1639,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 35,
             port: port_,
           );
         },
@@ -1629,7 +1675,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 36,
             port: port_,
           );
         },
@@ -1665,7 +1711,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 37,
             port: port_,
           );
         },
@@ -1707,7 +1753,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 38,
             port: port_,
           );
         },
@@ -1747,7 +1793,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 39,
             port: port_,
           );
         },
@@ -1787,7 +1833,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 39,
+            funcId: 40,
             port: port_,
           );
         },
@@ -1827,7 +1873,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 41,
             port: port_,
           );
         },
@@ -1867,7 +1913,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 42,
             port: port_,
           );
         },
@@ -1907,7 +1953,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 43,
             port: port_,
           );
         },
@@ -1945,7 +1991,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 44,
             port: port_,
           );
         },
@@ -1985,7 +2031,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 45,
             port: port_,
           );
         },
@@ -2023,7 +2069,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 46,
             port: port_,
           );
         },
@@ -2063,7 +2109,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 47,
             port: port_,
           );
         },
@@ -2101,7 +2147,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 47,
+            funcId: 48,
             port: port_,
           );
         },
@@ -2139,7 +2185,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 48,
+            funcId: 49,
             port: port_,
           );
         },
@@ -2177,7 +2223,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 50,
             port: port_,
           );
         },
@@ -2207,7 +2253,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 50,
+            funcId: 51,
             port: port_,
           );
         },
@@ -2329,6 +2375,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ArtworkCropRectData dco_decode_artwork_crop_rect_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return ArtworkCropRectData(
+      left: dco_decode_f_64(arr[0]),
+      top: dco_decode_f_64(arr[1]),
+      width: dco_decode_f_64(arr[2]),
+      height: dco_decode_f_64(arr[3]),
+    );
+  }
+
+  @protected
+  ArtworkEditData dco_decode_artwork_edit_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return ArtworkEditData(
+      originalPath: dco_decode_String(arr[0]),
+      crop: dco_decode_artwork_crop_rect_data(arr[1]),
+    );
+  }
+
+  @protected
+  ArtworkOwner dco_decode_artwork_owner(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ArtworkOwner.values[raw as int];
+  }
+
+  @protected
   bool dco_decode_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as bool;
@@ -2344,6 +2422,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ArtistViewData dco_decode_box_autoadd_artist_view_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_artist_view_data(raw);
+  }
+
+  @protected
+  ArtworkCropRectData dco_decode_box_autoadd_artwork_crop_rect_data(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_artwork_crop_rect_data(raw);
+  }
+
+  @protected
+  ArtworkEditData dco_decode_box_autoadd_artwork_edit_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_artwork_edit_data(raw);
   }
 
   @protected
@@ -2420,7 +2512,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case 1:
         return CoverArtEdit_Remove();
       case 2:
-        return CoverArtEdit_Replace(sourcePath: dco_decode_String(raw[1]));
+        return CoverArtEdit_Replace(
+          originalSourcePath: dco_decode_String(raw[1]),
+          croppedSourcePath: dco_decode_String(raw[2]),
+          crop: dco_decode_box_autoadd_artwork_crop_rect_data(raw[3]),
+        );
       default:
         throw Exception("unreachable");
     }
@@ -2458,6 +2554,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       cover: dco_decode_cover_art_edit(arr[7]),
       crop: dco_decode_opt_box_autoadd_extracted_song_crop_request(arr[8]),
     );
+  }
+
+  @protected
+  double dco_decode_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
   }
 
   @protected
@@ -2556,6 +2658,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ArtworkEditData? dco_decode_opt_box_autoadd_artwork_edit_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_artwork_edit_data(raw);
+  }
+
+  @protected
   ExtractedSongCropRequest?
   dco_decode_opt_box_autoadd_extracted_song_crop_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -2650,7 +2758,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case 2:
         return PlaylistVisualEdit_Icon(key: dco_decode_String(raw[1]));
       case 3:
-        return PlaylistVisualEdit_Image(sourcePath: dco_decode_String(raw[1]));
+        return PlaylistVisualEdit_Image(
+          originalSourcePath: dco_decode_String(raw[1]),
+          croppedSourcePath: dco_decode_String(raw[2]),
+          crop: dco_decode_box_autoadd_artwork_crop_rect_data(raw[3]),
+        );
       default:
         throw Exception("unreachable");
     }
@@ -2878,6 +2990,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ArtworkCropRectData sse_decode_artwork_crop_rect_data(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_left = sse_decode_f_64(deserializer);
+    var var_top = sse_decode_f_64(deserializer);
+    var var_width = sse_decode_f_64(deserializer);
+    var var_height = sse_decode_f_64(deserializer);
+    return ArtworkCropRectData(
+      left: var_left,
+      top: var_top,
+      width: var_width,
+      height: var_height,
+    );
+  }
+
+  @protected
+  ArtworkEditData sse_decode_artwork_edit_data(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_originalPath = sse_decode_String(deserializer);
+    var var_crop = sse_decode_artwork_crop_rect_data(deserializer);
+    return ArtworkEditData(originalPath: var_originalPath, crop: var_crop);
+  }
+
+  @protected
+  ArtworkOwner sse_decode_artwork_owner(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return ArtworkOwner.values[inner];
+  }
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8() != 0;
@@ -2897,6 +3041,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_artist_view_data(deserializer));
+  }
+
+  @protected
+  ArtworkCropRectData sse_decode_box_autoadd_artwork_crop_rect_data(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_artwork_crop_rect_data(deserializer));
+  }
+
+  @protected
+  ArtworkEditData sse_decode_box_autoadd_artwork_edit_data(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_artwork_edit_data(deserializer));
   }
 
   @protected
@@ -2989,8 +3149,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case 1:
         return CoverArtEdit_Remove();
       case 2:
-        var var_sourcePath = sse_decode_String(deserializer);
-        return CoverArtEdit_Replace(sourcePath: var_sourcePath);
+        var var_originalSourcePath = sse_decode_String(deserializer);
+        var var_croppedSourcePath = sse_decode_String(deserializer);
+        var var_crop = sse_decode_box_autoadd_artwork_crop_rect_data(
+          deserializer,
+        );
+        return CoverArtEdit_Replace(
+          originalSourcePath: var_originalSourcePath,
+          croppedSourcePath: var_croppedSourcePath,
+          crop: var_crop,
+        );
       default:
         throw UnimplementedError('');
     }
@@ -3038,6 +3206,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       cover: var_cover,
       crop: var_crop,
     );
+  }
+
+  @protected
+  double sse_decode_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getFloat64();
   }
 
   @protected
@@ -3208,6 +3382,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ArtworkEditData? sse_decode_opt_box_autoadd_artwork_edit_data(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_artwork_edit_data(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   ExtractedSongCropRequest?
   sse_decode_opt_box_autoadd_extracted_song_crop_request(
     SseDeserializer deserializer,
@@ -3338,8 +3525,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         var var_key = sse_decode_String(deserializer);
         return PlaylistVisualEdit_Icon(key: var_key);
       case 3:
-        var var_sourcePath = sse_decode_String(deserializer);
-        return PlaylistVisualEdit_Image(sourcePath: var_sourcePath);
+        var var_originalSourcePath = sse_decode_String(deserializer);
+        var var_croppedSourcePath = sse_decode_String(deserializer);
+        var var_crop = sse_decode_box_autoadd_artwork_crop_rect_data(
+          deserializer,
+        );
+        return PlaylistVisualEdit_Image(
+          originalSourcePath: var_originalSourcePath,
+          croppedSourcePath: var_croppedSourcePath,
+          crop: var_crop,
+        );
       default:
         throw UnimplementedError('');
     }
@@ -3570,6 +3765,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_artwork_crop_rect_data(
+    ArtworkCropRectData self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_f_64(self.left, serializer);
+    sse_encode_f_64(self.top, serializer);
+    sse_encode_f_64(self.width, serializer);
+    sse_encode_f_64(self.height, serializer);
+  }
+
+  @protected
+  void sse_encode_artwork_edit_data(
+    ArtworkEditData self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.originalPath, serializer);
+    sse_encode_artwork_crop_rect_data(self.crop, serializer);
+  }
+
+  @protected
+  void sse_encode_artwork_owner(ArtworkOwner self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint8(self ? 1 : 0);
@@ -3591,6 +3814,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_artist_view_data(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_artwork_crop_rect_data(
+    ArtworkCropRectData self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_artwork_crop_rect_data(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_artwork_edit_data(
+    ArtworkEditData self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_artwork_edit_data(self, serializer);
   }
 
   @protected
@@ -3691,9 +3932,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_i_32(0, serializer);
       case CoverArtEdit_Remove():
         sse_encode_i_32(1, serializer);
-      case CoverArtEdit_Replace(sourcePath: final sourcePath):
+      case CoverArtEdit_Replace(
+        originalSourcePath: final originalSourcePath,
+        croppedSourcePath: final croppedSourcePath,
+        crop: final crop,
+      ):
         sse_encode_i_32(2, serializer);
-        sse_encode_String(sourcePath, serializer);
+        sse_encode_String(originalSourcePath, serializer);
+        sse_encode_String(croppedSourcePath, serializer);
+        sse_encode_box_autoadd_artwork_crop_rect_data(crop, serializer);
     }
   }
 
@@ -3726,6 +3973,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       self.crop,
       serializer,
     );
+  }
+
+  @protected
+  void sse_encode_f_64(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putFloat64(self);
   }
 
   @protected
@@ -3879,6 +4132,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_artwork_edit_data(
+    ArtworkEditData? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_artwork_edit_data(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_extracted_song_crop_request(
     ExtractedSongCropRequest? self,
     SseSerializer serializer,
@@ -3991,9 +4257,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case PlaylistVisualEdit_Icon(key: final key):
         sse_encode_i_32(2, serializer);
         sse_encode_String(key, serializer);
-      case PlaylistVisualEdit_Image(sourcePath: final sourcePath):
+      case PlaylistVisualEdit_Image(
+        originalSourcePath: final originalSourcePath,
+        croppedSourcePath: final croppedSourcePath,
+        crop: final crop,
+      ):
         sse_encode_i_32(3, serializer);
-        sse_encode_String(sourcePath, serializer);
+        sse_encode_String(originalSourcePath, serializer);
+        sse_encode_String(croppedSourcePath, serializer);
+        sse_encode_box_autoadd_artwork_crop_rect_data(crop, serializer);
     }
   }
 
@@ -4172,6 +4444,15 @@ class LibraryApiImpl extends RustOpaque implements LibraryApi {
     that: this,
     offset: offset,
     limit: limit,
+  );
+
+  Future<ArtworkEditData?> getArtworkEdit({
+    required ArtworkOwner owner,
+    required String ownerId,
+  }) => RustLib.instance.api.crateApiLibraryLibraryApiGetArtworkEdit(
+    that: this,
+    owner: owner,
+    ownerId: ownerId,
   );
 
   Future<List<KeybindingData>> getKeybindings() =>

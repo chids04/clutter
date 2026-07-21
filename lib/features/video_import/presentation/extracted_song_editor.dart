@@ -9,7 +9,11 @@ import 'package:clutter/features/audio_crop/presentation/audio_crop_editor.dart'
 import 'package:clutter/features/audio_crop/presentation/audio_crop_encoding_dialog.dart';
 import 'package:clutter/features/library/application/music_library.dart';
 import 'package:clutter/features/library/domain/library_entities.dart';
-import 'package:clutter/features/metadata_editor/presentation/metadata_editors.dart';
+import 'package:clutter/features/metadata_editor/data/platform_artwork_picker.dart';
+import 'package:clutter/features/metadata_editor/data/artwork_crop_output_store.dart';
+import 'package:clutter/features/metadata_editor/domain/artwork_crop.dart';
+import 'package:clutter/features/metadata_editor/domain/artwork_picker.dart';
+import 'package:clutter/features/metadata_editor/presentation/widgets/artwork_chooser.dart';
 import 'package:clutter/features/metadata_editor/presentation/widgets/artist_autocomplete_field.dart';
 import 'package:clutter/features/video_import/domain/video_import_models.dart';
 import 'package:clutter/shared/services/log.dart';
@@ -17,12 +21,18 @@ import 'package:clutter/shared/services/log.dart';
 Future<bool> showExtractedSongEditor(
   BuildContext context,
   ExtractedAudio audio,
-  MusicLibrary library,
-) async {
+  MusicLibrary library, {
+  ArtworkPicker? artworkPicker,
+}) async {
+  final picker = artworkPicker ?? PlatformArtworkPicker();
   return await showDialog<bool>(
         context: context,
         barrierDismissible: false,
-        builder: (_) => _ExtractedSongEditor(audio: audio, library: library),
+        builder: (_) => _ExtractedSongEditor(
+          audio: audio,
+          library: library,
+          artworkPicker: picker,
+        ),
       ) ??
       false;
 }
@@ -30,8 +40,13 @@ Future<bool> showExtractedSongEditor(
 class _ExtractedSongEditor extends StatefulWidget {
   final ExtractedAudio audio;
   final MusicLibrary library;
+  final ArtworkPicker artworkPicker;
 
-  const _ExtractedSongEditor({required this.audio, required this.library});
+  const _ExtractedSongEditor({
+    required this.audio,
+    required this.library,
+    required this.artworkPicker,
+  });
 
   @override
   State<_ExtractedSongEditor> createState() => _ExtractedSongEditorState();
@@ -56,7 +71,7 @@ class _ExtractedSongEditorState extends State<_ExtractedSongEditor> {
   Timer? _debounce;
   List<AlbumViewData> _suggestions = const [];
   String? _selectedAlbumId;
-  String? _coverPath;
+  ArtworkCropSelection? _cover;
   bool _saving = false;
   final AudioCropService _cropService = FfmpegAudioCropService();
   AudioCropSelection? _cropSelection;
@@ -79,6 +94,9 @@ class _ExtractedSongEditorState extends State<_ExtractedSongEditor> {
     final prepared = _preparedCropPath;
     if (prepared != null) {
       unawaited(_cropService.removeTemporaryFile(prepared));
+    }
+    if (_cover != null) {
+      unawaited(const ArtworkCropOutputStore().remove(_cover!.croppedPath));
     }
     super.dispose();
   }
@@ -115,9 +133,7 @@ class _ExtractedSongEditorState extends State<_ExtractedSongEditor> {
           trackNum: int.tryParse(_track.text) ?? 0,
           discNum: int.tryParse(_disc.text) ?? 0,
           album: album,
-          cover: _coverPath == null
-              ? const CoverArtEdit.keep()
-              : CoverArtEdit.replace(sourcePath: _coverPath!),
+          cover: _cover?.toCoverEdit() ?? const CoverArtEdit.keep(),
           crop: cropInput.crop,
         ),
       );
@@ -192,12 +208,28 @@ class _ExtractedSongEditorState extends State<_ExtractedSongEditor> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ArtworkChooser(
-              path: _coverPath,
-              onChoose: () async {
-                final path = await pickArtwork();
-                if (path != null && mounted) setState(() => _coverPath = path);
+              path: _cover?.croppedPath,
+              originalPath: _cover?.originalPath,
+              initialCrop: _cover?.crop,
+              picker: widget.artworkPicker,
+              onSelected: (selection) {
+                final old = _cover;
+                if (old != null) {
+                  unawaited(
+                    const ArtworkCropOutputStore().remove(old.croppedPath),
+                  );
+                }
+                setState(() => _cover = selection);
               },
-              onRemove: () => setState(() => _coverPath = null),
+              onRemove: () {
+                final old = _cover;
+                if (old != null) {
+                  unawaited(
+                    const ArtworkCropOutputStore().remove(old.croppedPath),
+                  );
+                }
+                setState(() => _cover = null);
+              },
             ),
             if (supportsAudioCropping)
               AudioCropControls(

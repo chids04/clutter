@@ -44,6 +44,9 @@ struct AlbumDestination {
     source_cover: Option<String>,
     destination_cover: Option<String>,
     final_cover: Option<String>,
+    source_original: Option<String>,
+    destination_original: Option<String>,
+    final_original: Option<String>,
     artist_ids: Vec<String>,
     artist_key: String,
     merged: bool,
@@ -88,11 +91,11 @@ impl SqliteLibraryStore {
         let import = self.validate_song_import(update)?;
         // managed artwork and audio stay staged until sqlite accepts the song
         let artwork = self.stage_import_artwork(&import.cover)?;
-        let destination = match prepare_import_audio(&import, imports_dir, artwork.as_deref(), self)
-        {
+        let display = artwork.as_ref().map(|value| value.display_path.as_str());
+        let destination = match prepare_import_audio(&import, imports_dir, display, self) {
             Ok(path) => path,
             Err(error) => {
-                self.remove_managed_path(artwork.as_deref());
+                self.cleanup_staged_artwork(artwork.as_ref());
                 return Err(error);
             }
         };
@@ -100,22 +103,18 @@ impl SqliteLibraryStore {
             Ok(path) => path,
             Err(error) => {
                 let _ = fs::remove_file(&destination);
-                self.remove_managed_path(artwork.as_deref());
+                self.cleanup_staged_artwork(artwork.as_ref());
                 return Err(error);
             }
         };
-        let result = self.index_imported_song(
-            &import,
-            &destination,
-            artwork.as_deref(),
-            retained.as_deref(),
-        );
+        let result =
+            self.index_imported_song(&import, &destination, artwork.as_ref(), retained.as_deref());
         if result.is_err() {
             let _ = fs::remove_file(&destination);
             retained.iter().for_each(|path| {
                 let _ = fs::remove_file(path);
             });
-            self.remove_managed_path(artwork.as_deref());
+            self.cleanup_staged_artwork(artwork.as_ref());
         } else {
             let _ = fs::remove_file(&import.source_path);
             if let Some(crop) = &import.crop {
@@ -200,20 +199,18 @@ impl SqliteLibraryStore {
         Ok((title, artists, artwork))
     }
 
-    fn stage_import_artwork(&self, cover: &ArtworkUpdate) -> Result<Option<String>, String> {
-        match cover {
-            ArtworkUpdate::Replace(source) => self
-                .stage_managed_artwork(source, "songs", &Uuid::new_v4().to_string())
-                .map(Some),
-            ArtworkUpdate::Keep | ArtworkUpdate::Remove => Ok(None),
-        }
+    fn stage_import_artwork(
+        &self,
+        cover: &ArtworkUpdate,
+    ) -> Result<Option<artwork::StagedArtwork>, String> {
+        self.stage_artwork_update(cover, "songs", &Uuid::new_v4().to_string())
     }
 
     fn index_imported_song(
         &self,
         import: &ValidatedSongImport,
         destination: &Path,
-        artwork: Option<&str>,
+        artwork: Option<&artwork::StagedArtwork>,
         retained: Option<&Path>,
     ) -> Result<SongRow, String> {
         let metadata = extract_raw_metadata(destination)
@@ -242,9 +239,16 @@ impl SqliteLibraryStore {
         if let Some(artwork) = artwork {
             tx.execute(
                 "UPDATE songs SET cover_path = ?1 WHERE id = ?2",
-                params![artwork, song_id],
+                params![artwork.display_path, song_id],
             )
             .map_err(|error| format!("store imported artwork: {error}"))?;
+            artwork::apply_artwork_edit(
+                &tx,
+                ArtworkOwnerKind::Song,
+                &song_id,
+                &import.cover,
+                Some(artwork),
+            )?;
         }
         if let (Some(crop), Some(retained)) = (&import.crop, retained) {
             tx.execute(
@@ -286,18 +290,40 @@ impl SqliteLibraryStore {
         originals_dir: &Path,
     ) -> Result<SongRow, String> {
         let edit = validate_song_edit(update)?;
-        let new_cover = self.stage_edit_artwork(&edit.cover, "songs", &edit.song_id)?;
-        let result = self.apply_song_edit(&edit, new_cover.as_deref(), originals_dir);
-        if result.is_err() {
-            self.remove_managed_path(new_cover.as_deref());
+        let old_display = self.load_song_cover(&edit.song_id)?;
+        let old_artwork = self.load_artwork_edit(ArtworkOwnerKind::Song, &edit.song_id)?;
+        let staged = self.stage_edit_artwork(&edit.cover, "songs", &edit.song_id)?;
+        let display = staged.as_ref().map(|value| value.display_path.as_str());
+        let result = self.apply_song_edit(&edit, display, staged.as_ref(), originals_dir);
+        if result.is_ok() && !matches!(edit.cover, ArtworkUpdate::Keep) {
+            self.cleanup_previous_artwork(
+                old_display.as_deref(),
+                old_artwork.as_ref(),
+                staged.as_ref(),
+            );
+        } else if result.is_err() {
+            self.cleanup_staged_artwork(staged.as_ref());
         }
         result
+    }
+
+    fn load_song_cover(&self, song_id: &str) -> Result<Option<String>, String> {
+        let conn = self.conn.lock().map_err(|error| format!("lock: {error}"))?;
+        conn.query_row(
+            "SELECT cover_path FROM songs WHERE id = ?1",
+            params![song_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|error| format!("lookup song: {error}"))?
+        .ok_or_else(|| "song not found".to_string())
     }
 
     fn apply_song_edit(
         &self,
         edit: &SongEdit,
         new_cover: Option<&str>,
+        staged: Option<&artwork::StagedArtwork>,
         originals_dir: &Path,
     ) -> Result<SongRow, String> {
         let mut conn = self.conn.lock().map_err(|error| format!("lock: {error}"))?;
@@ -307,6 +333,13 @@ impl SqliteLibraryStore {
         let prepared = self.prepare_song_audio(edit, &source, &destination, originals_dir)?;
         let operation = (|| {
             write_song_edit(&tx, edit, &destination, &prepared.stored_destination)?;
+            artwork::apply_artwork_edit(
+                &tx,
+                ArtworkOwnerKind::Song,
+                &edit.song_id,
+                &edit.cover,
+                staged,
+            )?;
             apply_crop_change(&tx, &edit.song_id, &prepared.crop_change)?;
             cleanup_changed_album(&tx, &self.base_dir, &source, &destination)?;
             commit_audio_edit(tx, prepared.file.as_ref(), &self.operation_journal_path)
@@ -322,7 +355,6 @@ impl SqliteLibraryStore {
         drop(conn);
         remove_optional_file(prepared.consumed_temporary.as_deref());
         remove_optional_file(prepared.retained_on_success.as_deref());
-        self.cleanup_replaced_cover(&edit.cover, source.old_cover.as_deref(), new_cover);
         self.get_song_by_id(&edit.song_id)
             .ok_or_else(|| "updated song not found".into())
     }
@@ -521,10 +553,11 @@ impl SqliteLibraryStore {
 
     pub fn update_album_metadata(&self, update: AlbumMetadataUpdate) -> Result<AlbumRow, String> {
         let edit = validate_album_edit(update)?;
-        let new_cover = self.stage_edit_artwork(&edit.cover, "albums", &edit.album_id)?;
-        let result = self.apply_album_edit(&edit, new_cover.as_deref());
+        let staged = self.stage_edit_artwork(&edit.cover, "albums", &edit.album_id)?;
+        let display = staged.as_ref().map(|value| value.display_path.as_str());
+        let result = self.apply_album_edit(&edit, display, staged.as_ref());
         if result.is_err() {
-            self.remove_managed_path(new_cover.as_deref());
+            self.cleanup_staged_artwork(staged.as_ref());
         }
         result
     }
@@ -533,11 +566,13 @@ impl SqliteLibraryStore {
         &self,
         edit: &AlbumEdit,
         new_cover: Option<&str>,
+        staged: Option<&artwork::StagedArtwork>,
     ) -> Result<AlbumRow, String> {
         let mut conn = self.conn.lock().map_err(|error| format!("lock: {error}"))?;
         let tx = conn.transaction().map_err(|error| format!("tx: {error}"))?;
-        let destination = resolve_album_destination(&tx, edit, new_cover)?;
+        let destination = resolve_album_destination(&tx, edit, new_cover, staged)?;
         apply_album_identity(&tx, edit, &destination)?;
+        apply_album_artwork_source(&tx, edit, &destination, staged)?;
         let prepared = self.prepare_album_audio(&tx, edit, &destination)?;
         let operation_id = commit_audio_batch(tx, &prepared, &self.operation_journal_path)?;
         finish_committed_operation(&conn, &self.operation_journal_path, operation_id);
@@ -592,25 +627,8 @@ impl SqliteLibraryStore {
         artwork: &ArtworkUpdate,
         category: &str,
         owner_id: &str,
-    ) -> Result<Option<String>, String> {
-        match artwork {
-            ArtworkUpdate::Replace(source) => self
-                .stage_managed_artwork(source, category, owner_id)
-                .map(Some),
-            _ => Ok(None),
-        }
-    }
-
-    fn cleanup_replaced_cover(
-        &self,
-        artwork: &ArtworkUpdate,
-        old_cover: Option<&str>,
-        new_cover: Option<&str>,
-    ) {
-        if matches!(artwork, ArtworkUpdate::Keep) || old_cover == new_cover {
-            return;
-        }
-        self.remove_managed_path(old_cover);
+    ) -> Result<Option<artwork::StagedArtwork>, String> {
+        self.stage_artwork_update(artwork, category, owner_id)
     }
 
     fn cleanup_album_covers(&self, destination: &AlbumDestination) {
@@ -620,9 +638,15 @@ impl SqliteLibraryStore {
         if destination.merged && destination.destination_cover != destination.final_cover {
             self.remove_managed_path(destination.destination_cover.as_deref());
         }
+        if destination.source_original != destination.final_original {
+            self.remove_managed_path(destination.source_original.as_deref());
+        }
+        if destination.merged && destination.destination_original != destination.final_original {
+            self.remove_managed_path(destination.destination_original.as_deref());
+        }
     }
 
-    fn remove_managed_path(&self, path: Option<&str>) {
+    pub(super) fn remove_managed_path(&self, path: Option<&str>) {
         if let Some(path) = path {
             remove_stored_file(&self.base_dir, path);
         }
@@ -900,7 +924,7 @@ fn choose_artwork<'a>(
     match artwork {
         ArtworkUpdate::Keep => old_cover,
         ArtworkUpdate::Remove => None,
-        ArtworkUpdate::Replace(_) => new_cover,
+        ArtworkUpdate::Replace { .. } => new_cover,
     }
 }
 
@@ -999,26 +1023,61 @@ fn resolve_album_destination(
     tx: &rusqlite::Transaction<'_>,
     edit: &AlbumEdit,
     new_cover: Option<&str>,
+    staged: Option<&artwork::StagedArtwork>,
 ) -> Result<AlbumDestination, String> {
     let source_cover = load_source_album_cover(tx, &edit.album_id)?;
+    let source_original = artwork::query_artwork_edit(tx, ArtworkOwnerKind::Album, &edit.album_id)?
+        .map(|row| row.original_path);
     let artist_ids = ensure_artists(tx, &edit.artist_names, "album artists")?;
     let artist_key = artist_key(&artist_ids);
     let collision = find_album_collision(tx, edit, &artist_key)?;
     let (surviving_id, destination_cover, merged) = collision
         .map(|(id, cover)| (id, cover, true))
         .unwrap_or_else(|| (edit.album_id.clone(), source_cover.clone(), false));
+    let destination_original = if merged {
+        artwork::query_artwork_edit(tx, ArtworkOwnerKind::Album, &surviving_id)?
+            .map(|row| row.original_path)
+    } else {
+        source_original.clone()
+    };
     let final_cover =
         choose_artwork(&edit.cover, destination_cover.as_deref(), new_cover).map(str::to_string);
+    let final_original = match &edit.cover {
+        ArtworkUpdate::Keep => destination_original.clone(),
+        ArtworkUpdate::Remove => None,
+        ArtworkUpdate::Replace { .. } => staged.map(|value| value.original_path.clone()),
+    };
     let destination = AlbumDestination {
         surviving_id,
         source_cover,
         destination_cover,
         final_cover,
+        source_original,
+        destination_original,
+        final_original,
         artist_ids,
         artist_key,
         merged,
     };
     Ok(destination)
+}
+
+fn apply_album_artwork_source(
+    tx: &rusqlite::Transaction<'_>,
+    edit: &AlbumEdit,
+    destination: &AlbumDestination,
+    staged: Option<&artwork::StagedArtwork>,
+) -> Result<(), String> {
+    if destination.merged {
+        artwork::delete_artwork_edit(tx, ArtworkOwnerKind::Album, &edit.album_id)?;
+    }
+    artwork::apply_artwork_edit(
+        tx,
+        ArtworkOwnerKind::Album,
+        &destination.surviving_id,
+        &edit.cover,
+        staged,
+    )
 }
 
 fn load_source_album_cover(

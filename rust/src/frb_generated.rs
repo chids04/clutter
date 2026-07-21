@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1311563588;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 630934489;
 
 // Section: executor
 
@@ -631,6 +631,62 @@ fn wire__crate__api__library__LibraryApi_get_artists_paginated_impl(
                             api_limit,
                         ),
                     )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__library__LibraryApi_get_artwork_edit_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "LibraryApi_get_artwork_edit",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<LibraryApi>,
+            >>::sse_decode(&mut deserializer);
+            let api_owner = <crate::api::models::ArtworkOwner>::sse_decode(&mut deserializer);
+            let api_owner_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok =
+                        Result::<_, ()>::Ok(crate::api::library::LibraryApi::get_artwork_edit(
+                            &*api_that_guard,
+                            api_owner,
+                            api_owner_id,
+                        ))?;
                     Ok(output_ok)
                 })())
             }
@@ -2798,6 +2854,48 @@ impl SseDecode for crate::api::models::ArtistViewData {
     }
 }
 
+impl SseDecode for crate::api::models::ArtworkCropRectData {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_left = <f64>::sse_decode(deserializer);
+        let mut var_top = <f64>::sse_decode(deserializer);
+        let mut var_width = <f64>::sse_decode(deserializer);
+        let mut var_height = <f64>::sse_decode(deserializer);
+        return crate::api::models::ArtworkCropRectData {
+            left: var_left,
+            top: var_top,
+            width: var_width,
+            height: var_height,
+        };
+    }
+}
+
+impl SseDecode for crate::api::models::ArtworkEditData {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_originalPath = <String>::sse_decode(deserializer);
+        let mut var_crop = <crate::api::models::ArtworkCropRectData>::sse_decode(deserializer);
+        return crate::api::models::ArtworkEditData {
+            original_path: var_originalPath,
+            crop: var_crop,
+        };
+    }
+}
+
+impl SseDecode for crate::api::models::ArtworkOwner {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::models::ArtworkOwner::Song,
+            1 => crate::api::models::ArtworkOwner::Album,
+            2 => crate::api::models::ArtworkOwner::Artist,
+            3 => crate::api::models::ArtworkOwner::Playlist,
+            _ => unreachable!("Invalid variant for ArtworkOwner: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2817,9 +2915,14 @@ impl SseDecode for crate::api::models::CoverArtEdit {
                 return crate::api::models::CoverArtEdit::Remove;
             }
             2 => {
-                let mut var_sourcePath = <String>::sse_decode(deserializer);
+                let mut var_originalSourcePath = <String>::sse_decode(deserializer);
+                let mut var_croppedSourcePath = <String>::sse_decode(deserializer);
+                let mut var_crop =
+                    <crate::api::models::ArtworkCropRectData>::sse_decode(deserializer);
                 return crate::api::models::CoverArtEdit::Replace {
-                    source_path: var_sourcePath,
+                    original_source_path: var_originalSourcePath,
+                    cropped_source_path: var_croppedSourcePath,
+                    crop: var_crop,
                 };
             }
             _ => {
@@ -2867,6 +2970,13 @@ impl SseDecode for crate::api::models::ExtractedSongImportRequest {
             cover: var_cover,
             crop: var_crop,
         };
+    }
+}
+
+impl SseDecode for f64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_f64::<NativeEndian>().unwrap()
     }
 }
 
@@ -3050,6 +3160,19 @@ impl SseDecode for Option<crate::api::models::ArtistViewData> {
     }
 }
 
+impl SseDecode for Option<crate::api::models::ArtworkEditData> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::models::ArtworkEditData>::sse_decode(
+                deserializer,
+            ));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::api::models::ExtractedSongCropRequest> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -3176,9 +3299,14 @@ impl SseDecode for crate::api::models::PlaylistVisualEdit {
                 return crate::api::models::PlaylistVisualEdit::Icon { key: var_key };
             }
             3 => {
-                let mut var_sourcePath = <String>::sse_decode(deserializer);
+                let mut var_originalSourcePath = <String>::sse_decode(deserializer);
+                let mut var_croppedSourcePath = <String>::sse_decode(deserializer);
+                let mut var_crop =
+                    <crate::api::models::ArtworkCropRectData>::sse_decode(deserializer);
                 return crate::api::models::PlaylistVisualEdit::Image {
-                    source_path: var_sourcePath,
+                    original_source_path: var_originalSourcePath,
+                    cropped_source_path: var_croppedSourcePath,
+                    crop: var_crop,
                 };
             }
             _ => {
@@ -3401,200 +3529,206 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        12 => wire__crate__api__library__LibraryApi_get_keybindings_impl(
+        12 => wire__crate__api__library__LibraryApi_get_artwork_edit_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        13 => wire__crate__api__library__LibraryApi_get_liked_song_ids_impl(
+        13 => wire__crate__api__library__LibraryApi_get_keybindings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        14 => wire__crate__api__library__LibraryApi_get_liked_songs_playlist_id_impl(
+        14 => wire__crate__api__library__LibraryApi_get_liked_song_ids_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        15 => wire__crate__api__library__LibraryApi_get_pinned_items_impl(
+        15 => wire__crate__api__library__LibraryApi_get_liked_songs_playlist_id_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        16 => wire__crate__api__library__LibraryApi_get_playlists_paginated_impl(
+        16 => wire__crate__api__library__LibraryApi_get_pinned_items_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        17 => wire__crate__api__library__LibraryApi_get_recently_played_impl(
+        17 => wire__crate__api__library__LibraryApi_get_playlists_paginated_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        18 => wire__crate__api__library__LibraryApi_get_scan_paths_impl(
+        18 => wire__crate__api__library__LibraryApi_get_recently_played_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        19 => wire__crate__api__library__LibraryApi_get_song_by_id_impl(
+        19 => wire__crate__api__library__LibraryApi_get_scan_paths_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        20 => wire__crate__api__library__LibraryApi_get_songs_artist_featured_on_impl(
+        20 => wire__crate__api__library__LibraryApi_get_song_by_id_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        21 => wire__crate__api__library__LibraryApi_get_songs_by_album_id_impl(
+        21 => wire__crate__api__library__LibraryApi_get_songs_artist_featured_on_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        22 => wire__crate__api__library__LibraryApi_get_songs_in_playlist_impl(
+        22 => wire__crate__api__library__LibraryApi_get_songs_by_album_id_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        23 => wire__crate__api__library__LibraryApi_get_songs_paginated_impl(
+        23 => wire__crate__api__library__LibraryApi_get_songs_in_playlist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        28 => wire__crate__api__library__LibraryApi_import_extracted_song_impl(
+        24 => wire__crate__api__library__LibraryApi_get_songs_paginated_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        29 => wire__crate__api__library__LibraryApi_init_impl(port, ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__library__LibraryApi_load_playback_state_impl(
+        29 => wire__crate__api__library__LibraryApi_import_extracted_song_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        31 => wire__crate__api__library__LibraryApi_move_pinned_item_impl(
+        30 => wire__crate__api__library__LibraryApi_init_impl(port, ptr, rust_vec_len, data_len),
+        31 => wire__crate__api__library__LibraryApi_load_playback_state_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        32 => {
+        32 => wire__crate__api__library__LibraryApi_move_pinned_item_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        33 => {
             wire__crate__api__library__LibraryApi_pin_item_impl(port, ptr, rust_vec_len, data_len)
         }
-        33 => wire__crate__api__library__LibraryApi_record_play_impl(
+        34 => wire__crate__api__library__LibraryApi_record_play_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        34 => wire__crate__api__library__LibraryApi_remove_song_from_playlist_impl(
+        35 => wire__crate__api__library__LibraryApi_remove_song_from_playlist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        35 => wire__crate__api__library__LibraryApi_reset_keybindings_impl(
+        36 => wire__crate__api__library__LibraryApi_reset_keybindings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__library__LibraryApi_reset_library_impl(
+        37 => wire__crate__api__library__LibraryApi_reset_library_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => wire__crate__api__library__LibraryApi_save_playback_state_impl(
+        38 => wire__crate__api__library__LibraryApi_save_playback_state_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => wire__crate__api__library__LibraryApi_scan_directory_impl(
+        39 => wire__crate__api__library__LibraryApi_scan_directory_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__library__LibraryApi_search_albums_impl(
+        40 => wire__crate__api__library__LibraryApi_search_albums_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        40 => wire__crate__api__library__LibraryApi_search_artists_impl(
+        41 => wire__crate__api__library__LibraryApi_search_artists_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        41 => wire__crate__api__library__LibraryApi_search_playlists_impl(
+        42 => wire__crate__api__library__LibraryApi_search_playlists_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => wire__crate__api__library__LibraryApi_search_songs_impl(
+        43 => wire__crate__api__library__LibraryApi_search_songs_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__library__LibraryApi_split_album_to_new_artist_impl(
+        44 => wire__crate__api__library__LibraryApi_split_album_to_new_artist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        44 => {
+        45 => {
             wire__crate__api__library__LibraryApi_unpin_item_impl(port, ptr, rust_vec_len, data_len)
         }
-        45 => wire__crate__api__library__LibraryApi_update_album_impl(
+        46 => wire__crate__api__library__LibraryApi_update_album_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        46 => wire__crate__api__library__LibraryApi_update_artist_image_impl(
+        47 => wire__crate__api__library__LibraryApi_update_artist_image_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        47 => wire__crate__api__library__LibraryApi_update_keybinding_impl(
+        48 => wire__crate__api__library__LibraryApi_update_keybinding_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        48 => wire__crate__api__library__LibraryApi_update_playlist_impl(
+        49 => wire__crate__api__library__LibraryApi_update_playlist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        49 => wire__crate__api__library__LibraryApi_update_song_impl(
+        50 => wire__crate__api__library__LibraryApi_update_song_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        50 => wire__crate__api__init__init_app_impl(port, ptr, rust_vec_len, data_len),
+        51 => wire__crate__api__init__init_app_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -3607,20 +3741,20 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        24 => {
+        25 => {
             wire__crate__api__library__LibraryApi_get_total_albums_impl(ptr, rust_vec_len, data_len)
         }
-        25 => wire__crate__api__library__LibraryApi_get_total_artists_impl(
+        26 => wire__crate__api__library__LibraryApi_get_total_artists_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        26 => wire__crate__api__library__LibraryApi_get_total_playlists_impl(
+        27 => wire__crate__api__library__LibraryApi_get_total_playlists_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        27 => {
+        28 => {
             wire__crate__api__library__LibraryApi_get_total_songs_impl(ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
@@ -3748,14 +3882,89 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::models::ArtistViewData>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::models::ArtworkCropRectData {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.left.into_into_dart().into_dart(),
+            self.top.into_into_dart().into_dart(),
+            self.width.into_into_dart().into_dart(),
+            self.height.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::models::ArtworkCropRectData
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::models::ArtworkCropRectData>
+    for crate::api::models::ArtworkCropRectData
+{
+    fn into_into_dart(self) -> crate::api::models::ArtworkCropRectData {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::models::ArtworkEditData {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.original_path.into_into_dart().into_dart(),
+            self.crop.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::models::ArtworkEditData
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::models::ArtworkEditData>
+    for crate::api::models::ArtworkEditData
+{
+    fn into_into_dart(self) -> crate::api::models::ArtworkEditData {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::models::ArtworkOwner {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Song => 0.into_dart(),
+            Self::Album => 1.into_dart(),
+            Self::Artist => 2.into_dart(),
+            Self::Playlist => 3.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::models::ArtworkOwner
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::models::ArtworkOwner>
+    for crate::api::models::ArtworkOwner
+{
+    fn into_into_dart(self) -> crate::api::models::ArtworkOwner {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::models::CoverArtEdit {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
             crate::api::models::CoverArtEdit::Keep => [0.into_dart()].into_dart(),
             crate::api::models::CoverArtEdit::Remove => [1.into_dart()].into_dart(),
-            crate::api::models::CoverArtEdit::Replace { source_path } => {
-                [2.into_dart(), source_path.into_into_dart().into_dart()].into_dart()
-            }
+            crate::api::models::CoverArtEdit::Replace {
+                original_source_path,
+                cropped_source_path,
+                crop,
+            } => [
+                2.into_dart(),
+                original_source_path.into_into_dart().into_dart(),
+                cropped_source_path.into_into_dart().into_dart(),
+                crop.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
             _ => {
                 unimplemented!("");
             }
@@ -3972,9 +4181,17 @@ impl flutter_rust_bridge::IntoDart for crate::api::models::PlaylistVisualEdit {
             crate::api::models::PlaylistVisualEdit::Icon { key } => {
                 [2.into_dart(), key.into_into_dart().into_dart()].into_dart()
             }
-            crate::api::models::PlaylistVisualEdit::Image { source_path } => {
-                [3.into_dart(), source_path.into_into_dart().into_dart()].into_dart()
-            }
+            crate::api::models::PlaylistVisualEdit::Image {
+                original_source_path,
+                cropped_source_path,
+                crop,
+            } => [
+                3.into_dart(),
+                original_source_path.into_into_dart().into_dart(),
+                cropped_source_path.into_into_dart().into_dart(),
+                crop.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
             _ => {
                 unimplemented!("");
             }
@@ -4205,6 +4422,42 @@ impl SseEncode for crate::api::models::ArtistViewData {
     }
 }
 
+impl SseEncode for crate::api::models::ArtworkCropRectData {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <f64>::sse_encode(self.left, serializer);
+        <f64>::sse_encode(self.top, serializer);
+        <f64>::sse_encode(self.width, serializer);
+        <f64>::sse_encode(self.height, serializer);
+    }
+}
+
+impl SseEncode for crate::api::models::ArtworkEditData {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.original_path, serializer);
+        <crate::api::models::ArtworkCropRectData>::sse_encode(self.crop, serializer);
+    }
+}
+
+impl SseEncode for crate::api::models::ArtworkOwner {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::models::ArtworkOwner::Song => 0,
+                crate::api::models::ArtworkOwner::Album => 1,
+                crate::api::models::ArtworkOwner::Artist => 2,
+                crate::api::models::ArtworkOwner::Playlist => 3,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4222,9 +4475,15 @@ impl SseEncode for crate::api::models::CoverArtEdit {
             crate::api::models::CoverArtEdit::Remove => {
                 <i32>::sse_encode(1, serializer);
             }
-            crate::api::models::CoverArtEdit::Replace { source_path } => {
+            crate::api::models::CoverArtEdit::Replace {
+                original_source_path,
+                cropped_source_path,
+                crop,
+            } => {
                 <i32>::sse_encode(2, serializer);
-                <String>::sse_encode(source_path, serializer);
+                <String>::sse_encode(original_source_path, serializer);
+                <String>::sse_encode(cropped_source_path, serializer);
+                <crate::api::models::ArtworkCropRectData>::sse_encode(crop, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -4254,6 +4513,13 @@ impl SseEncode for crate::api::models::ExtractedSongImportRequest {
         <crate::api::models::AlbumChoice>::sse_encode(self.album, serializer);
         <crate::api::models::CoverArtEdit>::sse_encode(self.cover, serializer);
         <Option<crate::api::models::ExtractedSongCropRequest>>::sse_encode(self.crop, serializer);
+    }
+}
+
+impl SseEncode for f64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_f64::<NativeEndian>(self).unwrap();
     }
 }
 
@@ -4402,6 +4668,16 @@ impl SseEncode for Option<crate::api::models::ArtistViewData> {
     }
 }
 
+impl SseEncode for Option<crate::api::models::ArtworkEditData> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::models::ArtworkEditData>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::api::models::ExtractedSongCropRequest> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4495,9 +4771,15 @@ impl SseEncode for crate::api::models::PlaylistVisualEdit {
                 <i32>::sse_encode(2, serializer);
                 <String>::sse_encode(key, serializer);
             }
-            crate::api::models::PlaylistVisualEdit::Image { source_path } => {
+            crate::api::models::PlaylistVisualEdit::Image {
+                original_source_path,
+                cropped_source_path,
+                crop,
+            } => {
                 <i32>::sse_encode(3, serializer);
-                <String>::sse_encode(source_path, serializer);
+                <String>::sse_encode(original_source_path, serializer);
+                <String>::sse_encode(cropped_source_path, serializer);
+                <crate::api::models::ArtworkCropRectData>::sse_encode(crop, serializer);
             }
             _ => {
                 unimplemented!("");

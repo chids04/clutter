@@ -57,6 +57,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ArtistViewData dco_decode_artist_view_data(dynamic raw);
 
   @protected
+  ArtworkCropRectData dco_decode_artwork_crop_rect_data(dynamic raw);
+
+  @protected
+  ArtworkEditData dco_decode_artwork_edit_data(dynamic raw);
+
+  @protected
+  ArtworkOwner dco_decode_artwork_owner(dynamic raw);
+
+  @protected
   bool dco_decode_bool(dynamic raw);
 
   @protected
@@ -64,6 +73,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ArtistViewData dco_decode_box_autoadd_artist_view_data(dynamic raw);
+
+  @protected
+  ArtworkCropRectData dco_decode_box_autoadd_artwork_crop_rect_data(
+    dynamic raw,
+  );
+
+  @protected
+  ArtworkEditData dco_decode_box_autoadd_artwork_edit_data(dynamic raw);
 
   @protected
   CoverArtEdit dco_decode_box_autoadd_cover_art_edit(dynamic raw);
@@ -110,6 +127,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  double dco_decode_f_64(dynamic raw);
+
+  @protected
   int dco_decode_i_32(dynamic raw);
 
   @protected
@@ -150,6 +170,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ArtistViewData? dco_decode_opt_box_autoadd_artist_view_data(dynamic raw);
+
+  @protected
+  ArtworkEditData? dco_decode_opt_box_autoadd_artwork_edit_data(dynamic raw);
 
   @protected
   ExtractedSongCropRequest?
@@ -242,6 +265,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ArtistViewData sse_decode_artist_view_data(SseDeserializer deserializer);
 
   @protected
+  ArtworkCropRectData sse_decode_artwork_crop_rect_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ArtworkEditData sse_decode_artwork_edit_data(SseDeserializer deserializer);
+
+  @protected
+  ArtworkOwner sse_decode_artwork_owner(SseDeserializer deserializer);
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
@@ -251,6 +285,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ArtistViewData sse_decode_box_autoadd_artist_view_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ArtworkCropRectData sse_decode_box_autoadd_artwork_crop_rect_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ArtworkEditData sse_decode_box_autoadd_artwork_edit_data(
     SseDeserializer deserializer,
   );
 
@@ -317,6 +361,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  double sse_decode_f_64(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
@@ -369,6 +416,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ArtistViewData? sse_decode_opt_box_autoadd_artist_view_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ArtworkEditData? sse_decode_opt_box_autoadd_artwork_edit_data(
     SseDeserializer deserializer,
   );
 
@@ -484,6 +536,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_artwork_crop_rect_data(
+    ArtworkCropRectData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_artwork_edit_data(
+    ArtworkEditData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_artwork_owner(ArtworkOwner self, SseSerializer serializer);
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
@@ -495,6 +562,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_artist_view_data(
     ArtistViewData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_artwork_crop_rect_data(
+    ArtworkCropRectData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_artwork_edit_data(
+    ArtworkEditData self,
     SseSerializer serializer,
   );
 
@@ -574,6 +653,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_f_64(double self, SseSerializer serializer);
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
@@ -642,6 +724,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_artist_view_data(
     ArtistViewData? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_artwork_edit_data(
+    ArtworkEditData? self,
     SseSerializer serializer,
   );
 

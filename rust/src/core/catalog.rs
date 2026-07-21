@@ -1,7 +1,14 @@
 use super::LibraryCore;
-use crate::storage::sqlite::{AlbumRow, ArtistRow, SongRow};
+use crate::storage::sqlite::{AlbumRow, ArtistRow, ArtworkEditRow, ArtworkOwnerKind, SongRow};
 
 impl LibraryCore {
+    pub fn get_artwork_edit(
+        &self,
+        owner: ArtworkOwnerKind,
+        owner_id: &str,
+    ) -> Option<ArtworkEditRow> {
+        self.store.get_artwork_edit(owner, owner_id)
+    }
     pub fn get_total_songs(&self) -> u32 {
         self.store.get_total_songs()
     }

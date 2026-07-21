@@ -44,6 +44,11 @@ abstract class LibraryApi implements RustOpaqueInterface {
     required int limit,
   });
 
+  Future<ArtworkEditData?> getArtworkEdit({
+    required ArtworkOwner owner,
+    required String ownerId,
+  });
+
   Future<List<KeybindingData>> getKeybindings();
 
   Future<List<String>> getLikedSongIds();

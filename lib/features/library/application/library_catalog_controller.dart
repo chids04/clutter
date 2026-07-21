@@ -250,6 +250,9 @@ class LibraryCatalogController extends ChangeNotifier {
     return _songs.firstWhere((song) => song.id == updated.id);
   }
 
+  Future<ArtworkEditData?> getArtworkEdit(ArtworkOwner owner, String ownerId) =>
+      repository.getArtworkEdit(owner, ownerId);
+
   Future<SongViewData> importExtractedSong(
     ExtractedSongImportRequest request,
   ) async {

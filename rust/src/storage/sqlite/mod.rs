@@ -11,6 +11,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+mod artwork;
 mod editing;
 mod keybindings;
 mod models;
@@ -488,50 +489,61 @@ impl SqliteLibraryStore {
         artist_id: &str,
         artwork: ArtworkUpdate,
     ) -> Result<ArtistRow, String> {
-        let new_path = match &artwork {
-            ArtworkUpdate::Replace(source) => {
-                Some(self.stage_managed_artwork(source, "artists", artist_id)?)
-            }
-            _ => None,
-        };
-        let result = (|| {
-            let conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
-            let old: Option<String> = conn
-                .query_row(
-                    "SELECT custom_cover_path FROM artists WHERE id = ?1",
-                    params![artist_id],
-                    |r| r.get(0),
-                )
-                .optional()
-                .map_err(|e| format!("lookup artist: {e}"))?
-                .ok_or_else(|| "artist not found".to_string())?;
-            let value = match &artwork {
-                ArtworkUpdate::Keep => old.clone(),
-                ArtworkUpdate::Remove => None,
-                ArtworkUpdate::Replace(_) => new_path.clone(),
-            };
-            conn.execute(
-                "UPDATE artists SET custom_cover_path = ?1 WHERE id = ?2",
-                params![value, artist_id],
-            )
-            .map_err(|e| format!("update artist image: {e}"))?;
-            drop(conn);
-            if !matches!(artwork, ArtworkUpdate::Keep) {
-                if let Some(old) = old {
-                    if Some(old.clone()) != new_path {
-                        remove_stored_file(&self.base_dir, &old);
-                    }
-                }
-            }
-            self.get_artist_by_id(artist_id)
-                .ok_or_else(|| "updated artist not found".into())
-        })();
-        if result.is_err() {
-            if let Some(path) = new_path {
-                remove_stored_file(&self.base_dir, &path);
-            }
+        let old_display = self.load_artist_cover(artist_id)?;
+        let old_edit = self.load_artwork_edit(ArtworkOwnerKind::Artist, artist_id)?;
+        let staged = self.stage_artwork_update(&artwork, "artists", artist_id)?;
+        let result = self.apply_artist_image(artist_id, &artwork, staged.as_ref());
+        if result.is_ok() && !matches!(artwork, ArtworkUpdate::Keep) {
+            self.cleanup_previous_artwork(
+                old_display.as_deref(),
+                old_edit.as_ref(),
+                staged.as_ref(),
+            );
+        } else if result.is_err() {
+            self.cleanup_staged_artwork(staged.as_ref());
         }
         result
+    }
+
+    fn load_artist_cover(&self, artist_id: &str) -> Result<Option<String>, String> {
+        let conn = self.conn.lock().map_err(|error| format!("lock: {error}"))?;
+        conn.query_row(
+            "SELECT custom_cover_path FROM artists WHERE id = ?1",
+            params![artist_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|error| format!("lookup artist: {error}"))?
+        .ok_or_else(|| "artist not found".to_string())
+    }
+
+    fn apply_artist_image(
+        &self,
+        artist_id: &str,
+        artwork: &ArtworkUpdate,
+        staged: Option<&artwork::StagedArtwork>,
+    ) -> Result<ArtistRow, String> {
+        let mut conn = self.conn.lock().map_err(|error| format!("lock: {error}"))?;
+        let tx = conn.transaction().map_err(|error| format!("tx: {error}"))?;
+        let old = tx
+            .query_row(
+                "SELECT custom_cover_path FROM artists WHERE id = ?1",
+                params![artist_id],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .map_err(|error| format!("lookup artist: {error}"))?;
+        let value = choose_staged_artwork(artwork, old, staged);
+        tx.execute(
+            "UPDATE artists SET custom_cover_path = ?1 WHERE id = ?2",
+            params![value, artist_id],
+        )
+        .map_err(|error| format!("update artist image: {error}"))?;
+        artwork::apply_artwork_edit(&tx, ArtworkOwnerKind::Artist, artist_id, artwork, staged)?;
+        tx.commit()
+            .map_err(|error| format!("commit artist image: {error}"))?;
+        drop(conn);
+        self.get_artist_by_id(artist_id)
+            .ok_or_else(|| "updated artist not found".into())
     }
 
     pub fn update_playlist_metadata(
@@ -541,64 +553,78 @@ impl SqliteLibraryStore {
         visual: PlaylistVisualUpdate,
     ) -> Result<PlaylistRow, String> {
         let name = required_text(name, "playlist name")?;
-        let new_image = match &visual {
-            PlaylistVisualUpdate::Image(source) => {
-                Some(self.stage_managed_artwork(source, "playlists", playlist_id)?)
-            }
-            _ => None,
-        };
-        let result = (|| {
-            let conn = self.conn.lock().map_err(|e| format!("lock: {e}"))?;
-            let (is_system, old_icon, old_image): (i64, Option<String>, Option<String>) = conn
-                .query_row(
-                    "SELECT is_system, icon_key, image_path FROM playlists WHERE id = ?1",
-                    params![playlist_id],
-                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
-                )
-                .optional()
-                .map_err(|e| format!("lookup playlist: {e}"))?
-                .ok_or_else(|| "playlist not found".to_string())?;
-            if is_system != 0 {
-                return Err("system playlists cannot be edited".into());
-            }
-            let (icon, image) = match &visual {
-                PlaylistVisualUpdate::Keep => (old_icon, old_image.clone()),
-                PlaylistVisualUpdate::Initials => (None, None),
-                PlaylistVisualUpdate::Icon(key) => {
-                    if !valid_playlist_icon(key) {
-                        return Err("invalid playlist icon".into());
-                    }
-                    (Some(key.clone()), None)
-                }
-                PlaylistVisualUpdate::Image(_) => (None, new_image.clone()),
-            };
-            conn.execute(
-                "UPDATE playlists SET name = ?1, icon_key = ?2, image_path = ?3 WHERE id = ?4",
-                params![name, icon, image, playlist_id],
-            )
-            .map_err(|e| format!("update playlist: {e}"))?;
-            if let Err(e) = backup_user_playlists(&conn, &self.playlist_backup_path) {
-                warn!("backup after playlist update failed: {e}");
-            }
-            drop(conn);
-            if !matches!(visual, PlaylistVisualUpdate::Keep) {
-                if let Some(old) = old_image {
-                    if Some(old.clone()) != new_image {
-                        remove_stored_file(&self.base_dir, &old);
-                    }
-                }
-            }
-            self.get_playlists_paginated(0, self.get_total_playlists())
-                .into_iter()
-                .find(|p| p.id == playlist_id)
-                .ok_or_else(|| "updated playlist not found".into())
-        })();
-        if result.is_err() {
-            if let Some(path) = new_image {
-                remove_stored_file(&self.base_dir, &path);
-            }
+        let artwork_update = playlist_artwork_update(&visual);
+        let old_display = self.load_playlist_image(playlist_id)?;
+        let old_edit = self.load_artwork_edit(ArtworkOwnerKind::Playlist, playlist_id)?;
+        let staged = self.stage_artwork_update(&artwork_update, "playlists", playlist_id)?;
+        let result = self.apply_playlist_edit(
+            playlist_id,
+            &name,
+            &visual,
+            &artwork_update,
+            staged.as_ref(),
+        );
+        if result.is_ok() && !matches!(artwork_update, ArtworkUpdate::Keep) {
+            self.cleanup_previous_artwork(
+                old_display.as_deref(),
+                old_edit.as_ref(),
+                staged.as_ref(),
+            );
+        } else if result.is_err() {
+            self.cleanup_staged_artwork(staged.as_ref());
         }
         result
+    }
+
+    fn load_playlist_image(&self, playlist_id: &str) -> Result<Option<String>, String> {
+        let conn = self.conn.lock().map_err(|error| format!("lock: {error}"))?;
+        conn.query_row(
+            "SELECT image_path FROM playlists WHERE id = ?1",
+            params![playlist_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|error| format!("lookup playlist: {error}"))?
+        .ok_or_else(|| "playlist not found".to_string())
+    }
+
+    fn apply_playlist_edit(
+        &self,
+        playlist_id: &str,
+        name: &str,
+        visual: &PlaylistVisualUpdate,
+        artwork_update: &ArtworkUpdate,
+        staged: Option<&artwork::StagedArtwork>,
+    ) -> Result<PlaylistRow, String> {
+        let mut conn = self.conn.lock().map_err(|error| format!("lock: {error}"))?;
+        let tx = conn.transaction().map_err(|error| format!("tx: {error}"))?;
+        let (is_system, old_icon, old_image) = load_playlist_visual(&tx, playlist_id)?;
+        if is_system {
+            return Err("system playlists cannot be edited".into());
+        }
+        let (icon, image) = resolve_playlist_visual(visual, old_icon, old_image, staged)?;
+        tx.execute(
+            "UPDATE playlists SET name = ?1, icon_key = ?2, image_path = ?3 WHERE id = ?4",
+            params![name, icon, image, playlist_id],
+        )
+        .map_err(|error| format!("update playlist: {error}"))?;
+        artwork::apply_artwork_edit(
+            &tx,
+            ArtworkOwnerKind::Playlist,
+            playlist_id,
+            artwork_update,
+            staged,
+        )?;
+        tx.commit()
+            .map_err(|error| format!("commit playlist: {error}"))?;
+        if let Err(error) = backup_user_playlists(&conn, &self.playlist_backup_path) {
+            warn!("backup after playlist update failed: {error}");
+        }
+        drop(conn);
+        self.get_playlists_paginated(0, self.get_total_playlists())
+            .into_iter()
+            .find(|playlist| playlist.id == playlist_id)
+            .ok_or_else(|| "updated playlist not found".into())
     }
 
     fn stage_managed_artwork(
@@ -2112,6 +2138,70 @@ fn valid_playlist_icon(key: &str) -> bool {
     )
 }
 
+fn choose_staged_artwork(
+    update: &ArtworkUpdate,
+    old_display: Option<String>,
+    staged: Option<&artwork::StagedArtwork>,
+) -> Option<String> {
+    match update {
+        ArtworkUpdate::Keep => old_display,
+        ArtworkUpdate::Remove => None,
+        ArtworkUpdate::Replace { .. } => staged.map(|value| value.display_path.clone()),
+    }
+}
+
+fn playlist_artwork_update(visual: &PlaylistVisualUpdate) -> ArtworkUpdate {
+    match visual {
+        PlaylistVisualUpdate::Keep => ArtworkUpdate::Keep,
+        PlaylistVisualUpdate::Initials | PlaylistVisualUpdate::Icon(_) => ArtworkUpdate::Remove,
+        PlaylistVisualUpdate::Image {
+            original_source_path,
+            cropped_source_path,
+            crop,
+        } => ArtworkUpdate::Replace {
+            original_source_path: original_source_path.clone(),
+            cropped_source_path: cropped_source_path.clone(),
+            crop: *crop,
+        },
+    }
+}
+
+fn load_playlist_visual(
+    conn: &Connection,
+    playlist_id: &str,
+) -> Result<(bool, Option<String>, Option<String>), String> {
+    conn.query_row(
+        "SELECT is_system, icon_key, image_path FROM playlists WHERE id = ?1",
+        params![playlist_id],
+        |row| Ok((row.get::<_, i64>(0)? != 0, row.get(1)?, row.get(2)?)),
+    )
+    .optional()
+    .map_err(|error| format!("lookup playlist: {error}"))?
+    .ok_or_else(|| "playlist not found".to_string())
+}
+
+fn resolve_playlist_visual(
+    visual: &PlaylistVisualUpdate,
+    old_icon: Option<String>,
+    old_image: Option<String>,
+    staged: Option<&artwork::StagedArtwork>,
+) -> Result<(Option<String>, Option<String>), String> {
+    match visual {
+        PlaylistVisualUpdate::Keep => Ok((old_icon, old_image)),
+        PlaylistVisualUpdate::Initials => Ok((None, None)),
+        PlaylistVisualUpdate::Icon(key) if valid_playlist_icon(key) => {
+            Ok((Some(key.clone()), None))
+        }
+        PlaylistVisualUpdate::Icon(_) => Err("invalid playlist icon".into()),
+        PlaylistVisualUpdate::Image { .. } => {
+            let path = staged
+                .map(|value| value.display_path.clone())
+                .ok_or_else(|| "staged playlist artwork is missing".to_string())?;
+            Ok((None, Some(path)))
+        }
+    }
+}
+
 fn detect_image_extension(bytes: &[u8]) -> Option<&'static str> {
     if bytes.starts_with(&[0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a]) {
         Some("png")
@@ -3051,8 +3141,10 @@ mod tests {
         let (store, tmp) = new_store();
         insert_basic_song(&store, "/tmp/edit.mp3", "Old", "Old Album", "Artist", &[]);
         let song = store.get_songs_paginated(0, 1).pop().unwrap();
-        let image = tmp.path().join("custom.png");
-        fs::write(&image, tiny_png()).unwrap();
+        let original = tmp.path().join("original.png");
+        let cropped = tmp.path().join("cropped.png");
+        fs::write(&original, tiny_png()).unwrap();
+        fs::write(&cropped, tiny_png()).unwrap();
 
         let updated = store
             .update_song_metadata(
@@ -3067,7 +3159,16 @@ mod tests {
                         title: "Joint Album".into(),
                         artists: vec!["Lead".into(), "Partner".into()],
                     },
-                    cover: ArtworkUpdate::Replace(image.to_string_lossy().into_owned()),
+                    cover: ArtworkUpdate::Replace {
+                        original_source_path: original.to_string_lossy().into_owned(),
+                        cropped_source_path: cropped.to_string_lossy().into_owned(),
+                        crop: ArtworkCropRect {
+                            left: 4.0,
+                            top: 6.0,
+                            width: 80.0,
+                            height: 80.0,
+                        },
+                    },
                     write_file_tags: false,
                     audio: SongAudioUpdate::Keep,
                 },
@@ -3080,6 +3181,12 @@ mod tests {
         assert_eq!(updated.album_artists, vec!["Lead", "Partner"]);
         assert!(updated.song_cover_path.is_some());
         assert_eq!(updated.cover_path, updated.song_cover_path);
+        let artwork = store
+            .get_artwork_edit(ArtworkOwnerKind::Song, &updated.id)
+            .expect("song artwork edit");
+        assert!(Path::new(&artwork.original_path).exists());
+        assert_eq!(artwork.crop.left, 4.0);
+        assert_ne!(artwork.original_path, updated.song_cover_path.unwrap());
     }
 
     #[test]
@@ -3132,46 +3239,86 @@ mod tests {
             &[],
         );
         let artist = store.get_artists_paginated(0, 1).pop().unwrap();
-        let image = tmp.path().join("artist.png");
-        fs::write(&image, tiny_png()).unwrap();
+        let original = tmp.path().join("artist-original.png");
+        let cropped = tmp.path().join("artist-cropped.png");
+        fs::write(&original, tiny_png()).unwrap();
+        fs::write(&cropped, tiny_png()).unwrap();
 
         let changed = store
             .update_artist_image(
                 &artist.id,
-                ArtworkUpdate::Replace(image.to_string_lossy().into_owned()),
+                ArtworkUpdate::Replace {
+                    original_source_path: original.to_string_lossy().into_owned(),
+                    cropped_source_path: cropped.to_string_lossy().into_owned(),
+                    crop: ArtworkCropRect {
+                        left: 1.0,
+                        top: 2.0,
+                        width: 32.0,
+                        height: 32.0,
+                    },
+                },
             )
             .expect("set artist image");
         assert!(changed.custom_cover_path.is_some());
         assert_eq!(changed.cover_path, changed.custom_cover_path);
+        let edit = store
+            .get_artwork_edit(ArtworkOwnerKind::Artist, &artist.id)
+            .expect("artist artwork edit");
+        let retained = edit.original_path.clone();
+        let display = changed.custom_cover_path.clone().unwrap();
 
         let restored = store
             .update_artist_image(&artist.id, ArtworkUpdate::Remove)
             .expect("remove artist image");
         assert!(restored.custom_cover_path.is_none());
+        assert!(store
+            .get_artwork_edit(ArtworkOwnerKind::Artist, &artist.id)
+            .is_none());
+        assert!(!Path::new(&retained).exists());
+        assert!(!Path::new(&display).exists());
     }
 
     #[test]
     fn playlist_visual_modes_are_exclusive_and_system_playlist_is_fixed() {
         let (store, tmp) = new_store();
         let id = store.create_playlist("Road Trip").unwrap();
-        let image = tmp.path().join("playlist.png");
-        fs::write(&image, tiny_png()).unwrap();
+        let original = tmp.path().join("playlist-original.png");
+        let cropped = tmp.path().join("playlist-cropped.png");
+        fs::write(&original, tiny_png()).unwrap();
+        fs::write(&cropped, tiny_png()).unwrap();
 
         let with_image = store
             .update_playlist_metadata(
                 &id,
                 "Driving",
-                PlaylistVisualUpdate::Image(image.to_string_lossy().into_owned()),
+                PlaylistVisualUpdate::Image {
+                    original_source_path: original.to_string_lossy().into_owned(),
+                    cropped_source_path: cropped.to_string_lossy().into_owned(),
+                    crop: ArtworkCropRect {
+                        left: 3.0,
+                        top: 3.0,
+                        width: 64.0,
+                        height: 64.0,
+                    },
+                },
             )
             .unwrap();
         assert!(with_image.image_path.is_some());
         assert!(with_image.icon_key.is_none());
+        let edit = store
+            .get_artwork_edit(ArtworkOwnerKind::Playlist, &id)
+            .expect("playlist artwork edit");
+        let retained = edit.original_path;
 
         let with_icon = store
             .update_playlist_metadata(&id, "Driving", PlaylistVisualUpdate::Icon("car".into()))
             .unwrap();
         assert_eq!(with_icon.icon_key.as_deref(), Some("car"));
         assert!(with_icon.image_path.is_none());
+        assert!(store
+            .get_artwork_edit(ArtworkOwnerKind::Playlist, &id)
+            .is_none());
+        assert!(!Path::new(&retained).exists());
 
         let liked = store.get_liked_songs_playlist_id().unwrap();
         assert!(store

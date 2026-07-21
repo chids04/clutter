@@ -14,54 +14,43 @@ Future<AudioCropSelection?> showAudioCropEditor(
   required VoidCallback onPreviewStarted,
   Duration? initialStart,
   Duration? initialEnd,
-}) {
-  final editor = AudioCropEditor(
+}) async {
+  final controller = AudioCropController(
     sourcePath: sourcePath,
     service: service,
+    preview: AudioplayersCropPreview(),
     onPreviewStarted: onPreviewStarted,
     initialStart: initialStart,
     initialEnd: initialEnd,
   );
-  if (MediaQuery.sizeOf(context).width < 700) {
-    return Navigator.of(context).push<AudioCropSelection>(
-      MaterialPageRoute(fullscreenDialog: true, builder: (_) => editor),
+  final editor = AudioCropEditor(controller: controller);
+  try {
+    if (MediaQuery.sizeOf(context).width < 700) {
+      return await Navigator.of(context).push<AudioCropSelection>(
+        MaterialPageRoute(fullscreenDialog: true, builder: (_) => editor),
+      );
+    }
+    return await showDialog<AudioCropSelection>(
+      context: context,
+      builder: (_) => editor,
     );
+  } finally {
+    await controller.close();
+    controller.dispose();
   }
-  return showDialog<AudioCropSelection>(
-    context: context,
-    builder: (_) => editor,
-  );
 }
 
 class AudioCropEditor extends StatefulWidget {
-  const AudioCropEditor({
-    super.key,
-    required this.sourcePath,
-    required this.service,
-    required this.onPreviewStarted,
-    this.initialStart,
-    this.initialEnd,
-  });
+  const AudioCropEditor({super.key, required this.controller});
 
-  final String sourcePath;
-  final AudioCropService service;
-  final VoidCallback onPreviewStarted;
-  final Duration? initialStart;
-  final Duration? initialEnd;
+  final AudioCropController controller;
 
   @override
   State<AudioCropEditor> createState() => _AudioCropEditorState();
 }
 
 class _AudioCropEditorState extends State<AudioCropEditor> {
-  late final AudioCropController _controller = AudioCropController(
-    sourcePath: widget.sourcePath,
-    service: widget.service,
-    preview: AudioplayersCropPreview(),
-    onPreviewStarted: widget.onPreviewStarted,
-    initialStart: widget.initialStart,
-    initialEnd: widget.initialEnd,
-  );
+  AudioCropController get _controller => widget.controller;
   final _start = TextEditingController();
   final _end = TextEditingController();
   final _startFocus = FocusNode();
@@ -95,7 +84,6 @@ class _AudioCropEditorState extends State<AudioCropEditor> {
   @override
   void dispose() {
     _controller.removeListener(_refresh);
-    _controller.dispose();
     _start.dispose();
     _end.dispose();
     _startFocus.dispose();
@@ -139,6 +127,8 @@ class _AudioCropEditorState extends State<AudioCropEditor> {
             start: _controller.start,
             end: _controller.end,
             position: _controller.position,
+            onInteractionStart: _controller.beginBoundaryEdit,
+            onInteractionEnd: _controller.endBoundaryEdit,
             onStartChanged: _controller.setStart,
             onEndChanged: _controller.setEnd,
           ),
@@ -159,10 +149,17 @@ class _AudioCropEditorState extends State<AudioCropEditor> {
             children: [
               IconButton(
                 tooltip: _controller.playing ? 'pause preview' : 'play preview',
-                onPressed: _controller.togglePreview,
-                icon: Icon(
-                  _controller.playing ? Icons.pause : Icons.play_arrow,
-                ),
+                onPressed: _controller.previewBusy
+                    ? null
+                    : _controller.togglePreview,
+                icon: _controller.previewBusy
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        _controller.playing ? Icons.pause : Icons.play_arrow,
+                      ),
               ),
               TextButton(
                 onPressed: _controller.reset,
@@ -180,6 +177,14 @@ class _AudioCropEditorState extends State<AudioCropEditor> {
               ),
             ],
           ),
+          if (_controller.previewError != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '${_controller.previewError}; press play to retry',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
         ],
       ),
     );
@@ -217,7 +222,7 @@ class _AudioCropEditorState extends State<AudioCropEditor> {
     onSubmitted: (raw) => _submitTime(raw, start),
   );
 
-  Future<void> _submitTime(String raw, bool start) async {
+  void _submitTime(String raw, bool start) {
     final value = parseCropTimestamp(raw);
     if (value == null) {
       setState(() {
@@ -236,11 +241,9 @@ class _AudioCropEditorState extends State<AudioCropEditor> {
         _endError = null;
       }
     });
-    if (start) {
-      await _controller.setStart(value);
-    } else {
-      await _controller.setEnd(value);
-    }
+    _controller.beginBoundaryEdit();
+    start ? _controller.setStart(value) : _controller.setEnd(value);
+    _controller.endBoundaryEdit();
     FocusManager.instance.primaryFocus?.unfocus();
     _start.text = formatCropTimestamp(_controller.start);
     _end.text = formatCropTimestamp(_controller.end);
@@ -255,6 +258,8 @@ class AudioCropTimeline extends StatefulWidget {
     required this.start,
     required this.end,
     required this.position,
+    required this.onInteractionStart,
+    required this.onInteractionEnd,
     required this.onStartChanged,
     required this.onEndChanged,
   });
@@ -264,6 +269,8 @@ class AudioCropTimeline extends StatefulWidget {
   final Duration start;
   final Duration end;
   final Duration position;
+  final VoidCallback onInteractionStart;
+  final VoidCallback onInteractionEnd;
   final ValueChanged<Duration> onStartChanged;
   final ValueChanged<Duration> onEndChanged;
 
@@ -272,7 +279,8 @@ class AudioCropTimeline extends StatefulWidget {
 }
 
 class _AudioCropTimelineState extends State<AudioCropTimeline> {
-  bool _dragStart = true;
+  static const _handleWidth = 44.0;
+  double? _dragMilliseconds;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -280,55 +288,90 @@ class _AudioCropTimelineState extends State<AudioCropTimeline> {
     child: LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onPanStart: (details) =>
-              _chooseHandle(details.localPosition.dx, width),
-          onPanUpdate: (details) => _drag(details.localPosition.dx, width),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (widget.waveformPath != null)
-                Image.file(File(widget.waveformPath!), fit: BoxFit.fill)
-              else
-                ColoredBox(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                ),
-              CustomPaint(
-                painter: _CropOverlayPainter(
-                  start: _fraction(widget.start),
-                  end: _fraction(widget.end),
-                  position: _fraction(widget.position),
-                ),
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            if (widget.waveformPath != null)
+              Image.file(File(widget.waveformPath!), fit: BoxFit.fill)
+            else
+              ColoredBox(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
               ),
-            ],
-          ),
+            CustomPaint(
+              painter: _CropOverlayPainter(
+                start: _fraction(widget.start),
+                end: _fraction(widget.end),
+                position: _fraction(widget.position),
+              ),
+            ),
+            _handle(width: width, startHandle: true),
+            _handle(width: width, startHandle: false),
+          ],
         );
       },
     ),
   );
 
-  double _fraction(Duration value) =>
-      (value.inMilliseconds / widget.duration.inMilliseconds).clamp(0, 1);
-
-  void _chooseHandle(double x, double width) {
-    final fraction = (x / width).clamp(0, 1);
-    _dragStart =
-        (fraction - _fraction(widget.start)).abs() <=
-        (fraction - _fraction(widget.end)).abs();
-    _drag(x, width);
+  double _fraction(Duration value) {
+    final duration = widget.duration.inMilliseconds;
+    if (duration <= 0) return 0;
+    return (value.inMilliseconds / duration).clamp(0, 1);
   }
 
-  void _drag(double x, double width) {
-    final fraction = (x / width).clamp(0, 1);
-    final value = Duration(
-      milliseconds: (widget.duration.inMilliseconds * fraction).round(),
+  Widget _handle({required double width, required bool startHandle}) {
+    final boundary = startHandle ? widget.start : widget.end;
+    final center = _fraction(boundary) * width;
+    final handleWidth = width.clamp(0, _handleWidth).toDouble();
+    final left = (center - handleWidth / 2)
+        .clamp(0, width - handleWidth)
+        .toDouble();
+    final label = startHandle ? 'crop start' : 'crop end';
+    return Positioned(
+      left: left,
+      top: 0,
+      bottom: 0,
+      width: handleWidth,
+      child: Semantics(
+        label: label,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.resizeColumn,
+          child: GestureDetector(
+            key: ValueKey('audio-crop-${startHandle ? 'start' : 'end'}-handle'),
+            behavior: HitTestBehavior.translucent,
+            onHorizontalDragStart: (_) => _startDrag(boundary),
+            onHorizontalDragUpdate: (details) =>
+                _updateDrag(details.primaryDelta ?? 0, width, startHandle),
+            onHorizontalDragEnd: (_) => _endDrag(),
+            onHorizontalDragCancel: _endDrag,
+          ),
+        ),
+      ),
     );
-    if (_dragStart) {
+  }
+
+  void _startDrag(Duration boundary) {
+    _dragMilliseconds = boundary.inMilliseconds.toDouble();
+    widget.onInteractionStart();
+  }
+
+  void _updateDrag(double delta, double width, bool startHandle) {
+    if (_dragMilliseconds == null || width <= 0) return;
+    final duration = widget.duration.inMilliseconds;
+    _dragMilliseconds = (_dragMilliseconds! + delta / width * duration).clamp(
+      0,
+      duration.toDouble(),
+    );
+    final value = Duration(milliseconds: _dragMilliseconds!.round());
+    if (startHandle) {
       widget.onStartChanged(value);
     } else {
       widget.onEndChanged(value);
     }
+  }
+
+  void _endDrag() {
+    _dragMilliseconds = null;
+    widget.onInteractionEnd();
   }
 }
 

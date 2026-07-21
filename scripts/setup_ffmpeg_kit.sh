@@ -21,7 +21,13 @@ for platform in "${platforms[@]}"; do
       "${kit}/nix-android.sh" -p android-r27d -- --enable-lame
       ;;
     ios)
-      "${kit}/nix-ios.sh" -p xcode26 -x -- --enable-lame
+      # keep physical-device and apple-silicon simulator slices only
+      "${kit}/nix-ios.sh" -p xcode26 -x -- \
+        --enable-lame \
+        --disable-x86-64 \
+        --disable-x86-64-mac-catalyst \
+        --disable-arm64-mac-catalyst \
+        --disable-arm64e
       ;;
     macos)
       "${kit}/nix-macos.sh" -p xcode26 -x -- --enable-lame

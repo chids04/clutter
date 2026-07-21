@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import 'package:clutter/features/audio_crop/data/ffmpeg_audio_crop_service.dart';
@@ -11,60 +9,94 @@ import 'package:clutter/features/audio_crop/presentation/audio_crop_editor.dart'
 import 'package:clutter/features/audio_crop/presentation/audio_crop_encoding_dialog.dart';
 import 'package:clutter/features/library/application/music_library.dart';
 import 'package:clutter/features/library/domain/library_entities.dart';
+import 'package:clutter/features/metadata_editor/data/platform_artwork_picker.dart';
+import 'package:clutter/features/metadata_editor/data/artwork_crop_output_store.dart';
+import 'package:clutter/features/metadata_editor/domain/artwork_crop.dart';
+import 'package:clutter/features/metadata_editor/domain/artwork_picker.dart';
+import 'package:clutter/features/metadata_editor/presentation/widgets/artwork_chooser.dart';
 import 'package:clutter/features/metadata_editor/presentation/widgets/artist_autocomplete_field.dart';
-import 'package:clutter/shared/presentation/cover_image.dart';
 
 Future<SongViewData?> showSongEditor(
   BuildContext context,
   SongViewData song,
-  MusicLibrary library,
-) {
+  MusicLibrary library, {
+  ArtworkPicker? artworkPicker,
+}) async {
+  final picker = artworkPicker ?? PlatformArtworkPicker();
+  final artwork = await library.getArtworkEdit(ArtworkOwner.song, song.id);
+  if (!context.mounted) return null;
   return showDialog<SongViewData>(
     context: context,
-    builder: (_) => _SongEditor(song: song, library: library),
+    builder: (_) => _SongEditor(
+      song: song,
+      library: library,
+      artworkPicker: picker,
+      artwork: artwork,
+    ),
   );
 }
 
 Future<AlbumViewData?> showAlbumEditor(
   BuildContext context,
   AlbumViewData album,
-  MusicLibrary library,
-) {
+  MusicLibrary library, {
+  ArtworkPicker? artworkPicker,
+}) async {
+  final picker = artworkPicker ?? PlatformArtworkPicker();
+  final artwork = await library.getArtworkEdit(ArtworkOwner.album, album.id);
+  if (!context.mounted) return null;
   return showDialog<AlbumViewData>(
     context: context,
-    builder: (_) => _AlbumEditor(album: album, library: library),
+    builder: (_) => _AlbumEditor(
+      album: album,
+      library: library,
+      artworkPicker: picker,
+      artwork: artwork,
+    ),
   );
 }
 
 Future<ArtistViewData?> showArtistImageEditor(
   BuildContext context,
   ArtistViewData artist,
-  MusicLibrary library,
-) {
+  MusicLibrary library, {
+  ArtworkPicker? artworkPicker,
+}) async {
+  final picker = artworkPicker ?? PlatformArtworkPicker();
+  final artwork = await library.getArtworkEdit(ArtworkOwner.artist, artist.id);
+  if (!context.mounted) return null;
   return showDialog<ArtistViewData>(
     context: context,
-    builder: (_) => _ArtistImageEditor(artist: artist, library: library),
+    builder: (_) => _ArtistImageEditor(
+      artist: artist,
+      library: library,
+      artworkPicker: picker,
+      artwork: artwork,
+    ),
   );
 }
 
 Future<PlaylistViewData?> showPlaylistEditor(
   BuildContext context,
   PlaylistViewData playlist,
-  MusicLibrary library,
-) {
+  MusicLibrary library, {
+  ArtworkPicker? artworkPicker,
+}) async {
+  final picker = artworkPicker ?? PlatformArtworkPicker();
+  final artwork = await library.getArtworkEdit(
+    ArtworkOwner.playlist,
+    playlist.id,
+  );
+  if (!context.mounted) return null;
   return showDialog<PlaylistViewData>(
     context: context,
-    builder: (_) => _PlaylistEditor(playlist: playlist, library: library),
+    builder: (_) => _PlaylistEditor(
+      playlist: playlist,
+      library: library,
+      artworkPicker: picker,
+      artwork: artwork,
+    ),
   );
-}
-
-Future<String?> pickArtwork() async {
-  final result = await FilePicker.platform.pickFiles(
-    type: FileType.custom,
-    allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
-    dialogTitle: 'choose artwork',
-  );
-  return result?.files.single.path;
 }
 
 List<String> _names(String raw) => raw
@@ -73,10 +105,29 @@ List<String> _names(String raw) => raw
     .where((value) => value.isNotEmpty)
     .toList();
 
+const _artworkOutputs = ArtworkCropOutputStore();
+
+CoverArtEdit _coverEdit(ArtworkCropSelection? selection, bool remove) =>
+    selection?.toCoverEdit() ??
+    (remove ? const CoverArtEdit.remove() : const CoverArtEdit.keep());
+
+void _removeArtworkOutput(ArtworkCropSelection? selection) {
+  if (selection != null) {
+    unawaited(_artworkOutputs.remove(selection.croppedPath));
+  }
+}
+
 class _SongEditor extends StatefulWidget {
-  const _SongEditor({required this.song, required this.library});
+  const _SongEditor({
+    required this.song,
+    required this.library,
+    required this.artworkPicker,
+    required this.artwork,
+  });
   final SongViewData song;
   final MusicLibrary library;
+  final ArtworkPicker artworkPicker;
+  final ArtworkEditData? artwork;
 
   @override
   State<_SongEditor> createState() => _SongEditorState();
@@ -93,7 +144,7 @@ class _SongEditorState extends State<_SongEditor> {
   Timer? _debounce;
   List<AlbumViewData> _suggestions = const [];
   String? _selectedAlbumId;
-  String? _pickedCover;
+  ArtworkCropSelection? _pickedCover;
   bool _removeCover = false;
   bool _saving = false;
   final AudioCropService _cropService = FfmpegAudioCropService();
@@ -133,6 +184,7 @@ class _SongEditorState extends State<_SongEditor> {
     if (prepared != null) {
       unawaited(_cropService.removeTemporaryFile(prepared));
     }
+    _removeArtworkOutput(_pickedCover);
     super.dispose();
   }
 
@@ -159,11 +211,7 @@ class _SongEditorState extends State<_SongEditor> {
               title: _album.text,
               artists: _names(_albumArtists.text),
             );
-      final cover = _pickedCover != null
-          ? CoverArtEdit.replace(sourcePath: _pickedCover!)
-          : _removeCover
-          ? const CoverArtEdit.remove()
-          : const CoverArtEdit.keep();
+      final cover = _coverEdit(_pickedCover, _removeCover);
       final updated = await widget.library.updateSong(
         SongEditRequest(
           songId: widget.song.id,
@@ -265,18 +313,21 @@ class _SongEditorState extends State<_SongEditor> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ArtworkChooser(
-                path: _pickedCover ?? widget.song.coverPath,
+                path: _pickedCover?.croppedPath ?? widget.song.coverPath,
+                originalPath:
+                    _pickedCover?.originalPath ?? widget.artwork?.originalPath,
+                initialCrop: _pickedCover?.crop ?? widget.artwork?.crop,
+                picker: widget.artworkPicker,
                 removeLabel: 'use album artwork',
-                onChoose: () async {
-                  final path = await pickArtwork();
-                  if (path != null) {
-                    setState(() {
-                      _pickedCover = path;
-                      _removeCover = false;
-                    });
-                  }
+                onSelected: (selection) {
+                  _removeArtworkOutput(_pickedCover);
+                  setState(() {
+                    _pickedCover = selection;
+                    _removeCover = false;
+                  });
                 },
                 onRemove: () => setState(() {
+                  _removeArtworkOutput(_pickedCover);
                   _pickedCover = null;
                   _removeCover = true;
                 }),
@@ -395,9 +446,16 @@ class _SongEditorState extends State<_SongEditor> {
 }
 
 class _AlbumEditor extends StatefulWidget {
-  const _AlbumEditor({required this.album, required this.library});
+  const _AlbumEditor({
+    required this.album,
+    required this.library,
+    required this.artworkPicker,
+    required this.artwork,
+  });
   final AlbumViewData album;
   final MusicLibrary library;
+  final ArtworkPicker artworkPicker;
+  final ArtworkEditData? artwork;
 
   @override
   State<_AlbumEditor> createState() => _AlbumEditorState();
@@ -410,7 +468,7 @@ class _AlbumEditorState extends State<_AlbumEditor> {
   late final TextEditingController _artists = TextEditingController(
     text: widget.album.artists.join(', '),
   );
-  String? _pickedCover;
+  ArtworkCropSelection? _pickedCover;
   bool _removeCover = false;
   bool _saving = false;
 
@@ -418,17 +476,14 @@ class _AlbumEditorState extends State<_AlbumEditor> {
   void dispose() {
     _title.dispose();
     _artists.dispose();
+    _removeArtworkOutput(_pickedCover);
     super.dispose();
   }
 
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      final cover = _pickedCover != null
-          ? CoverArtEdit.replace(sourcePath: _pickedCover!)
-          : _removeCover
-          ? const CoverArtEdit.remove()
-          : const CoverArtEdit.keep();
+      final cover = _coverEdit(_pickedCover, _removeCover);
       final result = await widget.library.updateAlbum(
         AlbumEditRequest(
           albumId: widget.album.id,
@@ -458,17 +513,20 @@ class _AlbumEditorState extends State<_AlbumEditor> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ArtworkChooser(
-              path: _pickedCover ?? widget.album.coverPath,
-              onChoose: () async {
-                final path = await pickArtwork();
-                if (path != null) {
-                  setState(() {
-                    _pickedCover = path;
-                    _removeCover = false;
-                  });
-                }
+              path: _pickedCover?.croppedPath ?? widget.album.coverPath,
+              originalPath:
+                  _pickedCover?.originalPath ?? widget.artwork?.originalPath,
+              initialCrop: _pickedCover?.crop ?? widget.artwork?.crop,
+              picker: widget.artworkPicker,
+              onSelected: (selection) {
+                _removeArtworkOutput(_pickedCover);
+                setState(() {
+                  _pickedCover = selection;
+                  _removeCover = false;
+                });
               },
               onRemove: () => setState(() {
+                _removeArtworkOutput(_pickedCover);
                 _pickedCover = null;
                 _removeCover = true;
               }),
@@ -502,33 +560,48 @@ class _AlbumEditorState extends State<_AlbumEditor> {
 }
 
 class _ArtistImageEditor extends StatefulWidget {
-  const _ArtistImageEditor({required this.artist, required this.library});
+  const _ArtistImageEditor({
+    required this.artist,
+    required this.library,
+    required this.artworkPicker,
+    required this.artwork,
+  });
   final ArtistViewData artist;
   final MusicLibrary library;
+  final ArtworkPicker artworkPicker;
+  final ArtworkEditData? artwork;
   @override
   State<_ArtistImageEditor> createState() => _ArtistImageEditorState();
 }
 
 class _ArtistImageEditorState extends State<_ArtistImageEditor> {
-  String? _picked;
+  ArtworkCropSelection? _picked;
   bool _remove = false;
   bool _saving = false;
+  @override
+  void dispose() {
+    _removeArtworkOutput(_picked);
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: Text('edit ${widget.artist.name} image'),
     content: ArtworkChooser(
-      path: _picked ?? widget.artist.coverPath,
+      path: _picked?.croppedPath ?? widget.artist.coverPath,
+      originalPath: _picked?.originalPath ?? widget.artwork?.originalPath,
+      initialCrop: _picked?.crop ?? widget.artwork?.crop,
+      picker: widget.artworkPicker,
       removeLabel: 'use album artwork',
-      onChoose: () async {
-        final path = await pickArtwork();
-        if (path != null) {
-          setState(() {
-            _picked = path;
-            _remove = false;
-          });
-        }
+      onSelected: (selection) {
+        _removeArtworkOutput(_picked);
+        setState(() {
+          _picked = selection;
+          _remove = false;
+        });
       },
       onRemove: () => setState(() {
+        _removeArtworkOutput(_picked);
         _picked = null;
         _remove = true;
       }),
@@ -544,11 +617,7 @@ class _ArtistImageEditorState extends State<_ArtistImageEditor> {
             : () async {
                 setState(() => _saving = true);
                 try {
-                  final edit = _picked != null
-                      ? CoverArtEdit.replace(sourcePath: _picked!)
-                      : _remove
-                      ? const CoverArtEdit.remove()
-                      : const CoverArtEdit.keep();
+                  final edit = _coverEdit(_picked, _remove);
                   final result = await widget.library.updateArtistImage(
                     widget.artist.id,
                     edit,
@@ -588,9 +657,16 @@ const playlistIcons = <String, IconData>{
 };
 
 class _PlaylistEditor extends StatefulWidget {
-  const _PlaylistEditor({required this.playlist, required this.library});
+  const _PlaylistEditor({
+    required this.playlist,
+    required this.library,
+    required this.artworkPicker,
+    required this.artwork,
+  });
   final PlaylistViewData playlist;
   final MusicLibrary library;
+  final ArtworkPicker artworkPicker;
+  final ArtworkEditData? artwork;
   @override
   State<_PlaylistEditor> createState() => _PlaylistEditorState();
 }
@@ -599,7 +675,7 @@ class _PlaylistEditorState extends State<_PlaylistEditor> {
   late final TextEditingController _name = TextEditingController(
     text: widget.playlist.name,
   );
-  String? _image;
+  ArtworkCropSelection? _image;
   String? _icon;
   bool _initials = false;
   bool _saving = false;
@@ -612,6 +688,7 @@ class _PlaylistEditorState extends State<_PlaylistEditor> {
   @override
   void dispose() {
     _name.dispose();
+    _removeArtworkOutput(_image);
     super.dispose();
   }
 
@@ -625,19 +702,22 @@ class _PlaylistEditorState extends State<_PlaylistEditor> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ArtworkChooser(
-              path: _image ?? widget.playlist.imagePath,
+              path: _image?.croppedPath ?? widget.playlist.imagePath,
+              originalPath:
+                  _image?.originalPath ?? widget.artwork?.originalPath,
+              initialCrop: _image?.crop ?? widget.artwork?.crop,
+              picker: widget.artworkPicker,
               removeLabel: 'use initials',
-              onChoose: () async {
-                final path = await pickArtwork();
-                if (path != null) {
-                  setState(() {
-                    _image = path;
-                    _icon = null;
-                    _initials = false;
-                  });
-                }
+              onSelected: (selection) {
+                _removeArtworkOutput(_image);
+                setState(() {
+                  _image = selection;
+                  _icon = null;
+                  _initials = false;
+                });
               },
               onRemove: () => setState(() {
+                _removeArtworkOutput(_image);
                 _image = null;
                 _icon = null;
                 _initials = true;
@@ -681,7 +761,7 @@ class _PlaylistEditorState extends State<_PlaylistEditor> {
                 setState(() => _saving = true);
                 try {
                   final visual = _image != null
-                      ? PlaylistVisualEdit.image(sourcePath: _image!)
+                      ? _image!.toPlaylistVisual()
                       : _icon != null
                       ? PlaylistVisualEdit.icon(key: _icon!)
                       : _initials
@@ -710,47 +790,5 @@ class _PlaylistEditorState extends State<_PlaylistEditor> {
         child: const Text('save'),
       ),
     ],
-  );
-}
-
-class ArtworkChooser extends StatelessWidget {
-  const ArtworkChooser({
-    super.key,
-    required this.path,
-    required this.onChoose,
-    required this.onRemove,
-    this.removeLabel = 'remove image',
-  });
-  final String? path;
-  final VoidCallback onChoose;
-  final VoidCallback onRemove;
-  final String removeLabel;
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: Row(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: path != null && File(path!).existsSync()
-              ? coverImg(path, 88)
-              : coverImg(null, 88),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              OutlinedButton.icon(
-                onPressed: onChoose,
-                icon: const Icon(Icons.image_outlined),
-                label: const Text('choose image'),
-              ),
-              TextButton(onPressed: onRemove, child: Text(removeLabel)),
-            ],
-          ),
-        ),
-      ],
-    ),
   );
 }

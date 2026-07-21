@@ -44,6 +44,17 @@ CREATE TABLE IF NOT EXISTS songs (
 CREATE INDEX IF NOT EXISTS songs_album ON songs(album_id);
 CREATE INDEX IF NOT EXISTS songs_added_at ON songs(added_at DESC);
 
+CREATE TABLE IF NOT EXISTS artwork_sources (
+    owner_kind   TEXT NOT NULL CHECK (owner_kind IN ('song', 'album', 'artist', 'playlist')),
+    owner_id     TEXT NOT NULL,
+    original_path TEXT NOT NULL,
+    crop_left    REAL NOT NULL,
+    crop_top     REAL NOT NULL,
+    crop_width   REAL NOT NULL,
+    crop_height  REAL NOT NULL,
+    PRIMARY KEY (owner_kind, owner_id)
+);
+
 CREATE TABLE IF NOT EXISTS song_audio_crops (
     song_id            TEXT PRIMARY KEY,
     original_file_path TEXT NOT NULL,
