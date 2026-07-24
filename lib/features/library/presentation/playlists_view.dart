@@ -391,27 +391,58 @@ class _PlaylistHeader extends StatelessWidget {
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                const SizedBox(height: 6),
+                Row(
                   children: [
-                    FilledButton.icon(
+                    IconButton(
+                      tooltip: "play now",
                       onPressed: songs.isEmpty
                           ? null
                           : () => musicLibrary.playSongsFromStart(songs),
-                      icon: const Icon(Icons.play_arrow, size: 18),
-                      label: const Text("play now"),
+                      icon: Icon(
+                        Icons.play_arrow_rounded,
+                        size: 26,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: songs.isEmpty ? 0.3 : 0.85,
+                        ),
+                      ),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: theme.colorScheme.onSurface,
+                        disabledForegroundColor: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.3),
+                        padding: const EdgeInsets.all(6),
+                        minimumSize: const Size(36, 36),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
-                    OutlinedButton.icon(
+                    const SizedBox(width: 2),
+                    IconButton(
+                      tooltip: "add to queue",
                       onPressed: songs.isEmpty
                           ? null
                           : () => musicLibrary.queueSongs(
                               songs,
                               label: playlist.name,
                             ),
-                      icon: const Icon(Icons.playlist_add, size: 18),
-                      label: const Text("add to queue"),
+                      icon: Icon(
+                        Icons.playlist_add_rounded,
+                        size: 24,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: songs.isEmpty ? 0.3 : 0.85,
+                        ),
+                      ),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: theme.colorScheme.onSurface,
+                        disabledForegroundColor: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.3),
+                        padding: const EdgeInsets.all(6),
+                        minimumSize: const Size(36, 36),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
                   ],
                 ),
