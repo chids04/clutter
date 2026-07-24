@@ -271,7 +271,11 @@ class AlbumDetailView extends StatelessWidget {
                     musicLibrary: lib,
                   );
                 }
-                return SongDelegate(song: songs[index - 1], musicLibrary: lib);
+                return SongDelegate(
+                  song: songs[index - 1],
+                  musicLibrary: lib,
+                  showTrackNumber: true,
+                );
               },
               separatorBuilder: (context, index) =>
                   index == 0 ? const SizedBox.shrink() : const Divider(),

@@ -9,12 +9,14 @@ class SongDelegate extends StatefulWidget {
   final SongViewData song;
   final MusicLibrary musicLibrary;
   final VoidCallback? onRemoveFromPlaylist;
+  final bool showTrackNumber;
 
   const SongDelegate({
     super.key,
     required this.song,
     required this.musicLibrary,
     this.onRemoveFromPlaylist,
+    this.showTrackNumber = false,
   });
 
   @override
@@ -27,7 +29,8 @@ class _SongDelegateState extends State<SongDelegate>
   static const double _maxDragExtent = 112;
   static const Duration _settleDuration = Duration(milliseconds: 180);
   static const double _statusMarkerWidth = 10;
-  static const double _statusToCoverGap = 8;
+  static const double _trackNumberWidth = 28;
+  static const double _leadingItemGap = 8;
   static const double _coverSize = 50;
 
   double _dragOffset = 0;
@@ -250,15 +253,40 @@ class _SongDelegateState extends State<SongDelegate>
                   child: ListTile(
                     leading: SizedBox(
                       width:
-                          _statusMarkerWidth + _statusToCoverGap + _coverSize,
+                          _statusMarkerWidth +
+                          _leadingItemGap +
+                          _coverSize +
+                          (widget.showTrackNumber
+                              ? _leadingItemGap + _trackNumberWidth
+                              : 0),
                       child: Row(
                         children: [
-                          _statusMarker(
-                            colors.onSurface,
-                            isCurrentSong,
-                            isPlaying,
+                          KeyedSubtree(
+                            key: ValueKey('song-status-${song.id}'),
+                            child: _statusMarker(
+                              colors.onSurface,
+                              isCurrentSong,
+                              isPlaying,
+                            ),
                           ),
-                          const SizedBox(width: _statusToCoverGap),
+                          if (widget.showTrackNumber) ...[
+                            const SizedBox(width: _leadingItemGap),
+                            SizedBox(
+                              width: _trackNumberWidth,
+                              child: Text(
+                                song.trackNum > 0 ? '${song.trackNum}' : '–',
+                                key: ValueKey('song-track-number-${song.id}'),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: colors.onSurface.withValues(
+                                    alpha: 0.6,
+                                  ),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(width: _leadingItemGap),
                           coverImg(song.coverPath, _coverSize, cacheSize: 150),
                         ],
                       ),

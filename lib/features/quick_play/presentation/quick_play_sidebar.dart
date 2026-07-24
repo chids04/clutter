@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -12,7 +13,7 @@ import 'package:clutter/features/metadata_editor/presentation/metadata_editors.d
 const double _kPanelWidth = 280.0;
 const double _kHandleWidth = 40.0;
 const double _kHandleHeight = 80.0;
-const Duration _kOpenDelay = Duration(milliseconds: 120);
+const Duration _kOpenDelay = Duration(milliseconds: 450);
 const Duration _kCloseDelay = Duration(milliseconds: 250);
 const Duration _kAnimationDuration = Duration(milliseconds: 220);
 
@@ -28,12 +29,19 @@ class QuickPlaySidebar extends StatefulWidget {
 class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
   bool _isOpen = false;
   bool _isDragging = false;
+  bool _isMovingHandle = false;
+  bool _isPressingHandle = false;
   Timer? _hoverTimer;
   bool _hoveringTrigger = false;
   bool _hoveringPanel = false;
+  double _handleTop = _kHandleHeight;
 
-  bool get _isDesktop =>
-      Platform.isLinux || Platform.isMacOS || Platform.isWindows;
+  bool get _isDesktop => switch (defaultTargetPlatform) {
+    TargetPlatform.linux ||
+    TargetPlatform.macOS ||
+    TargetPlatform.windows => true,
+    _ => false,
+  };
 
   void _open() {
     _hoverTimer?.cancel();
@@ -50,20 +58,38 @@ class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
   void _scheduleOpen() {
     _hoverTimer?.cancel();
     _hoverTimer = Timer(_kOpenDelay, () {
-      if (_hoveringTrigger || _hoveringPanel) _open();
+      if (!_isPressingHandle &&
+          !_isMovingHandle &&
+          (_hoveringTrigger || _hoveringPanel)) {
+        _open();
+      }
     });
   }
 
   void _scheduleClose() {
     _hoverTimer?.cancel();
     _hoverTimer = Timer(_kCloseDelay, () {
-      if (!_isDragging && !_hoveringTrigger && !_hoveringPanel) _close();
+      if (!_isDragging &&
+          !_isMovingHandle &&
+          !_isPressingHandle &&
+          !_hoveringTrigger &&
+          !_hoveringPanel) {
+        _close();
+      }
     });
   }
 
   void _onTriggerEnter(PointerEvent _) {
     _hoveringTrigger = true;
-    if (_isDesktop) _scheduleOpen();
+    if (_isDesktop && !_isPressingHandle && !_isMovingHandle) {
+      _scheduleOpen();
+    }
+  }
+
+  void _onTriggerHover(PointerHoverEvent _) {
+    if (_isDesktop && !_isPressingHandle && !_isMovingHandle) {
+      _scheduleOpen();
+    }
   }
 
   void _onTriggerExit(PointerEvent _) {
@@ -83,6 +109,11 @@ class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
 
   void _onMobileLongPress(LongPressStartDetails _) => _open();
 
+  void _onHandleDragDown(DragDownDetails _) {
+    _hoverTimer?.cancel();
+    _isPressingHandle = true;
+  }
+
   void _onDragStart() {
     _hoverTimer?.cancel();
     if (_isDragging) return;
@@ -96,6 +127,40 @@ class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
     _scheduleClose();
   }
 
+  void _onHandleDragStart(DragStartDetails _) {
+    _hoverTimer?.cancel();
+    setState(() => _isMovingHandle = true);
+  }
+
+  void _onHandleDragUpdate(DragUpdateDetails details, double maxTop) {
+    setState(() {
+      _handleTop = (_handleTop + details.delta.dy).clamp(0.0, maxTop);
+    });
+  }
+
+  void _onHandleDragEnd(DragEndDetails _) {
+    _finishMovingHandle();
+  }
+
+  void _onHandleDragCancel() {
+    _isPressingHandle = false;
+    if (_isDesktop && _hoveringTrigger) {
+      _scheduleOpen();
+    }
+  }
+
+  void _finishMovingHandle() {
+    _isPressingHandle = false;
+    if (_isMovingHandle) {
+      setState(() => _isMovingHandle = false);
+    }
+    if (_isDesktop && _hoveringTrigger) {
+      _scheduleOpen();
+    } else if (!_hoveringPanel) {
+      _scheduleClose();
+    }
+  }
+
   @override
   void dispose() {
     _hoverTimer?.cancel();
@@ -104,6 +169,9 @@ class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final borderColor = theme.dividerTheme.color ?? Colors.transparent;
+
     return SafeArea(
       child: Stack(
         children: [
@@ -114,7 +182,8 @@ class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
               child: Container(color: Colors.black.withValues(alpha: 0.35)),
             ),
           AnimatedPositioned(
-            duration: _kAnimationDuration,
+            key: const ValueKey('quick-play-sidebar-panel'),
+            duration: _isMovingHandle ? Duration.zero : _kAnimationDuration,
             curve: Curves.easeOutCubic,
             right: _isOpen ? 0 : -_kPanelWidth,
             top: 0,
@@ -122,73 +191,81 @@ class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
             width: _kPanelWidth + _kHandleWidth,
             child: Row(
               children: [
-                // half-circle trigger handle attached to the panel's left edge.
-                GestureDetector(
-                  onTap: _isDesktop ? null : _open,
-                  onLongPressStart: _onMobileLongPress,
-                  child: MouseRegion(
-                    onEnter: _onTriggerEnter,
-                    onExit: _onTriggerExit,
-                    child: Container(
-                      width: _kHandleWidth,
-                      height: _kHandleHeight,
-                      margin: const EdgeInsets.only(
-                        top: _kHandleHeight,
-                        bottom: _kHandleHeight,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        border: Border(
-                          left: BorderSide(
-                            color:
-                                Theme.of(context).dividerTheme.color ??
-                                Colors.transparent,
+                SizedBox(
+                  width: _kHandleWidth,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final maxTop = (constraints.maxHeight - _kHandleHeight)
+                          .clamp(0.0, double.infinity);
+                      final top = _handleTop.clamp(0.0, maxTop);
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                            top: top,
+                            left: 0,
+                            child: GestureDetector(
+                              key: const ValueKey('quick-play-handle'),
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _isDesktop ? null : _open,
+                              onLongPressStart: _isDesktop
+                                  ? null
+                                  : _onMobileLongPress,
+                              onVerticalDragDown: _onHandleDragDown,
+                              onVerticalDragStart: _onHandleDragStart,
+                              onVerticalDragUpdate: (details) =>
+                                  _onHandleDragUpdate(details, maxTop),
+                              onVerticalDragEnd: _onHandleDragEnd,
+                              onVerticalDragCancel: _onHandleDragCancel,
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.resizeUpDown,
+                                onEnter: _onTriggerEnter,
+                                onHover: _onTriggerHover,
+                                onExit: _onTriggerExit,
+                                child: Container(
+                                  width: _kHandleWidth,
+                                  height: _kHandleHeight,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.surface,
+                                    border: Border(
+                                      left: BorderSide(color: borderColor),
+                                      top: BorderSide(color: borderColor),
+                                      bottom: BorderSide(color: borderColor),
+                                    ),
+                                    borderRadius: const BorderRadius.horizontal(
+                                      left: Radius.circular(_kHandleWidth / 2),
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Container(
+                                      width: 3,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.onSurface
+                                            .withValues(alpha: 0.3),
+                                        borderRadius: BorderRadius.circular(
+                                          1.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                          top: BorderSide(
-                            color:
-                                Theme.of(context).dividerTheme.color ??
-                                Colors.transparent,
-                          ),
-                          bottom: BorderSide(
-                            color:
-                                Theme.of(context).dividerTheme.color ??
-                                Colors.transparent,
-                          ),
-                        ),
-                        borderRadius: const BorderRadius.horizontal(
-                          left: Radius.circular(_kHandleWidth / 2),
-                        ),
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: 3,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(1.5),
-                          ),
-                        ),
-                      ),
-                    ),
+                        ],
+                      );
+                    },
                   ),
                 ),
-                // main panel
                 MouseRegion(
                   onEnter: _onPanelEnter,
                   onExit: _onPanelExit,
                   child: Container(
                     width: _kPanelWidth,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      border: Border(
-                        left: BorderSide(
-                          color:
-                              Theme.of(context).dividerTheme.color ??
-                              Colors.transparent,
-                        ),
-                      ),
+                      color: theme.colorScheme.surface,
+                      border: Border(left: BorderSide(color: borderColor)),
                     ),
                     child: _SidebarContent(
                       onClose: _close,

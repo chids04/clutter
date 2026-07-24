@@ -117,7 +117,11 @@ class _RecordingAudioPlayer implements AudioPlayerPort {
 }
 
 Future<({MusicLibrary library, _RecordingAudioPlayer player})>
-_pumpSongDelegate(WidgetTester tester) async {
+_pumpSongDelegate(
+  WidgetTester tester, {
+  bool showTrackNumber = false,
+  bool playing = false,
+}) async {
   final player = _RecordingAudioPlayer();
   final library = MusicLibrary(
     catalogRepository: _FakeLibraryRepository(),
@@ -126,10 +130,15 @@ _pumpSongDelegate(WidgetTester tester) async {
     musicDir: '/music',
   );
   await library.hydrate();
+  if (playing) await library.onPlaySong(_song.id);
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
-        body: SongDelegate(song: _song, musicLibrary: library),
+        body: SongDelegate(
+          song: _song,
+          musicLibrary: library,
+          showTrackNumber: showTrackNumber,
+        ),
       ),
     ),
   );
@@ -161,10 +170,40 @@ void main() {
             .onPressed,
         isNotNull,
       );
+      expect(
+        find.byKey(const ValueKey('song-track-number-song-a')),
+        findsNothing,
+      );
 
       await tester.tap(find.text(_song.title));
 
       expect(result.player.loaded, [_song]);
+    } finally {
+      await _disposeLibrary(tester, result.library);
+    }
+  });
+
+  testWidgets('album row shows track number to the right of playing marker', (
+    tester,
+  ) async {
+    final result = await _pumpSongDelegate(
+      tester,
+      showTrackNumber: true,
+      playing: true,
+    );
+    try {
+      final status = find.byKey(const ValueKey('song-status-song-a'));
+      final trackNumber = find.byKey(
+        const ValueKey('song-track-number-song-a'),
+      );
+
+      expect(status, findsOneWidget);
+      expect(trackNumber, findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
+      expect(
+        tester.getCenter(trackNumber).dx,
+        greaterThan(tester.getCenter(status).dx),
+      );
     } finally {
       await _disposeLibrary(tester, result.library);
     }
