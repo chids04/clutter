@@ -39,6 +39,28 @@ pub fn scan_directory(
     Ok(())
 }
 
+pub fn index_audio_file(
+    store: &SqliteLibraryStore,
+    path: &Path,
+    options: ScanOptions,
+) -> Result<crate::storage::sqlite::SongRow, String> {
+    if !is_supported_audio(path) {
+        return Err("unsupported audio file".into());
+    }
+    let pending = read_pending_song(path, options)
+        .ok_or_else(|| "could not read downloaded audio metadata".to_string())?;
+    store.insert_song_with_album_artists(
+        &pending.path,
+        pending.metadata,
+        &pending.primary_artist,
+        &pending.featured_artists,
+        &pending.album_artists,
+    )?;
+    store
+        .get_song_by_file(path)
+        .ok_or_else(|| "downloaded song was not indexed".into())
+}
+
 fn persist_scan_path(store: &SqliteLibraryStore, path: &str) {
     if let Err(error) = store.add_scan_path(path) {
         warn!("failed to persist scan path {path}: {error}");

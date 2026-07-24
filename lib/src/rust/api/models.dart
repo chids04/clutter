@@ -9,7 +9,7 @@ import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'models.freezed.dart';
 
 // These functions are ignored because they are not marked as `pub`: `as_str`, `from_str`, `into_internal`, `into_row`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 @freezed
 sealed class AlbumChoice with _$AlbumChoice {
@@ -451,6 +451,158 @@ class ScanConfig {
       other is ScanConfig &&
           runtimeType == other.runtimeType &&
           isDeezer == other.isDeezer;
+}
+
+class SftpDownloadProgressData {
+  final String jobId;
+  final SftpDownloadStateData state;
+  final String? currentName;
+  final int filesCompleted;
+  final int filesTotal;
+  final BigInt bytesCompleted;
+  final BigInt bytesTotal;
+  final int failedFiles;
+  final String? message;
+
+  const SftpDownloadProgressData({
+    required this.jobId,
+    required this.state,
+    this.currentName,
+    required this.filesCompleted,
+    required this.filesTotal,
+    required this.bytesCompleted,
+    required this.bytesTotal,
+    required this.failedFiles,
+    this.message,
+  });
+
+  @override
+  int get hashCode =>
+      jobId.hashCode ^
+      state.hashCode ^
+      currentName.hashCode ^
+      filesCompleted.hashCode ^
+      filesTotal.hashCode ^
+      bytesCompleted.hashCode ^
+      bytesTotal.hashCode ^
+      failedFiles.hashCode ^
+      message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SftpDownloadProgressData &&
+          runtimeType == other.runtimeType &&
+          jobId == other.jobId &&
+          state == other.state &&
+          currentName == other.currentName &&
+          filesCompleted == other.filesCompleted &&
+          filesTotal == other.filesTotal &&
+          bytesCompleted == other.bytesCompleted &&
+          bytesTotal == other.bytesTotal &&
+          failedFiles == other.failedFiles &&
+          message == other.message;
+}
+
+enum SftpDownloadStateData {
+  discovering,
+  downloading,
+  importing,
+  completed,
+  completedWithErrors,
+  cancelled,
+  failed;
+
+  Future<bool> isTerminal() => RustLib.instance.api
+      .crateApiModelsSftpDownloadStateDataIsTerminal(that: this);
+}
+
+class SftpEntryData {
+  final String name;
+  final String relativePath;
+  final SftpEntryKindData kind;
+  final BigInt? size;
+  final PlatformInt64? modifiedAt;
+  final bool downloaded;
+
+  const SftpEntryData({
+    required this.name,
+    required this.relativePath,
+    required this.kind,
+    this.size,
+    this.modifiedAt,
+    required this.downloaded,
+  });
+
+  @override
+  int get hashCode =>
+      name.hashCode ^
+      relativePath.hashCode ^
+      kind.hashCode ^
+      size.hashCode ^
+      modifiedAt.hashCode ^
+      downloaded.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SftpEntryData &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          relativePath == other.relativePath &&
+          kind == other.kind &&
+          size == other.size &&
+          modifiedAt == other.modifiedAt &&
+          downloaded == other.downloaded;
+}
+
+enum SftpEntryKindData { file, directory, unsupported }
+
+class SftpProfileData {
+  final String id;
+  final String name;
+  final String host;
+  final int port;
+  final String username;
+  final String rootPath;
+  final String hostKeyFingerprint;
+  final bool isSelected;
+
+  const SftpProfileData({
+    required this.id,
+    required this.name,
+    required this.host,
+    required this.port,
+    required this.username,
+    required this.rootPath,
+    required this.hostKeyFingerprint,
+    required this.isSelected,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      name.hashCode ^
+      host.hashCode ^
+      port.hashCode ^
+      username.hashCode ^
+      rootPath.hashCode ^
+      hostKeyFingerprint.hashCode ^
+      isSelected.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SftpProfileData &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          host == other.host &&
+          port == other.port &&
+          username == other.username &&
+          rootPath == other.rootPath &&
+          hostKeyFingerprint == other.hostKeyFingerprint &&
+          isSelected == other.isSelected;
 }
 
 @freezed

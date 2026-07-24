@@ -14,17 +14,14 @@ lofty = "0.24"
 rusqlite = { version = "0.31", features = ["bundled"] }
 symphonia = { version = "0.5.5", features = ["all"] }
 uuid = { version = "1.11.0", features = ["v4"] }
-russh = { version = "0.62.0", features = ["aws-lc-rs"], optional = true }
+russh = { version = "0.62.0", features = ["aws-lc-rs"] }
 walkdir = "2.5"
-anyhow = { version = "1", optional = true }
-tokio = { version = "1.17.0", features = ["macros"], optional = true }
-russh-sftp = { version = "2.3.0", optional = true }
+anyhow = "1"
+tokio = { version = "1.17.0", features = ["fs", "io-util", "macros", "rt-multi-thread", "sync", "time"] }
+russh-sftp = "2.3.0"
+zeroize = "1.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
-[features]
-default = []
-remote-sftp = ["dep:anyhow", "dep:russh", "dep:russh-sftp", "dep:tokio"]
 
 [dev-dependencies]
 tempfile = "3.10"

@@ -143,6 +143,35 @@ Rust owns the durable result. A cropped song keeps one full-length original unde
 
 `SongViewData.crop` is the source of truth for cropped state. Dart must not infer it from file extensions or names. Cropping is currently available on Android, iOS, and macOS, matching the bundled ffmpegkitnext targets.
 
+### Remote sources
+
+The search tab is reserved for non-local sources. It renders a compact source
+selector and gives each source its own controller and presentation. Local
+catalog search remains in the library views.
+
+SFTP is the first remote source. Rust owns named profiles, trusted server-key
+fingerprints, sessions, root-confined browsing, recursive transfer jobs,
+progress, cancellation, and importing downloaded audio through the normal tag
+scanner. A successful file is written under `Music/imports/sftp` with a unique
+name, so downloading the same remote path again creates a separate song and
+never overwrites local metadata or crop edits.
+
+Passwords are the one exception to Rust persistence. Dart's platform adapter
+stores them in Keychain, Keystore, Credential Manager, or libsecret and passes
+the secret to Rust only when opening a session. SQLite stores the profile and
+SHA-256 host-key fingerprint but never the password. A new or changed server
+must be explicitly trusted, and later fingerprint changes are rejected before
+authentication.
+
+Linux packaging must provide `libsecret-1-dev` while building and
+`libsecret-1-0` at runtime. Windows builds need the C++ ATL component from the
+Visual Studio Build Tools used by the secure-storage plugin.
+
+Download jobs use shared bridge models for discovery, transfer, import, and
+terminal states. A future YouTube source can reuse the source selector and job
+presentation while keeping its provider-specific resolver outside the SFTP
+implementation.
+
 ### Widget responsibilities
 
 Widgets should:
@@ -167,7 +196,7 @@ rust/src/
 ├── scan/                      audio discovery, parsing, grouping, and import
 ├── media/                     audio tag reading and writing
 ├── storage/sqlite/            SQLite models, queries, edits, backup, and recovery
-├── remote/                    optional SFTP prototype
+├── remote/                    remote sessions, browsing, and download jobs
 └── frb_generated.rs           generated bridge plumbing
 ```
 
@@ -221,6 +250,7 @@ SQLite is the source of truth for:
 - desktop keybinding definitions;
 - relative paths to managed artwork and audio files.
 - retained full-length originals and their active crop boundaries.
+- SFTP profiles, trusted fingerprints, and download history.
 
 Paths inside the application base directory are stored relatively. Mobile application container paths can change between launches, so absolute sandbox paths would become stale.
 

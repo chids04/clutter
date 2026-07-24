@@ -1,5 +1,8 @@
+use crate::frb_generated::StreamSink;
 use flutter_rust_bridge::frb;
 use log::info;
+use std::thread;
+use std::time::Duration;
 
 pub use super::models::*;
 use crate::core::LibraryCore;
@@ -29,6 +32,89 @@ impl LibraryApi {
     /// sqlite. files already present (matched by `file_path`) are skipped.
     pub fn scan_directory(&self, path: String, config: ScanConfig) -> Result<(), String> {
         self.core.scan_directory(&path, config.is_deezer)
+    }
+
+    pub fn get_sftp_profiles(&self) -> Result<Vec<SftpProfileData>, String> {
+        self.core
+            .get_sftp_profiles()
+            .map(|profiles| profiles.into_iter().map(Into::into).collect())
+    }
+
+    pub fn save_sftp_profile(&self, profile: SftpProfileData) -> Result<SftpProfileData, String> {
+        self.core.save_sftp_profile(profile.into()).map(Into::into)
+    }
+
+    pub fn delete_sftp_profile(&self, profile_id: String) -> Result<(), String> {
+        self.core.delete_sftp_profile(&profile_id)
+    }
+
+    pub fn select_sftp_profile(&self, profile_id: String) -> Result<(), String> {
+        self.core.select_sftp_profile(&profile_id)
+    }
+
+    pub fn probe_sftp_fingerprint(&self, host: String, port: u16) -> Result<String, String> {
+        self.core.probe_sftp_fingerprint(&host, port)
+    }
+
+    pub fn connect_sftp(&self, profile_id: String, password: String) -> Result<(), String> {
+        self.core.connect_sftp(&profile_id, password)
+    }
+
+    pub fn test_sftp_connection(
+        &self,
+        profile: SftpProfileData,
+        password: String,
+    ) -> Result<(), String> {
+        self.core.test_sftp_connection(profile.into(), &password)
+    }
+
+    pub fn disconnect_sftp(&self, profile_id: String) -> Result<(), String> {
+        self.core.disconnect_sftp(&profile_id)
+    }
+
+    pub fn browse_sftp(
+        &self,
+        profile_id: String,
+        relative_path: String,
+    ) -> Result<Vec<SftpEntryData>, String> {
+        self.core
+            .browse_sftp(&profile_id, &relative_path)
+            .map(|entries| entries.into_iter().map(Into::into).collect())
+    }
+
+    pub fn start_sftp_download(
+        &self,
+        profile_id: String,
+        relative_path: String,
+        recursive: bool,
+    ) -> Result<SftpDownloadProgressData, String> {
+        self.core
+            .start_sftp_download(&profile_id, relative_path, recursive)
+            .map(Into::into)
+    }
+
+    pub fn watch_sftp_download(
+        &self,
+        job_id: String,
+        sink: StreamSink<SftpDownloadProgressData>,
+    ) -> Result<(), String> {
+        loop {
+            let progress: SftpDownloadProgressData =
+                self.core.get_sftp_download_progress(&job_id)?.into();
+            let terminal = progress.state.is_terminal();
+            if sink.add(progress).is_err() {
+                return Ok(());
+            }
+            if terminal {
+                self.core.remove_finished_sftp_download(&job_id);
+                return Ok(());
+            }
+            thread::sleep(Duration::from_millis(150));
+        }
+    }
+
+    pub fn cancel_sftp_download(&self, job_id: String) -> Result<(), String> {
+        self.core.cancel_sftp_download(&job_id)
     }
 
     pub fn import_extracted_song(

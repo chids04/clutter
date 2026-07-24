@@ -157,6 +157,40 @@ ON keybindings (
 )
 WHERE key_code IS NOT NULL;
 
+CREATE TABLE IF NOT EXISTS sftp_profiles (
+    id                   TEXT PRIMARY KEY,
+    name                 TEXT NOT NULL,
+    host                 TEXT NOT NULL,
+    port                 INTEGER NOT NULL CHECK (port BETWEEN 1 AND 65535),
+    username             TEXT NOT NULL,
+    root_path            TEXT NOT NULL,
+    host_key_fingerprint TEXT NOT NULL,
+    is_selected          INTEGER NOT NULL DEFAULT 0,
+    created_at           INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS sftp_profiles_name
+ON sftp_profiles(name COLLATE NOCASE);
+
+CREATE UNIQUE INDEX IF NOT EXISTS sftp_selected_profile
+ON sftp_profiles(is_selected)
+WHERE is_selected = 1;
+
+CREATE TABLE IF NOT EXISTS sftp_downloads (
+    id             TEXT PRIMARY KEY,
+    profile_id     TEXT NOT NULL,
+    remote_path    TEXT NOT NULL,
+    remote_size    INTEGER,
+    remote_mtime   INTEGER,
+    song_id        TEXT NOT NULL,
+    downloaded_at  INTEGER NOT NULL,
+    FOREIGN KEY (profile_id) REFERENCES sftp_profiles(id) ON DELETE CASCADE,
+    FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS sftp_downloads_remote
+ON sftp_downloads(profile_id, remote_path);
+
 INSERT OR IGNORE INTO keybindings (action, key_code) VALUES ('play_pause', 'space');
 INSERT OR IGNORE INTO keybindings (action, key_code) VALUES ('previous_track', 'key_h');
 INSERT OR IGNORE INTO keybindings (action, key_code) VALUES ('next_track', 'key_l');

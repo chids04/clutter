@@ -2104,6 +2104,7 @@ dependencies = [
  "tokio",
  "uuid",
  "walkdir",
+ "zeroize",
 ]
 
 [[package]]

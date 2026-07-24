@@ -11,6 +11,9 @@ import 'package:clutter/features/library/data/library_repository.dart';
 import 'package:clutter/features/keybindings/application/keybinding_controller.dart';
 import 'package:clutter/features/keybindings/data/keybinding_repository.dart';
 import 'package:clutter/features/playback/infrastructure/audio_service.dart';
+import 'package:clutter/features/remote_sources/application/sftp_controller.dart';
+import 'package:clutter/features/remote_sources/data/sftp_credential_store.dart';
+import 'package:clutter/features/remote_sources/data/sftp_repository.dart';
 import 'package:clutter/shared/platform/desktop_platform.dart';
 import 'package:clutter/src/rust/api/library.dart';
 import 'package:clutter/src/rust/frb_generated.dart';
@@ -31,6 +34,7 @@ Future<void> bootstrap() async {
     baseDir: documents.path,
   );
   final repository = RustLibraryRepository(api);
+  final sftpRepository = RustSftpRepository(api);
   final keybindings = isDesktopPlatform
       ? KeybindingController(RustKeybindingRepository(api))
       : null;
@@ -47,6 +51,19 @@ Future<void> bootstrap() async {
             player: audio,
             musicDir: music,
           ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) {
+            final controller = SftpController(
+              repository: sftpRepository,
+              credentials: const PlatformSftpCredentialStore(),
+              onLibraryChanged: context
+                  .read<MusicLibrary>()
+                  .refreshAfterRemoteImport,
+            );
+            controller.hydrate();
+            return controller;
+          },
         ),
         if (keybindings != null)
           ChangeNotifierProvider(create: (_) => keybindings),

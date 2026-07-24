@@ -15,6 +15,9 @@ mod artwork;
 mod editing;
 mod keybindings;
 mod models;
+mod sftp;
+
+pub use sftp::new_sftp_profile_id;
 
 pub use models::*;
 
@@ -164,6 +167,22 @@ impl SqliteLibraryStore {
             .ok()
             .and_then(|mut v| v.pop())
             .map(|r| self.abs_song(r))
+    }
+
+    pub fn get_song_by_file(&self, file_path: &Path) -> Option<SongRow> {
+        let stored = self.to_rel(file_path);
+        let id = self
+            .conn
+            .lock()
+            .ok()?
+            .query_row(
+                "SELECT id FROM songs WHERE file_path = ?1",
+                params![stored],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .ok()??;
+        self.get_song_by_id(&id)
     }
 
     pub fn contains_song_file(&self, file_path: &Path) -> bool {

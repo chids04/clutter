@@ -24,6 +24,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApiPtr;
 
   @protected
+  AnyhowException dco_decode_AnyhowException(dynamic raw);
+
+  @protected
   LibraryApi
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     dynamic raw,
@@ -40,6 +43,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     dynamic raw,
   );
+
+  @protected
+  RustStreamSink<SftpDownloadProgressData>
+  dco_decode_StreamSink_sftp_download_progress_data_Sse(dynamic raw);
 
   @protected
   String dco_decode_String(dynamic raw);
@@ -95,6 +102,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_box_autoadd_extracted_song_import_request(dynamic raw);
 
   @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+
+  @protected
   KeybindingData dco_decode_box_autoadd_keybinding_data(dynamic raw);
 
   @protected
@@ -107,6 +117,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ScanConfig dco_decode_box_autoadd_scan_config(dynamic raw);
 
   @protected
+  SftpProfileData dco_decode_box_autoadd_sftp_profile_data(dynamic raw);
+
+  @protected
   SongCropData dco_decode_box_autoadd_song_crop_data(dynamic raw);
 
   @protected
@@ -114,6 +127,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   SongViewData dco_decode_box_autoadd_song_view_data(dynamic raw);
+
+  @protected
+  BigInt dco_decode_box_autoadd_u_64(dynamic raw);
 
   @protected
   CoverArtEdit dco_decode_cover_art_edit(dynamic raw);
@@ -163,6 +179,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<SftpEntryData> dco_decode_list_sftp_entry_data(dynamic raw);
+
+  @protected
+  List<SftpProfileData> dco_decode_list_sftp_profile_data(dynamic raw);
+
+  @protected
   List<SongViewData> dco_decode_list_song_view_data(dynamic raw);
 
   @protected
@@ -179,6 +201,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_opt_box_autoadd_extracted_song_crop_request(dynamic raw);
 
   @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
   PlaybackStateData? dco_decode_opt_box_autoadd_playback_state_data(
     dynamic raw,
   );
@@ -188,6 +213,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   SongViewData? dco_decode_opt_box_autoadd_song_view_data(dynamic raw);
+
+  @protected
+  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
 
   @protected
   PinnedItemData dco_decode_pinned_item_data(dynamic raw);
@@ -208,6 +236,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ScanConfig dco_decode_scan_config(dynamic raw);
 
   @protected
+  SftpDownloadProgressData dco_decode_sftp_download_progress_data(dynamic raw);
+
+  @protected
+  SftpDownloadStateData dco_decode_sftp_download_state_data(dynamic raw);
+
+  @protected
+  SftpEntryData dco_decode_sftp_entry_data(dynamic raw);
+
+  @protected
+  SftpEntryKindData dco_decode_sftp_entry_kind_data(dynamic raw);
+
+  @protected
+  SftpProfileData dco_decode_sftp_profile_data(dynamic raw);
+
+  @protected
   SongAudioEdit dco_decode_song_audio_edit(dynamic raw);
 
   @protected
@@ -220,7 +263,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SongViewData dco_decode_song_view_data(dynamic raw);
 
   @protected
+  int dco_decode_u_16(dynamic raw);
+
+  @protected
   int dco_decode_u_32(dynamic raw);
+
+  @protected
+  BigInt dco_decode_u_64(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -230,6 +279,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt dco_decode_usize(dynamic raw);
+
+  @protected
+  AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
   LibraryApi
@@ -246,6 +298,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   LibraryApi
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustStreamSink<SftpDownloadProgressData>
+  sse_decode_StreamSink_sftp_download_progress_data_Sse(
     SseDeserializer deserializer,
   );
 
@@ -315,6 +373,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   KeybindingData sse_decode_box_autoadd_keybinding_data(
     SseDeserializer deserializer,
   );
@@ -333,6 +394,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ScanConfig sse_decode_box_autoadd_scan_config(SseDeserializer deserializer);
 
   @protected
+  SftpProfileData sse_decode_box_autoadd_sftp_profile_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   SongCropData sse_decode_box_autoadd_song_crop_data(
     SseDeserializer deserializer,
   );
@@ -346,6 +412,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SongViewData sse_decode_box_autoadd_song_view_data(
     SseDeserializer deserializer,
   );
+
+  @protected
+  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
   CoverArtEdit sse_decode_cover_art_edit(SseDeserializer deserializer);
@@ -407,6 +476,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<SftpEntryData> sse_decode_list_sftp_entry_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<SftpProfileData> sse_decode_list_sftp_profile_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<SongViewData> sse_decode_list_song_view_data(
     SseDeserializer deserializer,
   );
@@ -431,6 +510,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   PlaybackStateData? sse_decode_opt_box_autoadd_playback_state_data(
     SseDeserializer deserializer,
   );
@@ -444,6 +526,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SongViewData? sse_decode_opt_box_autoadd_song_view_data(
     SseDeserializer deserializer,
   );
+
+  @protected
+  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
   PinnedItemData sse_decode_pinned_item_data(SseDeserializer deserializer);
@@ -470,6 +555,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ScanConfig sse_decode_scan_config(SseDeserializer deserializer);
 
   @protected
+  SftpDownloadProgressData sse_decode_sftp_download_progress_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SftpDownloadStateData sse_decode_sftp_download_state_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SftpEntryData sse_decode_sftp_entry_data(SseDeserializer deserializer);
+
+  @protected
+  SftpEntryKindData sse_decode_sftp_entry_kind_data(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SftpProfileData sse_decode_sftp_profile_data(SseDeserializer deserializer);
+
+  @protected
   SongAudioEdit sse_decode_song_audio_edit(SseDeserializer deserializer);
 
   @protected
@@ -482,7 +588,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SongViewData sse_decode_song_view_data(SseDeserializer deserializer);
 
   @protected
+  int sse_decode_u_16(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_u_32(SseDeserializer deserializer);
+
+  @protected
+  BigInt sse_decode_u_64(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -492,6 +604,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt sse_decode_usize(SseDeserializer deserializer);
+
+  @protected
+  void sse_encode_AnyhowException(
+    AnyhowException self,
+    SseSerializer serializer,
+  );
 
   @protected
   void
@@ -511,6 +629,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLibraryApi(
     LibraryApi self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_sftp_download_progress_data_Sse(
+    RustStreamSink<SftpDownloadProgressData> self,
     SseSerializer serializer,
   );
 
@@ -596,6 +720,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_keybinding_data(
     KeybindingData self,
     SseSerializer serializer,
@@ -620,6 +750,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_sftp_profile_data(
+    SftpProfileData self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_song_crop_data(
     SongCropData self,
     SseSerializer serializer,
@@ -636,6 +772,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     SongViewData self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
 
   @protected
   void sse_encode_cover_art_edit(CoverArtEdit self, SseSerializer serializer);
@@ -713,6 +852,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_sftp_entry_data(
+    List<SftpEntryData> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_sftp_profile_data(
+    List<SftpProfileData> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_song_view_data(
     List<SongViewData> self,
     SseSerializer serializer,
@@ -740,6 +891,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_playback_state_data(
     PlaybackStateData? self,
     SseSerializer serializer,
@@ -756,6 +913,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     SongViewData? self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
 
   @protected
   void sse_encode_pinned_item_data(
@@ -791,6 +951,33 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_scan_config(ScanConfig self, SseSerializer serializer);
 
   @protected
+  void sse_encode_sftp_download_progress_data(
+    SftpDownloadProgressData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sftp_download_state_data(
+    SftpDownloadStateData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sftp_entry_data(SftpEntryData self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_sftp_entry_kind_data(
+    SftpEntryKindData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sftp_profile_data(
+    SftpProfileData self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_song_audio_edit(SongAudioEdit self, SseSerializer serializer);
 
   @protected
@@ -806,7 +993,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_song_view_data(SongViewData self, SseSerializer serializer);
 
   @protected
+  void sse_encode_u_16(int self, SseSerializer serializer);
+
+  @protected
   void sse_encode_u_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_64(BigInt self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);

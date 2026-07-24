@@ -14,6 +14,18 @@ abstract class LibraryApi implements RustOpaqueInterface {
     required String songId,
   });
 
+  Future<List<SftpEntryData>> browseSftp({
+    required String profileId,
+    required String relativePath,
+  });
+
+  Future<void> cancelSftpDownload({required String jobId});
+
+  Future<void> connectSftp({
+    required String profileId,
+    required String password,
+  });
+
   Future<String> createPlaylist({required String name});
 
   Future<void> deleteAlbum({required String id});
@@ -24,7 +36,11 @@ abstract class LibraryApi implements RustOpaqueInterface {
   /// number of songs purged so the ui can surface it in a toast.
   Future<int> deleteScanPath({required String path});
 
+  Future<void> deleteSftpProfile({required String profileId});
+
   Future<void> deleteSong({required String id});
+
+  Future<void> disconnectSftp({required String profileId});
 
   Future<List<AlbumViewData>> getAlbumsArtistFeaturedOn({
     required String artistId,
@@ -65,6 +81,8 @@ abstract class LibraryApi implements RustOpaqueInterface {
   Future<List<SongViewData>> getRecentlyPlayed({required int limit});
 
   Future<List<String>> getScanPaths();
+
+  Future<List<SftpProfileData>> getSftpProfiles();
 
   Future<SongViewData?> getSongById({required String id});
 
@@ -115,6 +133,11 @@ abstract class LibraryApi implements RustOpaqueInterface {
 
   Future<void> pinItem({required String itemId, required String kind});
 
+  Future<String> probeSftpFingerprint({
+    required String host,
+    required int port,
+  });
+
   Future<void> recordPlay({required String songId});
 
   Future<void> removeSongFromPlaylist({
@@ -131,6 +154,8 @@ abstract class LibraryApi implements RustOpaqueInterface {
     required PlatformInt64 positionMs,
     required bool loopOne,
   });
+
+  Future<SftpProfileData> saveSftpProfile({required SftpProfileData profile});
 
   /// recursively scan `path` for audio files and write their metadata into
   /// sqlite. files already present (matched by `file_path`) are skipped.
@@ -159,10 +184,23 @@ abstract class LibraryApi implements RustOpaqueInterface {
     required int limit,
   });
 
+  Future<void> selectSftpProfile({required String profileId});
+
   /// fork an album onto a freshly-created artist row with the same name.
   /// returns the new artist's id. used by the ui to resolve ambiguity when
   /// the scanner merged two distinct same-named artists into one row.
   Future<String> splitAlbumToNewArtist({required String albumId});
+
+  Future<SftpDownloadProgressData> startSftpDownload({
+    required String profileId,
+    required String relativePath,
+    required bool recursive,
+  });
+
+  Future<void> testSftpConnection({
+    required SftpProfileData profile,
+    required String password,
+  });
 
   Future<void> unpinItem({required String itemId, required String kind});
 
@@ -180,4 +218,6 @@ abstract class LibraryApi implements RustOpaqueInterface {
   });
 
   Future<SongViewData> updateSong({required SongEditRequest request});
+
+  Stream<SftpDownloadProgressData> watchSftpDownload({required String jobId});
 }

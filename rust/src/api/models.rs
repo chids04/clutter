@@ -1,3 +1,6 @@
+use crate::remote::sftp::{
+    SftpDownloadProgress, SftpDownloadState, SftpEntry, SftpEntryKind, SftpProfile,
+};
 use crate::storage::sqlite::{
     AlbumRow, AlbumSelection, ArtistRow, ArtworkCropRect, ArtworkEditRow, ArtworkUpdate,
     ExtractedSongCrop, ExtractedSongImport, KeybindingRow, PinnedItemRow, PlaybackStateRow,
@@ -422,6 +425,141 @@ impl From<KeybindingRow> for KeybindingData {
             meta: row.meta,
             alt: row.alt,
             shift: row.shift,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SftpProfileData {
+    pub id: String,
+    pub name: String,
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub root_path: String,
+    pub host_key_fingerprint: String,
+    pub is_selected: bool,
+}
+
+impl From<SftpProfile> for SftpProfileData {
+    fn from(value: SftpProfile) -> Self {
+        Self {
+            id: value.id,
+            name: value.name,
+            host: value.host,
+            port: value.port,
+            username: value.username,
+            root_path: value.root_path,
+            host_key_fingerprint: value.host_key_fingerprint,
+            is_selected: value.is_selected,
+        }
+    }
+}
+
+impl From<SftpProfileData> for SftpProfile {
+    fn from(value: SftpProfileData) -> Self {
+        Self {
+            id: value.id,
+            name: value.name,
+            host: value.host,
+            port: value.port,
+            username: value.username,
+            root_path: value.root_path,
+            host_key_fingerprint: value.host_key_fingerprint,
+            is_selected: value.is_selected,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SftpEntryKindData {
+    File,
+    Directory,
+    Unsupported,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SftpEntryData {
+    pub name: String,
+    pub relative_path: String,
+    pub kind: SftpEntryKindData,
+    pub size: Option<u64>,
+    pub modified_at: Option<i64>,
+    pub downloaded: bool,
+}
+
+impl From<SftpEntry> for SftpEntryData {
+    fn from(value: SftpEntry) -> Self {
+        Self {
+            name: value.name,
+            relative_path: value.relative_path,
+            kind: match value.kind {
+                SftpEntryKind::File => SftpEntryKindData::File,
+                SftpEntryKind::Directory => SftpEntryKindData::Directory,
+                SftpEntryKind::Unsupported => SftpEntryKindData::Unsupported,
+            },
+            size: value.size,
+            modified_at: value.modified_at,
+            downloaded: value.downloaded,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SftpDownloadStateData {
+    Discovering,
+    Downloading,
+    Importing,
+    Completed,
+    CompletedWithErrors,
+    Cancelled,
+    Failed,
+}
+
+impl SftpDownloadStateData {
+    pub fn is_terminal(self) -> bool {
+        matches!(
+            self,
+            Self::Completed | Self::CompletedWithErrors | Self::Cancelled | Self::Failed
+        )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SftpDownloadProgressData {
+    pub job_id: String,
+    pub state: SftpDownloadStateData,
+    pub current_name: Option<String>,
+    pub files_completed: u32,
+    pub files_total: u32,
+    pub bytes_completed: u64,
+    pub bytes_total: u64,
+    pub failed_files: u32,
+    pub message: Option<String>,
+}
+
+impl From<SftpDownloadProgress> for SftpDownloadProgressData {
+    fn from(value: SftpDownloadProgress) -> Self {
+        Self {
+            job_id: value.job_id,
+            state: match value.state {
+                SftpDownloadState::Discovering => SftpDownloadStateData::Discovering,
+                SftpDownloadState::Downloading => SftpDownloadStateData::Downloading,
+                SftpDownloadState::Importing => SftpDownloadStateData::Importing,
+                SftpDownloadState::Completed => SftpDownloadStateData::Completed,
+                SftpDownloadState::CompletedWithErrors => {
+                    SftpDownloadStateData::CompletedWithErrors
+                }
+                SftpDownloadState::Cancelled => SftpDownloadStateData::Cancelled,
+                SftpDownloadState::Failed => SftpDownloadStateData::Failed,
+            },
+            current_name: value.current_name,
+            files_completed: value.files_completed,
+            files_total: value.files_total,
+            bytes_completed: value.bytes_completed,
+            bytes_total: value.bytes_total,
+            failed_files: value.failed_files,
+            message: value.message,
         }
     }
 }

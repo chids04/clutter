@@ -215,3 +215,24 @@ pub(super) struct PlaylistBackupSong {
     pub title: String,
     pub album: String,
 }
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SftpProfileRow {
+    pub id: String,
+    pub name: String,
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub root_path: String,
+    pub host_key_fingerprint: String,
+    pub is_selected: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SftpDownloadRow {
+    pub id: String,
+    pub profile_id: String,
+    pub remote_path: String,
+    pub remote_size: Option<u64>,
+    pub remote_mtime: Option<i64>,
+    pub song_id: String,
+}

@@ -13,6 +13,9 @@ PODS:
     - FlutterMacOS
   - file_selector_macos (0.0.1):
     - FlutterMacOS
+  - flutter_secure_storage_darwin (10.0.0):
+    - Flutter
+    - FlutterMacOS
   - FlutterMacOS (1.0.0)
   - rust_lib_clutter (0.0.1):
     - FlutterMacOS
@@ -27,6 +30,7 @@ DEPENDENCIES:
   - ffmpeg_kit_next_flutter (from `Flutter/ephemeral/.symlinks/plugins/ffmpeg_kit_next_flutter/macos`)
   - file_picker (from `Flutter/ephemeral/.symlinks/plugins/file_picker/macos`)
   - file_selector_macos (from `Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos`)
+  - flutter_secure_storage_darwin (from `Flutter/ephemeral/.symlinks/plugins/flutter_secure_storage_darwin/darwin`)
   - FlutterMacOS (from `Flutter/ephemeral`)
   - rust_lib_clutter (from `Flutter/ephemeral/.symlinks/plugins/rust_lib_clutter/macos`)
   - sqflite_darwin (from `Flutter/ephemeral/.symlinks/plugins/sqflite_darwin/darwin`)
@@ -44,6 +48,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/file_picker/macos
   file_selector_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos
+  flutter_secure_storage_darwin:
+    :path: Flutter/ephemeral/.symlinks/plugins/flutter_secure_storage_darwin/darwin
   FlutterMacOS:
     :path: Flutter/ephemeral
   rust_lib_clutter:
@@ -58,6 +64,7 @@ SPEC CHECKSUMS:
   ffmpeg_kit_next_flutter: a511cd564b8e7bb2037b12cfe8697d947f9d978d
   file_picker: 7584aae6fa07a041af2b36a2655122d42f578c1a
   file_selector_macos: 9e9e068e90ebee155097d00e89ae91edb2374db7
+  flutter_secure_storage_darwin: acdb3f316ed05a3e68f856e0353b133eec373a23
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   rust_lib_clutter: 2b57825d58819a3a93709ba5877832fec9d15155
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
