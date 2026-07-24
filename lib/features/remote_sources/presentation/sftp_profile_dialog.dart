@@ -81,7 +81,7 @@ class _SftpProfileDialogState extends State<_SftpProfileDialog> {
                 _field(_root, 'music root'),
                 TextFormField(
                   controller: _password,
-                  obscureText: true,
+                  obscureText: false,
                   decoration: const InputDecoration(labelText: 'password'),
                   validator: _required,
                 ),
