@@ -11,9 +11,11 @@ class KeybindingController extends ChangeNotifier {
   KeybindingController(this.repository);
 
   List<KeybindingData> _bindings = const [];
+  int _seekStepSeconds = 5;
   bool _isLoading = false;
 
   List<KeybindingData> get bindings => List.unmodifiable(_bindings);
+  int get seekStepSeconds => _seekStepSeconds;
   bool get isLoading => _isLoading;
 
   Future<void> load() async {
@@ -21,6 +23,7 @@ class KeybindingController extends ChangeNotifier {
     notifyListeners();
     try {
       _bindings = await repository.getAll();
+      _seekStepSeconds = await repository.getSeekStepSeconds();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -32,7 +35,7 @@ class KeybindingController extends ChangeNotifier {
   }
 
   KeybindingAction? actionFor(KeyEvent event) {
-    if (event is! KeyDownEvent) return null;
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return null;
     return _bindings
         .where((binding) => KeyCodeCodec.matches(binding, event))
         .map((binding) => binding.action)
@@ -57,8 +60,14 @@ class KeybindingController extends ChangeNotifier {
     );
   }
 
+  Future<void> updateSeekStepSeconds(int seconds) async {
+    _seekStepSeconds = await repository.updateSeekStepSeconds(seconds);
+    notifyListeners();
+  }
+
   Future<void> reset() async {
     _bindings = await repository.reset();
+    _seekStepSeconds = 5;
     notifyListeners();
   }
 

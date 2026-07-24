@@ -25,6 +25,7 @@ void main() {
 
   testWidgets('default playback keys dispatch their actions', (tester) async {
     var playPause = 0;
+    final seeks = <int>[];
     var previous = 0;
     var next = 0;
     await tester.pumpWidget(
@@ -32,16 +33,41 @@ void main() {
         controller,
         child: const Focus(autofocus: true, child: SizedBox()),
         onPlayPause: () => playPause++,
+        onSeekBackward: (seconds) => seeks.add(-seconds),
+        onSeekForward: seeks.add,
         onPrevious: () => previous++,
         onNext: () => next++,
       ),
     );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.sendKeyEvent(LogicalKeyboardKey.keyH);
     await tester.sendKeyEvent(LogicalKeyboardKey.keyL);
 
     expect((playPause, previous, next), (1, 1, 1));
+    expect(seeks, [-5, 5]);
+  });
+
+  testWidgets('seek shortcuts use the configured interval', (tester) async {
+    final seeks = <int>[];
+    await controller.updateSeekStepSeconds(12);
+    await tester.pumpWidget(
+      _app(
+        controller,
+        child: const Focus(autofocus: true, child: SizedBox()),
+        onSeekBackward: (seconds) => seeks.add(-seconds),
+        onSeekForward: seeks.add,
+      ),
+    );
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+
+    expect(seeks, [-12, -12, 12]);
   });
 
   testWidgets('primary s dispatches omni search', (tester) async {
@@ -133,12 +159,35 @@ void main() {
     expect(playPause, 0);
     expect(controller.bindingFor(KeybindingAction.playPause)?.keyCode, 'space');
   });
+
+  testWidgets('seek interval slider previews and persists seconds', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(controller, child: const KeybindingsView()));
+    var slider = tester.widget<Slider>(find.byType(Slider));
+    expect(
+      (slider.value, slider.min, slider.max, slider.divisions),
+      (5, 1, 30, 29),
+    );
+
+    slider.onChanged!(12);
+    await tester.pump();
+    expect(find.text('12 seconds'), findsOneWidget);
+
+    slider = tester.widget<Slider>(find.byType(Slider));
+    slider.onChangeEnd!(12);
+    await tester.pumpAndSettle();
+
+    expect(controller.seekStepSeconds, 12);
+  });
 }
 
 Widget _app(
   KeybindingController controller, {
   required Widget child,
   VoidCallback? onPlayPause,
+  ValueChanged<int>? onSeekBackward,
+  ValueChanged<int>? onSeekForward,
   VoidCallback? onPrevious,
   VoidCallback? onNext,
   VoidCallback? onOmni,
@@ -148,6 +197,8 @@ Widget _app(
     child: MaterialApp(
       home: DesktopShortcutScope(
         onPlayPause: onPlayPause ?? () {},
+        onSeekBackward: onSeekBackward ?? (_) {},
+        onSeekForward: onSeekForward ?? (_) {},
         onPreviousTrack: onPrevious ?? () {},
         onNextTrack: onNext ?? () {},
         onOmniSearch: onOmni ?? () {},

@@ -68,6 +68,9 @@ class _ExtractedSongEditorState extends State<_ExtractedSongEditor> {
   );
   late final TextEditingController _track = TextEditingController(text: '1');
   late final TextEditingController _disc = TextEditingController(text: '1');
+  late final Map<TextEditingController, String> _defaults;
+  late final Map<TextEditingController, FocusNode> _defaultFocusNodes;
+  final Set<TextEditingController> _usingDefaults = {};
   Timer? _debounce;
   List<AlbumViewData> _suggestions = const [];
   String? _selectedAlbumId;
@@ -78,8 +81,34 @@ class _ExtractedSongEditorState extends State<_ExtractedSongEditor> {
   String? _preparedCropPath;
 
   @override
+  void initState() {
+    super.initState();
+    _defaults = {
+      _title: widget.audio.suggestedTitle,
+      _primary: 'Unknown Artist',
+      _album: 'Unknown Album',
+      _albumArtists: 'Unknown Artist',
+      _track: '1',
+      _disc: '1',
+    };
+    _usingDefaults.addAll(_defaults.keys);
+    _defaultFocusNodes = {
+      for (final controller in _defaults.keys)
+        controller: FocusNode(debugLabel: 'video-import-default'),
+    };
+    for (final entry in _defaultFocusNodes.entries) {
+      entry.value.addListener(
+        () => _handleDefaultFocus(entry.key, entry.value),
+      );
+    }
+  }
+
+  @override
   void dispose() {
     _debounce?.cancel();
+    for (final node in _defaultFocusNodes.values) {
+      node.dispose();
+    }
     for (final controller in [
       _title,
       _primary,
@@ -101,6 +130,57 @@ class _ExtractedSongEditorState extends State<_ExtractedSongEditor> {
     super.dispose();
   }
 
+  void _handleDefaultFocus(
+    TextEditingController controller,
+    FocusNode focusNode,
+  ) {
+    if (!mounted) return;
+    if (focusNode.hasFocus && _usingDefaults.contains(controller)) {
+      setState(() {
+        _usingDefaults.remove(controller);
+        controller.clear();
+        if (identical(controller, _album)) {
+          _selectedAlbumId = null;
+          _suggestions = const [];
+        }
+      });
+      return;
+    }
+    if (!focusNode.hasFocus && controller.text.trim().isEmpty) {
+      final fallback = _defaults[controller]!;
+      setState(() {
+        controller.value = TextEditingValue(
+          text: fallback,
+          selection: TextSelection.collapsed(offset: fallback.length),
+        );
+        _usingDefaults.add(controller);
+      });
+    }
+  }
+
+  FocusNode _focusNode(TextEditingController controller) =>
+      _defaultFocusNodes[controller]!;
+
+  TextStyle? _fieldStyle(
+    BuildContext context,
+    TextEditingController controller,
+  ) => _usingDefaults.contains(controller)
+      ? TextStyle(color: Theme.of(context).hintColor)
+      : null;
+
+  String _resolvedText(TextEditingController controller) {
+    final value = controller.text.trim();
+    return value.isEmpty ? _defaults[controller] ?? '' : value;
+  }
+
+  void _setExplicitValue(TextEditingController controller, String value) {
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+    _usingDefaults.remove(controller);
+  }
+
   void _searchAlbums(String value) {
     _selectedAlbumId = null;
     _debounce?.cancel();
@@ -119,19 +199,19 @@ class _ExtractedSongEditorState extends State<_ExtractedSongEditor> {
     }
     final album = _selectedAlbumId == null
         ? AlbumChoice.new_(
-            title: _album.text,
-            artists: _names(_albumArtists.text),
+            title: _resolvedText(_album),
+            artists: _names(_resolvedText(_albumArtists)),
           )
         : AlbumChoice.existing(albumId: _selectedAlbumId!);
     try {
       await widget.library.importExtractedSong(
         ExtractedSongImportRequest(
           sourcePath: cropInput.sourcePath,
-          title: _title.text,
-          primaryArtist: _primary.text,
+          title: _resolvedText(_title),
+          primaryArtist: _resolvedText(_primary),
           featuredArtists: _names(_features.text),
-          trackNum: int.tryParse(_track.text) ?? 0,
-          discNum: int.tryParse(_disc.text) ?? 0,
+          trackNum: int.tryParse(_resolvedText(_track)) ?? 1,
+          discNum: int.tryParse(_resolvedText(_disc)) ?? 1,
           album: album,
           cover: _cover?.toCoverEdit() ?? const CoverArtEdit.keep(),
           crop: cropInput.crop,
@@ -241,10 +321,14 @@ class _ExtractedSongEditorState extends State<_ExtractedSongEditor> {
               ),
             TextField(
               controller: _title,
+              focusNode: _focusNode(_title),
+              style: _fieldStyle(context, _title),
               decoration: const InputDecoration(labelText: 'title'),
             ),
             ArtistAutocompleteField(
               controller: _primary,
+              focusNode: _focusNode(_primary),
+              style: _fieldStyle(context, _primary),
               searchArtists: widget.library.searchArtists,
               label: 'primary artist',
             ),
@@ -257,12 +341,16 @@ class _ExtractedSongEditorState extends State<_ExtractedSongEditor> {
             ),
             TextField(
               controller: _album,
+              focusNode: _focusNode(_album),
+              style: _fieldStyle(context, _album),
               decoration: const InputDecoration(labelText: 'album'),
               onChanged: _searchAlbums,
             ),
             if (_suggestions.isNotEmpty) _albumSuggestions(),
             ArtistAutocompleteField(
               controller: _albumArtists,
+              focusNode: _focusNode(_albumArtists),
+              style: _fieldStyle(context, _albumArtists),
               searchArtists: widget.library.searchArtists,
               label: 'album artists',
               helperText: 'separate artists with commas',
@@ -310,8 +398,8 @@ class _ExtractedSongEditorState extends State<_ExtractedSongEditor> {
           subtitle: Text(album.artists.join(', ')),
           onTap: () => setState(() {
             _selectedAlbumId = album.id;
-            _album.text = album.title;
-            _albumArtists.text = album.artists.join(', ');
+            _setExplicitValue(_album, album.title);
+            _setExplicitValue(_albumArtists, album.artists.join(', '));
             _suggestions = const [];
           }),
         );
@@ -322,6 +410,8 @@ class _ExtractedSongEditorState extends State<_ExtractedSongEditor> {
   Widget _numberField(TextEditingController controller, String label) =>
       TextField(
         controller: controller,
+        focusNode: _focusNode(controller),
+        style: _fieldStyle(context, controller),
         keyboardType: TextInputType.number,
         decoration: InputDecoration(labelText: label),
       );

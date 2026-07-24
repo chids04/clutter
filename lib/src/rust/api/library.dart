@@ -82,6 +82,8 @@ abstract class LibraryApi implements RustOpaqueInterface {
 
   Future<List<String>> getScanPaths();
 
+  Future<int> getSeekStepSeconds();
+
   Future<List<SftpProfileData>> getSftpProfiles();
 
   Future<SongViewData?> getSongById({required String id});
@@ -216,6 +218,8 @@ abstract class LibraryApi implements RustOpaqueInterface {
   Future<PlaylistViewData> updatePlaylist({
     required PlaylistEditRequest request,
   });
+
+  Future<int> updateSeekStepSeconds({required int seconds});
 
   Future<SongViewData> updateSong({required SongEditRequest request});
 

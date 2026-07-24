@@ -21,23 +21,32 @@ KeybindingData binding(
 class FakeKeybindingRepository implements KeybindingRepository {
   List<KeybindingData> values = [
     binding(KeybindingAction.playPause, 'space'),
+    binding(KeybindingAction.seekBackward, 'arrow_left'),
+    binding(KeybindingAction.seekForward, 'arrow_right'),
     binding(KeybindingAction.previousTrack, 'key_h'),
     binding(KeybindingAction.nextTrack, 'key_l'),
     binding(KeybindingAction.omniSearch, 'key_s', primary: true),
   ];
+  int seekStepSeconds = 5;
   Object? updateError;
 
   @override
   Future<List<KeybindingData>> getAll() async => List.from(values);
 
   @override
+  Future<int> getSeekStepSeconds() async => seekStepSeconds;
+
+  @override
   Future<List<KeybindingData>> reset() async {
     values = [
       binding(KeybindingAction.playPause, 'space'),
+      binding(KeybindingAction.seekBackward, 'arrow_left'),
+      binding(KeybindingAction.seekForward, 'arrow_right'),
       binding(KeybindingAction.previousTrack, 'key_h'),
       binding(KeybindingAction.nextTrack, 'key_l'),
       binding(KeybindingAction.omniSearch, 'key_s', primary: true),
     ];
+    seekStepSeconds = 5;
     return List.from(values);
   }
 
@@ -49,6 +58,12 @@ class FakeKeybindingRepository implements KeybindingRepository {
         if (current.action == value.action) value else current,
     ];
     return value;
+  }
+
+  @override
+  Future<int> updateSeekStepSeconds(int seconds) async {
+    seekStepSeconds = seconds;
+    return seekStepSeconds;
   }
 }
 
@@ -63,6 +78,11 @@ void main() {
 
     await controller.clear(KeybindingAction.playPause);
     expect(controller.labelFor(KeybindingAction.playPause), 'unbound');
+    await controller.updateSeekStepSeconds(12);
+    expect(controller.seekStepSeconds, 12);
+
+    await controller.reset();
+    expect(controller.seekStepSeconds, 5);
     controller.dispose();
   });
 

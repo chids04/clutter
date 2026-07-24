@@ -22,39 +22,48 @@ class SongDelegate extends StatefulWidget {
 }
 
 class _SongDelegateState extends State<SongDelegate>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const double _queueThreshold = 72;
   static const double _maxDragExtent = 112;
   static const Duration _settleDuration = Duration(milliseconds: 180);
+  static const double _statusMarkerWidth = 10;
+  static const double _statusToCoverGap = 8;
+  static const double _coverSize = 50;
 
   double _dragOffset = 0;
   bool _isDragging = false;
   late final AnimationController _tapController;
   late final Animation<double> _tapScale;
+  late final AnimationController _eqController;
 
   @override
   void initState() {
     super.initState();
     _tapController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 340),
+      duration: const Duration(milliseconds: 270),
     );
     _tapScale = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween(
           begin: 1.0,
-          end: 0.985,
-        ).chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 30,
+          end: 0.98,
+        ).chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 50,
       ),
       TweenSequenceItem(
         tween: Tween(
-          begin: 0.985,
+          begin: 0.98,
           end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeOutBack)),
-        weight: 70,
+        ).chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 50,
       ),
     ]).animate(_tapController);
+    _eqController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 720),
+    );
+    _syncEqAnimation();
   }
 
   @override
@@ -65,11 +74,26 @@ class _SongDelegateState extends State<SongDelegate>
       _isDragging = false;
       _tapController.reset();
     }
+    _syncEqAnimation();
+  }
+
+  void _syncEqAnimation() {
+    final isCurrent = widget.musicLibrary.currentSong?.id == widget.song.id;
+    final playing = isCurrent && widget.musicLibrary.isPlaying;
+    if (playing) {
+      if (!_eqController.isAnimating) {
+        _eqController.repeat(reverse: true);
+      }
+    } else {
+      _eqController.stop();
+      _eqController.value = 0.35;
+    }
   }
 
   @override
   void dispose() {
     _tapController.dispose();
+    _eqController.dispose();
     super.dispose();
   }
 
@@ -107,14 +131,70 @@ class _SongDelegateState extends State<SongDelegate>
     _settleDrag(queueSong: false);
   }
 
+  Widget _statusMarker(Color onSurface, bool isCurrent, bool isPlaying) {
+    if (!isCurrent) {
+      return const SizedBox(width: _statusMarkerWidth);
+    }
+    if (!isPlaying) {
+      return SizedBox(
+        width: _statusMarkerWidth,
+        child: Center(
+          child: Container(
+            width: 3,
+            height: 14,
+            decoration: BoxDecoration(
+              color: onSurface.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+      );
+    }
+    return SizedBox(
+      width: _statusMarkerWidth,
+      child: AnimatedBuilder(
+        animation: _eqController,
+        builder: (context, _) {
+          final t = _eqController.value;
+          final heights = <double>[6 + 10 * t, 14 - 8 * t, 8 + 8 * (1 - t)];
+          return Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              height: 18,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  for (var i = 0; i < heights.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 1.5),
+                    Container(
+                      width: 2.2,
+                      height: heights[i],
+                      decoration: BoxDecoration(
+                        color: onSurface.withValues(alpha: 0.95),
+                        borderRadius: BorderRadius.circular(1),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final song = widget.song;
     final musicLibrary = widget.musicLibrary;
     final isCurrentSong = musicLibrary.currentSong?.id == song.id;
+    final isPlaying = isCurrentSong && musicLibrary.isPlaying;
     final colors = Theme.of(context).colorScheme;
     final liked = musicLibrary.isLiked(song.id);
     final settleDuration = _isDragging ? Duration.zero : _settleDuration;
+    _syncEqAnimation();
 
     return ClipRect(
       child: Stack(
@@ -168,40 +248,62 @@ class _SongDelegateState extends State<SongDelegate>
                     Colors.transparent,
                   ),
                   child: ListTile(
-                    leading: coverImg(song.coverPath, 50, cacheSize: 150),
+                    leading: SizedBox(
+                      width:
+                          _statusMarkerWidth + _statusToCoverGap + _coverSize,
+                      child: Row(
+                        children: [
+                          _statusMarker(
+                            colors.onSurface,
+                            isCurrentSong,
+                            isPlaying,
+                          ),
+                          const SizedBox(width: _statusToCoverGap),
+                          coverImg(song.coverPath, _coverSize, cacheSize: 150),
+                        ],
+                      ),
+                    ),
                     title: Text(
                       song.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: isCurrentSong
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: colors.onSurface.withValues(
+                          alpha: isCurrentSong ? 1.0 : 0.92,
+                        ),
+                      ),
                     ),
                     subtitle: Text(
                       musicLibrary.artistsDisplay(song),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    trailing: isCurrentSong
-                        ? const Icon(Icons.play_arrow, color: Colors.green)
-                        : IconButton(
-                            icon: Icon(
-                              liked ? Icons.favorite : Icons.favorite_border,
-                              color: liked ? Colors.redAccent : null,
-                              size: 20,
-                            ),
-                            tooltip: liked ? "unlike" : "like",
-                            onPressed: () => musicLibrary.toggleLiked(song),
-                            style: const ButtonStyle(
-                              splashFactory: NoSplash.splashFactory,
-                              overlayColor: WidgetStatePropertyAll(
-                                Colors.transparent,
-                              ),
-                            ),
-                            padding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                            constraints: const BoxConstraints(
-                              minWidth: 36,
-                              minHeight: 36,
-                            ),
-                          ),
+                    trailing: IconButton(
+                      icon: Icon(
+                        liked ? Icons.favorite : Icons.favorite_border,
+                        color: liked
+                            ? Colors.redAccent
+                            : colors.onSurface.withValues(alpha: 0.85),
+                        size: 20,
+                      ),
+                      tooltip: liked ? "unlike" : "like",
+                      onPressed: () => musicLibrary.toggleLiked(song),
+                      style: const ButtonStyle(
+                        splashFactory: NoSplash.splashFactory,
+                        overlayColor: WidgetStatePropertyAll(
+                          Colors.transparent,
+                        ),
+                      ),
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(
+                        minWidth: 36,
+                        minHeight: 36,
+                      ),
+                    ),
                   ),
                 ),
               ),

@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 936258798;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -543620759;
 
 // Section: executor
 
@@ -1323,6 +1323,56 @@ fn wire__crate__api__library__LibraryApi_get_scan_paths_impl(
                     let output_ok = Result::<_, ()>::Ok(
                         crate::api::library::LibraryApi::get_scan_paths(&*api_that_guard),
                     )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__library__LibraryApi_get_seek_step_seconds_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "LibraryApi_get_seek_step_seconds",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<LibraryApi>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok =
+                        crate::api::library::LibraryApi::get_seek_step_seconds(&*api_that_guard)?;
                     Ok(output_ok)
                 })())
             }
@@ -3240,6 +3290,59 @@ fn wire__crate__api__library__LibraryApi_update_playlist_impl(
         },
     )
 }
+fn wire__crate__api__library__LibraryApi_update_seek_step_seconds_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "LibraryApi_update_seek_step_seconds",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<LibraryApi>,
+            >>::sse_decode(&mut deserializer);
+            let api_seconds = <u32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok = crate::api::library::LibraryApi::update_seek_step_seconds(
+                        &*api_that_guard,
+                        api_seconds,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__library__LibraryApi_update_song_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -3707,9 +3810,11 @@ impl SseDecode for crate::api::models::KeybindingAction {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
             0 => crate::api::models::KeybindingAction::PlayPause,
-            1 => crate::api::models::KeybindingAction::PreviousTrack,
-            2 => crate::api::models::KeybindingAction::NextTrack,
-            3 => crate::api::models::KeybindingAction::OmniSearch,
+            1 => crate::api::models::KeybindingAction::SeekBackward,
+            2 => crate::api::models::KeybindingAction::SeekForward,
+            3 => crate::api::models::KeybindingAction::PreviousTrack,
+            4 => crate::api::models::KeybindingAction::NextTrack,
+            5 => crate::api::models::KeybindingAction::OmniSearch,
             _ => unreachable!("Invalid variant for KeybindingAction: {}", inner),
         };
     }
@@ -4478,201 +4583,213 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        25 => wire__crate__api__library__LibraryApi_get_sftp_profiles_impl(
+        25 => wire__crate__api__library__LibraryApi_get_seek_step_seconds_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        26 => wire__crate__api__library__LibraryApi_get_song_by_id_impl(
+        26 => wire__crate__api__library__LibraryApi_get_sftp_profiles_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        27 => wire__crate__api__library__LibraryApi_get_songs_artist_featured_on_impl(
+        27 => wire__crate__api__library__LibraryApi_get_song_by_id_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        28 => wire__crate__api__library__LibraryApi_get_songs_by_album_id_impl(
+        28 => wire__crate__api__library__LibraryApi_get_songs_artist_featured_on_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        29 => wire__crate__api__library__LibraryApi_get_songs_in_playlist_impl(
+        29 => wire__crate__api__library__LibraryApi_get_songs_by_album_id_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        30 => wire__crate__api__library__LibraryApi_get_songs_paginated_impl(
+        30 => wire__crate__api__library__LibraryApi_get_songs_in_playlist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        35 => wire__crate__api__library__LibraryApi_import_extracted_song_impl(
+        31 => wire__crate__api__library__LibraryApi_get_songs_paginated_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__library__LibraryApi_init_impl(port, ptr, rust_vec_len, data_len),
-        37 => wire__crate__api__library__LibraryApi_load_playback_state_impl(
+        36 => wire__crate__api__library__LibraryApi_import_extracted_song_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => wire__crate__api__library__LibraryApi_move_pinned_item_impl(
+        37 => wire__crate__api__library__LibraryApi_init_impl(port, ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__library__LibraryApi_load_playback_state_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => {
+        39 => wire__crate__api__library__LibraryApi_move_pinned_item_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        40 => {
             wire__crate__api__library__LibraryApi_pin_item_impl(port, ptr, rust_vec_len, data_len)
         }
-        40 => wire__crate__api__library__LibraryApi_probe_sftp_fingerprint_impl(
+        41 => wire__crate__api__library__LibraryApi_probe_sftp_fingerprint_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        41 => wire__crate__api__library__LibraryApi_record_play_impl(
+        42 => wire__crate__api__library__LibraryApi_record_play_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => wire__crate__api__library__LibraryApi_remove_song_from_playlist_impl(
+        43 => wire__crate__api__library__LibraryApi_remove_song_from_playlist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__library__LibraryApi_reset_keybindings_impl(
+        44 => wire__crate__api__library__LibraryApi_reset_keybindings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        44 => wire__crate__api__library__LibraryApi_reset_library_impl(
+        45 => wire__crate__api__library__LibraryApi_reset_library_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__library__LibraryApi_save_playback_state_impl(
+        46 => wire__crate__api__library__LibraryApi_save_playback_state_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        46 => wire__crate__api__library__LibraryApi_save_sftp_profile_impl(
+        47 => wire__crate__api__library__LibraryApi_save_sftp_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        47 => wire__crate__api__library__LibraryApi_scan_directory_impl(
+        48 => wire__crate__api__library__LibraryApi_scan_directory_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        48 => wire__crate__api__library__LibraryApi_search_albums_impl(
+        49 => wire__crate__api__library__LibraryApi_search_albums_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        49 => wire__crate__api__library__LibraryApi_search_artists_impl(
+        50 => wire__crate__api__library__LibraryApi_search_artists_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        50 => wire__crate__api__library__LibraryApi_search_playlists_impl(
+        51 => wire__crate__api__library__LibraryApi_search_playlists_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        51 => wire__crate__api__library__LibraryApi_search_songs_impl(
+        52 => wire__crate__api__library__LibraryApi_search_songs_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        52 => wire__crate__api__library__LibraryApi_select_sftp_profile_impl(
+        53 => wire__crate__api__library__LibraryApi_select_sftp_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        53 => wire__crate__api__library__LibraryApi_split_album_to_new_artist_impl(
+        54 => wire__crate__api__library__LibraryApi_split_album_to_new_artist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        54 => wire__crate__api__library__LibraryApi_start_sftp_download_impl(
+        55 => wire__crate__api__library__LibraryApi_start_sftp_download_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        55 => wire__crate__api__library__LibraryApi_test_sftp_connection_impl(
+        56 => wire__crate__api__library__LibraryApi_test_sftp_connection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        56 => {
+        57 => {
             wire__crate__api__library__LibraryApi_unpin_item_impl(port, ptr, rust_vec_len, data_len)
         }
-        57 => wire__crate__api__library__LibraryApi_update_album_impl(
+        58 => wire__crate__api__library__LibraryApi_update_album_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        58 => wire__crate__api__library__LibraryApi_update_artist_image_impl(
+        59 => wire__crate__api__library__LibraryApi_update_artist_image_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        59 => wire__crate__api__library__LibraryApi_update_keybinding_impl(
+        60 => wire__crate__api__library__LibraryApi_update_keybinding_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        60 => wire__crate__api__library__LibraryApi_update_playlist_impl(
+        61 => wire__crate__api__library__LibraryApi_update_playlist_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        61 => wire__crate__api__library__LibraryApi_update_song_impl(
+        62 => wire__crate__api__library__LibraryApi_update_seek_step_seconds_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        62 => wire__crate__api__library__LibraryApi_watch_sftp_download_impl(
+        63 => wire__crate__api__library__LibraryApi_update_song_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        63 => wire__crate__api__init__init_app_impl(port, ptr, rust_vec_len, data_len),
-        64 => wire__crate__api__models__sftp_download_state_data_is_terminal_impl(
+        64 => wire__crate__api__library__LibraryApi_watch_sftp_download_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        65 => wire__crate__api__init__init_app_impl(port, ptr, rust_vec_len, data_len),
+        66 => wire__crate__api__models__sftp_download_state_data_is_terminal_impl(
             port,
             ptr,
             rust_vec_len,
@@ -4690,20 +4807,20 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        31 => {
+        32 => {
             wire__crate__api__library__LibraryApi_get_total_albums_impl(ptr, rust_vec_len, data_len)
         }
-        32 => wire__crate__api__library__LibraryApi_get_total_artists_impl(
+        33 => wire__crate__api__library__LibraryApi_get_total_artists_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        33 => wire__crate__api__library__LibraryApi_get_total_playlists_impl(
+        34 => wire__crate__api__library__LibraryApi_get_total_playlists_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        34 => {
+        35 => {
             wire__crate__api__library__LibraryApi_get_total_songs_impl(ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
@@ -4986,9 +5103,11 @@ impl flutter_rust_bridge::IntoDart for crate::api::models::KeybindingAction {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
             Self::PlayPause => 0.into_dart(),
-            Self::PreviousTrack => 1.into_dart(),
-            Self::NextTrack => 2.into_dart(),
-            Self::OmniSearch => 3.into_dart(),
+            Self::SeekBackward => 1.into_dart(),
+            Self::SeekForward => 2.into_dart(),
+            Self::PreviousTrack => 3.into_dart(),
+            Self::NextTrack => 4.into_dart(),
+            Self::OmniSearch => 5.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -5639,9 +5758,11 @@ impl SseEncode for crate::api::models::KeybindingAction {
         <i32>::sse_encode(
             match self {
                 crate::api::models::KeybindingAction::PlayPause => 0,
-                crate::api::models::KeybindingAction::PreviousTrack => 1,
-                crate::api::models::KeybindingAction::NextTrack => 2,
-                crate::api::models::KeybindingAction::OmniSearch => 3,
+                crate::api::models::KeybindingAction::SeekBackward => 1,
+                crate::api::models::KeybindingAction::SeekForward => 2,
+                crate::api::models::KeybindingAction::PreviousTrack => 3,
+                crate::api::models::KeybindingAction::NextTrack => 4,
+                crate::api::models::KeybindingAction::OmniSearch => 5,
                 _ => {
                     unimplemented!("");
                 }

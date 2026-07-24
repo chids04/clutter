@@ -461,6 +461,14 @@ impl LibraryApi {
             .map(|bindings| bindings.into_iter().map(KeybindingData::from).collect())
     }
 
+    pub fn get_seek_step_seconds(&self) -> Result<u32, String> {
+        self.core.get_seek_step_seconds()
+    }
+
+    pub fn update_seek_step_seconds(&self, seconds: u32) -> Result<u32, String> {
+        self.core.update_seek_step_seconds(seconds)
+    }
+
     pub fn reset_library(&self) -> Result<(), String> {
         self.core.reset_library()
     }

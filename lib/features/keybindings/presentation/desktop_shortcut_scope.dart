@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:clutter/features/keybindings/application/keybinding_controller.dart';
@@ -9,6 +10,8 @@ import 'package:clutter/features/library/domain/library_entities.dart';
 class DesktopShortcutScope extends StatelessWidget {
   final Widget child;
   final FutureOr<void> Function() onPlayPause;
+  final FutureOr<void> Function(int seconds) onSeekBackward;
+  final FutureOr<void> Function(int seconds) onSeekForward;
   final FutureOr<void> Function() onPreviousTrack;
   final FutureOr<void> Function() onNextTrack;
   final FutureOr<void> Function() onOmniSearch;
@@ -17,6 +20,8 @@ class DesktopShortcutScope extends StatelessWidget {
     super.key,
     required this.child,
     required this.onPlayPause,
+    required this.onSeekBackward,
+    required this.onSeekForward,
     required this.onPreviousTrack,
     required this.onNextTrack,
     required this.onOmniSearch,
@@ -31,15 +36,24 @@ class DesktopShortcutScope extends StatelessWidget {
         if (_shouldIgnore(context)) return KeyEventResult.ignored;
         final action = keybindings.actionFor(event);
         if (action == null) return KeyEventResult.ignored;
+        final isRepeat = event is KeyRepeatEvent;
         switch (action) {
           case KeybindingAction.playPause:
-            unawaited(Future.sync(onPlayPause));
+            if (!isRepeat) unawaited(Future.sync(onPlayPause));
+          case KeybindingAction.seekBackward:
+            unawaited(
+              Future.sync(() => onSeekBackward(keybindings.seekStepSeconds)),
+            );
+          case KeybindingAction.seekForward:
+            unawaited(
+              Future.sync(() => onSeekForward(keybindings.seekStepSeconds)),
+            );
           case KeybindingAction.previousTrack:
-            unawaited(Future.sync(onPreviousTrack));
+            if (!isRepeat) unawaited(Future.sync(onPreviousTrack));
           case KeybindingAction.nextTrack:
-            unawaited(Future.sync(onNextTrack));
+            if (!isRepeat) unawaited(Future.sync(onNextTrack));
           case KeybindingAction.omniSearch:
-            unawaited(Future.sync(onOmniSearch));
+            if (!isRepeat) unawaited(Future.sync(onOmniSearch));
         }
         return KeyEventResult.handled;
       },
