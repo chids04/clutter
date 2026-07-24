@@ -17,6 +17,8 @@ class KeybindingsView extends StatefulWidget {
 class _KeybindingsViewState extends State<KeybindingsView> {
   final FocusNode _recorderFocus = FocusNode(debugLabel: 'keybinding-recorder');
   KeybindingAction? _recording;
+  int? _seekStepDraft;
+  bool _savingSeekStep = false;
 
   @override
   void dispose() {
@@ -84,6 +86,23 @@ class _KeybindingsViewState extends State<KeybindingsView> {
     await context.read<KeybindingController>().reset();
   }
 
+  Future<void> _saveSeekStep(double value) async {
+    final seconds = value.round();
+    setState(() => _savingSeekStep = true);
+    try {
+      await context.read<KeybindingController>().updateSeekStepSeconds(seconds);
+    } catch (error) {
+      if (mounted) _showError(error);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _savingSeekStep = false;
+          _seekStepDraft = null;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Focus(
@@ -101,12 +120,45 @@ class _KeybindingsViewState extends State<KeybindingsView> {
             if (controller.isLoading) {
               return const Center(child: CircularProgressIndicator());
             }
+            final seekStep = _seekStepDraft ?? controller.seekStepSeconds;
             return ListView.separated(
               padding: const EdgeInsets.all(16),
-              itemCount: KeybindingAction.values.length,
+              itemCount: KeybindingAction.values.length + 1,
               separatorBuilder: (_, _) => const Divider(),
               itemBuilder: (context, index) {
-                final action = KeybindingAction.values[index];
+                if (index == 0) {
+                  return ListTile(
+                    leading: const Icon(Icons.fast_forward),
+                    title: const Text('seek interval'),
+                    subtitle: Row(
+                      children: [
+                        Expanded(
+                          child: Slider(
+                            value: seekStep.toDouble(),
+                            min: 1,
+                            max: 30,
+                            divisions: 29,
+                            label: '$seekStep seconds',
+                            onChanged: _savingSeekStep
+                                ? null
+                                : (value) => setState(
+                                    () => _seekStepDraft = value.round(),
+                                  ),
+                            onChangeEnd: _savingSeekStep ? null : _saveSeekStep,
+                          ),
+                        ),
+                        SizedBox(
+                          width: 76,
+                          child: Text(
+                            '$seekStep seconds',
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                final action = KeybindingAction.values[index - 1];
                 final recording = _recording == action;
                 return ListTile(
                   title: Text(_actionLabel(action)),
@@ -141,6 +193,8 @@ class _KeybindingsViewState extends State<KeybindingsView> {
 
   String _actionLabel(KeybindingAction action) => switch (action) {
     KeybindingAction.playPause => 'play / pause',
+    KeybindingAction.seekBackward => 'seek backward',
+    KeybindingAction.seekForward => 'seek forward',
     KeybindingAction.previousTrack => 'previous track',
     KeybindingAction.nextTrack => 'next track',
     KeybindingAction.omniSearch => 'omni search',
@@ -148,6 +202,8 @@ class _KeybindingsViewState extends State<KeybindingsView> {
 
   IconData _actionIcon(KeybindingAction action) => switch (action) {
     KeybindingAction.playPause => Icons.play_arrow,
+    KeybindingAction.seekBackward => Icons.replay_5,
+    KeybindingAction.seekForward => Icons.forward_5,
     KeybindingAction.previousTrack => Icons.skip_previous,
     KeybindingAction.nextTrack => Icons.skip_next,
     KeybindingAction.omniSearch => Icons.search,

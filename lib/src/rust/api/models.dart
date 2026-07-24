@@ -266,7 +266,14 @@ class ExtractedSongImportRequest {
           crop == other.crop;
 }
 
-enum KeybindingAction { playPause, previousTrack, nextTrack, omniSearch }
+enum KeybindingAction {
+  playPause,
+  seekBackward,
+  seekForward,
+  previousTrack,
+  nextTrack,
+  omniSearch,
+}
 
 class KeybindingData {
   final KeybindingAction action;

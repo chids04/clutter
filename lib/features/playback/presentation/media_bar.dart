@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:clutter/features/library/application/music_library.dart';
 import 'package:clutter/features/library/domain/library_entities.dart';
 import 'package:clutter/features/library/presentation/widgets/song_context_menu.dart';
+import 'package:clutter/features/playback/presentation/now_playing_overlay.dart';
 import 'package:clutter/shared/presentation/cover_image.dart';
 
 const double _kControlSize = 40.0;
@@ -26,11 +27,20 @@ class MediaBar extends StatefulWidget {
 
 class _MediaBarState extends State<MediaBar> {
   bool _showQueue = false;
-  bool _mobileMinimalMode = true;
+  bool _openingNowPlaying = false;
 
   bool get _isDesktop =>
       Platform.isLinux || Platform.isMacOS || Platform.isWindows;
-  bool get _isMobile => !_isDesktop;
+
+  Future<void> _openNowPlaying() async {
+    if (_openingNowPlaying) return;
+    _openingNowPlaying = true;
+    try {
+      await showNowPlayingOverlay(context);
+    } finally {
+      _openingNowPlaying = false;
+    }
+  }
 
   String _formatDuration(Duration? duration) {
     if (duration == null) return "";
@@ -51,6 +61,10 @@ class _MediaBarState extends State<MediaBar> {
         minWidth: _kControlSize,
         minHeight: _kControlSize,
       ),
+      style: const ButtonStyle(
+        splashFactory: NoSplash.splashFactory,
+        overlayColor: WidgetStatePropertyAll(Colors.transparent),
+      ),
     );
   }
 
@@ -60,30 +74,44 @@ class _MediaBarState extends State<MediaBar> {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: const Icon(Icons.skip_previous, size: 25),
+          icon: const Icon(Icons.skip_previous_rounded, size: 25),
           onPressed: musicLibrary.canPlayPrevious
               ? () => musicLibrary.playPrevious()
               : null,
           padding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,
           constraints: const BoxConstraints(minWidth: 32, minHeight: 29),
+          style: const ButtonStyle(
+            splashFactory: NoSplash.splashFactory,
+            overlayColor: WidgetStatePropertyAll(Colors.transparent),
+          ),
         ),
         IconButton(
           icon: Icon(
-            musicLibrary.isPlaying ? Icons.pause : Icons.play_arrow,
+            musicLibrary.isPlaying
+                ? Icons.pause_rounded
+                : Icons.play_arrow_rounded,
             size: 29,
           ),
           onPressed: hasSong ? () => musicLibrary.togglePlay() : null,
           padding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,
           constraints: const BoxConstraints(minWidth: 35, minHeight: 29),
+          style: const ButtonStyle(
+            splashFactory: NoSplash.splashFactory,
+            overlayColor: WidgetStatePropertyAll(Colors.transparent),
+          ),
         ),
         IconButton(
-          icon: const Icon(Icons.skip_next, size: 25),
+          icon: const Icon(Icons.skip_next_rounded, size: 25),
           onPressed: hasSong ? () => musicLibrary.playNext() : null,
           padding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,
           constraints: const BoxConstraints(minWidth: 32, minHeight: 29),
+          style: const ButtonStyle(
+            splashFactory: NoSplash.splashFactory,
+            overlayColor: WidgetStatePropertyAll(Colors.transparent),
+          ),
         ),
       ],
     );
@@ -145,7 +173,7 @@ class _MediaBarState extends State<MediaBar> {
   Widget _buildMinimalBar(MusicLibrary musicLibrary, SongViewData? current) {
     final theme = Theme.of(context);
     return GestureDetector(
-      onTap: () => setState(() => _mobileMinimalMode = false),
+      onTap: _openNowPlaying,
       onLongPressStart: current == null
           ? null
           : (d) => showSongContextMenu(
@@ -219,11 +247,21 @@ class _MediaBarState extends State<MediaBar> {
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              _playbackControls(musicLibrary),
+                              // absorb taps so transport doesn't open overlay
+                              GestureDetector(
+                                onTap: () {},
+                                child: _playbackControls(musicLibrary),
+                              ),
                             ],
                           ),
                         ),
-                        SizedBox(height: 18, child: _slimSlider(musicLibrary)),
+                        SizedBox(
+                          height: 18,
+                          child: GestureDetector(
+                            onTap: () {},
+                            child: _slimSlider(musicLibrary),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -239,12 +277,7 @@ class _MediaBarState extends State<MediaBar> {
   Widget _buildBar(MusicLibrary musicLibrary, SongViewData? current) {
     final theme = Theme.of(context);
     return GestureDetector(
-      onTap: _isMobile
-          ? () => setState(() {
-              _showQueue = false;
-              _mobileMinimalMode = true;
-            })
-          : null,
+      onTap: _openNowPlaying,
       onLongPressStart: current == null
           ? null
           : (d) => showSongContextMenu(
@@ -283,7 +316,12 @@ class _MediaBarState extends State<MediaBar> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(children: [_playbackControls(musicLibrary)]),
+                          GestureDetector(
+                            onTap: () {},
+                            child: Row(
+                              children: [_playbackControls(musicLibrary)],
+                            ),
+                          ),
                           const SizedBox(height: 4),
                           Text(
                             current?.title ?? "nothing playing",
@@ -315,14 +353,17 @@ class _MediaBarState extends State<MediaBar> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        if (_isDesktop)
-                          _VolumeControl(musicLibrary: musicLibrary),
-                        _LoopButton(musicLibrary: musicLibrary),
-                      ],
+                    GestureDetector(
+                      onTap: () {},
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (_isDesktop)
+                            _VolumeControl(musicLibrary: musicLibrary),
+                          _LoopButton(musicLibrary: musicLibrary),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -331,10 +372,18 @@ class _MediaBarState extends State<MediaBar> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     SizedBox(width: coverSize + 10),
-                    Expanded(child: _sliderRow(musicLibrary, 11)),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {},
+                        child: _sliderRow(musicLibrary, 11),
+                      ),
+                    ),
                     Padding(
                       padding: const EdgeInsets.only(left: 8, bottom: 2),
-                      child: _queueToggle(),
+                      child: GestureDetector(
+                        onTap: () {},
+                        child: _queueToggle(),
+                      ),
                     ),
                   ],
                 ),
@@ -351,7 +400,6 @@ class _MediaBarState extends State<MediaBar> {
     return Consumer<MusicLibrary>(
       builder: (context, musicLibrary, _) {
         final current = musicLibrary.currentSong;
-        final useMinimalBar = _isMobile && _mobileMinimalMode;
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -360,19 +408,19 @@ class _MediaBarState extends State<MediaBar> {
                 activePageListenable: widget.activeLibraryPageListenable,
                 onPageSelected: widget.onLibraryPageSelected,
               ),
-            useMinimalBar
-                ? _buildMinimalBar(musicLibrary, current)
-                : _buildBar(musicLibrary, current),
+            _isDesktop
+                ? _buildBar(musicLibrary, current)
+                : _buildMinimalBar(musicLibrary, current),
             if (!_isDesktop)
               _LibraryQuickNav(
                 activePageListenable: widget.activeLibraryPageListenable,
                 onPageSelected: widget.onLibraryPageSelected,
               ),
-            if (_showQueue && !useMinimalBar)
+            if (_showQueue && _isDesktop)
               _QueuePanel(
                 musicLibrary: musicLibrary,
                 buildCover: (path) => coverImg(path, 36, cacheSize: 108),
-                showEmptyMessage: _isDesktop,
+                showEmptyMessage: true,
               ),
           ],
         );
@@ -392,18 +440,18 @@ class _LibraryQuickNav extends StatelessWidget {
 
   IconData _iconFor(LibraryPage page) {
     return switch (page) {
-      LibraryPage.songs => Icons.music_note,
-      LibraryPage.albums => Icons.album,
-      LibraryPage.artists => Icons.person,
-      LibraryPage.playlists => Icons.queue_music,
-      LibraryPage.recentlyPlayed => Icons.history,
+      LibraryPage.songs => Icons.music_note_rounded,
+      LibraryPage.albums => Icons.album_rounded,
+      LibraryPage.artists => Icons.person_rounded,
+      LibraryPage.playlists => Icons.queue_music_rounded,
+      LibraryPage.recentlyPlayed => Icons.history_rounded,
     };
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final inactive = theme.colorScheme.onSurface.withValues(alpha: 0.58);
+    final inactive = theme.colorScheme.onSurface.withValues(alpha: 0.5);
     return ValueListenableBuilder<LibraryPage>(
       valueListenable: activePageListenable,
       builder: (context, activePage, _) {
@@ -457,9 +505,9 @@ class _VolumeControlState extends State<_VolumeControl> {
   bool _hovered = false;
 
   IconData _volumeIconFor(double v) {
-    if (v <= 0.0) return Icons.volume_off;
-    if (v < 0.5) return Icons.volume_down;
-    return Icons.volume_up;
+    if (v <= 0.0) return Icons.volume_off_rounded;
+    if (v < 0.5) return Icons.volume_down_rounded;
+    return Icons.volume_up_rounded;
   }
 
   @override
@@ -511,6 +559,10 @@ class _VolumeControlState extends State<_VolumeControl> {
               minWidth: _kControlSize,
               minHeight: _kControlSize,
             ),
+            style: const ButtonStyle(
+              splashFactory: NoSplash.splashFactory,
+              overlayColor: WidgetStatePropertyAll(Colors.transparent),
+            ),
           ),
         ],
       ),
@@ -528,9 +580,14 @@ class _LoopButton extends StatelessWidget {
     final theme = Theme.of(context);
     final active = musicLibrary.loopOne;
     return IconButton(
-      icon: Icon(active ? Icons.repeat_one : Icons.repeat, size: 21),
+      icon: Icon(
+        active ? Icons.repeat_one_rounded : Icons.repeat_rounded,
+        size: 21,
+      ),
       tooltip: active ? "disable loop" : "loop current track",
-      color: active ? theme.colorScheme.primary : null,
+      color: active
+          ? theme.colorScheme.onSurface
+          : theme.colorScheme.onSurface.withValues(alpha: 0.7),
       onPressed: musicLibrary.currentSong == null
           ? null
           : () => musicLibrary.toggleLoopOne(),
@@ -539,6 +596,10 @@ class _LoopButton extends StatelessWidget {
       constraints: const BoxConstraints(
         minWidth: _kControlSize,
         minHeight: _kControlSize,
+      ),
+      style: const ButtonStyle(
+        splashFactory: NoSplash.splashFactory,
+        overlayColor: WidgetStatePropertyAll(Colors.transparent),
       ),
     );
   }
@@ -570,12 +631,12 @@ class _QueuePanel extends StatelessWidget {
             icon: Icon(
               Icons.repeat,
               size: 18,
-              color: loopQueue ? theme.colorScheme.primary : null,
+              color: loopQueue ? theme.colorScheme.onSurface : null,
             ),
             label: const Text("loop queue"),
             style: TextButton.styleFrom(
               foregroundColor: loopQueue
-                  ? theme.colorScheme.primary
+                  ? theme.colorScheme.onSurface
                   : theme.colorScheme.onSurface.withValues(alpha: 0.72),
               visualDensity: VisualDensity.compact,
               padding: const EdgeInsets.symmetric(horizontal: 8),

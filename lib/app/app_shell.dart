@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -141,27 +140,10 @@ class _AppShellState extends State<AppShell> {
               activeLibraryPageListenable: _libraryPage,
               onLibraryPageSelected: _openLibraryPage,
             ),
-
-            _SearchLongPressBottomNav(
+            _BouncyBottomNav(
+              currentIndex: _selectedIndex,
+              onTap: _selectTab,
               onSearchLongPress: _openOmniSearchFromLongPress,
-              child: BottomNavigationBar(
-                items: const <BottomNavigationBarItem>[
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.library_music),
-                    label: 'library',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.search),
-                    label: 'search',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.settings),
-                    label: 'settings',
-                  ),
-                ],
-                currentIndex: _selectedIndex,
-                onTap: _selectTab,
-              ),
             ),
           ],
         ),
@@ -171,6 +153,8 @@ class _AppShellState extends State<AppShell> {
     final library = context.read<MusicLibrary>();
     return DesktopShortcutScope(
       onPlayPause: library.togglePlay,
+      onSeekBackward: (seconds) => library.seekBy(Duration(seconds: -seconds)),
+      onSeekForward: (seconds) => library.seekBy(Duration(seconds: seconds)),
       onPreviousTrack: library.playPrevious,
       onNextTrack: library.playNext,
       onOmniSearch: _openOmniSearch,
@@ -179,40 +163,153 @@ class _AppShellState extends State<AppShell> {
   }
 }
 
-class _SearchLongPressBottomNav extends StatelessWidget {
-  final Widget child;
+class _BouncyBottomNav extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
   final VoidCallback onSearchLongPress;
 
-  const _SearchLongPressBottomNav({
-    required this.child,
+  const _BouncyBottomNav({
+    required this.currentIndex,
+    required this.onTap,
     required this.onSearchLongPress,
   });
 
+  static const _items = <({IconData icon, String label})>[
+    (icon: Icons.library_music_rounded, label: 'library'),
+    (icon: Icons.search_rounded, label: 'search'),
+    (icon: Icons.settings_rounded, label: 'settings'),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    return RawGestureDetector(
-      behavior: HitTestBehavior.translucent,
-      gestures: {
-        LongPressGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
-              () => LongPressGestureRecognizer(
-                duration: const Duration(milliseconds: 350),
-              ),
-              (recognizer) {
-                recognizer.onLongPressStart = (details) {
-                  final box = context.findRenderObject() as RenderBox?;
-                  if (box == null || !box.hasSize) return;
-                  final itemWidth = box.size.width / 3;
-                  final pressedIndex = (details.localPosition.dx / itemWidth)
-                      .floor();
-                  if (pressedIndex == 1) {
-                    onSearchLongPress();
-                  }
-                };
-              },
+    final theme = Theme.of(context);
+    final active = theme.colorScheme.onSurface;
+    final inactive = theme.colorScheme.onSurface.withValues(alpha: 0.48);
+
+    return Material(
+      color: theme.scaffoldBackgroundColor,
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 56,
+          child: Row(
+            children: [
+              for (var i = 0; i < _items.length; i++)
+                Expanded(
+                  child: _BouncyNavItem(
+                    icon: _items[i].icon,
+                    label: _items[i].label,
+                    selected: currentIndex == i,
+                    activeColor: active,
+                    inactiveColor: inactive,
+                    onTap: () => onTap(i),
+                    onLongPress: i == 1 ? onSearchLongPress : null,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BouncyNavItem extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final Color activeColor;
+  final Color inactiveColor;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+
+  const _BouncyNavItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.activeColor,
+    required this.inactiveColor,
+    required this.onTap,
+    this.onLongPress,
+  });
+
+  @override
+  State<_BouncyNavItem> createState() => _BouncyNavItemState();
+}
+
+class _BouncyNavItemState extends State<_BouncyNavItem>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    );
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.0,
+          end: 0.82,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 35,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 0.82,
+          end: 1.08,
+        ).chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 40,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.08,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 25,
+      ),
+    ]).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _bounceAndTap() {
+    _controller.forward(from: 0);
+    widget.onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.selected ? widget.activeColor : widget.inactiveColor;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _bounceAndTap,
+      onLongPress: widget.onLongPress,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ScaleTransition(
+            scale: _scale,
+            child: Icon(widget.icon, size: 24, color: color),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            widget.label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w400,
+              color: color,
             ),
-      },
-      child: child,
+          ),
+        ],
+      ),
     );
   }
 }

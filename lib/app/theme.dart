@@ -6,20 +6,27 @@ final ThemeData darkTheme = ThemeData(
   brightness: Brightness.dark,
   useMaterial3: true,
   scaffoldBackgroundColor: AppColors.darkBackground,
+  canvasColor: AppColors.darkBackground,
+  cardColor: AppColors.darkSurface,
   appBarTheme: const AppBarTheme(
     backgroundColor: AppColors.darkBackground,
+    foregroundColor: AppColors.textPrimary,
     surfaceTintColor: Colors.transparent,
     elevation: 0,
+    iconTheme: IconThemeData(color: AppColors.textPrimary),
+    actionsIconTheme: IconThemeData(color: AppColors.textPrimary),
     titleTextStyle: TextStyle(
       color: AppColors.textPrimary,
       fontSize: 18,
       fontWeight: FontWeight.bold,
     ),
   ),
+  iconTheme: const IconThemeData(color: AppColors.textPrimary),
+  primaryIconTheme: const IconThemeData(color: AppColors.textPrimary),
   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
     backgroundColor: AppColors.darkBackground,
     selectedItemColor: AppColors.textPrimary,
-    unselectedItemColor: AppColors.accent,
+    unselectedItemColor: Color(0xFF8A8A8A),
     elevation: 0,
     type: BottomNavigationBarType.fixed,
   ),
@@ -39,7 +46,7 @@ final ThemeData darkTheme = ThemeData(
   ),
   listTileTheme: const ListTileThemeData(
     textColor: AppColors.textPrimary,
-    iconColor: AppColors.textSecondary,
+    iconColor: AppColors.textPrimary,
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
@@ -49,4 +56,7 @@ final ThemeData darkTheme = ThemeData(
       elevation: 0,
     ),
   ),
+  splashFactory: NoSplash.splashFactory,
+  highlightColor: Colors.transparent,
+  splashColor: Colors.transparent,
 );

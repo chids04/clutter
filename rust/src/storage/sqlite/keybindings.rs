@@ -1,9 +1,18 @@
 use super::*;
 
-const ACTIONS: [&str; 4] = ["play_pause", "previous_track", "next_track", "omni_search"];
+const ACTIONS: [&str; 6] = [
+    "play_pause",
+    "seek_backward",
+    "seek_forward",
+    "previous_track",
+    "next_track",
+    "omni_search",
+];
 
-const DEFAULTS: [(&str, &str, bool); 4] = [
+const DEFAULTS: [(&str, &str, bool); 6] = [
     ("play_pause", "space", false),
+    ("seek_backward", "arrow_left", false),
+    ("seek_forward", "arrow_right", false),
     ("previous_track", "key_h", false),
     ("next_track", "key_l", false),
     ("omni_search", "key_s", true),
@@ -41,8 +50,36 @@ impl SqliteLibraryStore {
         tx.execute("DELETE FROM keybindings", [])
             .map_err(|error| format!("clear keybindings: {error}"))?;
         insert_defaults(&tx)?;
+        tx.execute(
+            "UPDATE shortcut_settings SET seek_step_seconds = 5 WHERE id = 1",
+            [],
+        )
+        .map_err(|error| format!("reset seek step: {error}"))?;
         tx.commit().map_err(|error| format!("commit: {error}"))?;
         query_keybindings(&conn).map_err(|error| format!("query keybindings: {error}"))
+    }
+
+    pub fn get_seek_step_seconds(&self) -> Result<u32, String> {
+        let conn = self.conn.lock().map_err(|error| format!("lock: {error}"))?;
+        conn.query_row(
+            "SELECT seek_step_seconds FROM shortcut_settings WHERE id = 1",
+            [],
+            |row| row.get::<_, u32>(0),
+        )
+        .map_err(|error| format!("get seek step: {error}"))
+    }
+
+    pub fn update_seek_step_seconds(&self, seconds: u32) -> Result<u32, String> {
+        if !(1..=30).contains(&seconds) {
+            return Err("seek step must be between 1 and 30 seconds".into());
+        }
+        let conn = self.conn.lock().map_err(|error| format!("lock: {error}"))?;
+        conn.execute(
+            "UPDATE shortcut_settings SET seek_step_seconds = ?1 WHERE id = 1",
+            [seconds],
+        )
+        .map_err(|error| format!("update seek step: {error}"))?;
+        Ok(seconds)
     }
 }
 
@@ -137,7 +174,7 @@ fn insert_defaults(conn: &Connection) -> Result<(), String> {
 
 fn query_keybindings(conn: &Connection) -> rusqlite::Result<Vec<KeybindingRow>> {
     let mut statement = conn.prepare(
-        "SELECT action, key_code, primary_modifier, control_modifier, meta_modifier, alt_modifier, shift_modifier FROM keybindings ORDER BY CASE action WHEN 'play_pause' THEN 0 WHEN 'previous_track' THEN 1 WHEN 'next_track' THEN 2 ELSE 3 END",
+        "SELECT action, key_code, primary_modifier, control_modifier, meta_modifier, alt_modifier, shift_modifier FROM keybindings ORDER BY CASE action WHEN 'play_pause' THEN 0 WHEN 'seek_backward' THEN 1 WHEN 'seek_forward' THEN 2 WHEN 'previous_track' THEN 3 WHEN 'next_track' THEN 4 ELSE 5 END",
     )?;
     let rows = statement.query_map([], map_keybinding)?;
     rows.collect()
@@ -198,11 +235,13 @@ mod tests {
     fn seeds_defaults_in_display_order() {
         let (store, _temp) = store();
         let bindings = store.get_keybindings().unwrap();
-        assert_eq!(bindings.len(), 4);
+        assert_eq!(bindings.len(), 6);
         assert_eq!(bindings[0], binding("play_pause", Some("space")));
-        assert_eq!(bindings[1], binding("previous_track", Some("key_h")));
-        assert_eq!(bindings[2], binding("next_track", Some("key_l")));
-        assert!(bindings[3].primary);
+        assert_eq!(bindings[1], binding("seek_backward", Some("arrow_left")));
+        assert_eq!(bindings[2], binding("seek_forward", Some("arrow_right")));
+        assert_eq!(bindings[3], binding("previous_track", Some("key_h")));
+        assert_eq!(bindings[4], binding("next_track", Some("key_l")));
+        assert!(bindings[5].primary);
     }
 
     #[test]
@@ -243,7 +282,7 @@ mod tests {
             .unwrap_err();
         assert!(error.contains("previous_track"));
         assert_eq!(
-            store.get_keybindings().unwrap()[2].key_code.as_deref(),
+            store.get_keybindings().unwrap()[4].key_code.as_deref(),
             Some("key_l")
         );
     }
@@ -254,9 +293,11 @@ mod tests {
         store
             .update_keybinding(binding("play_pause", None))
             .unwrap();
+        store.update_seek_step_seconds(12).unwrap();
         let reset = store.reset_keybindings().unwrap();
         assert_eq!(reset[0].key_code.as_deref(), Some("space"));
-        assert!(reset[3].primary);
+        assert!(reset[5].primary);
+        assert_eq!(store.get_seek_step_seconds().unwrap(), 5);
     }
 
     #[test]
@@ -268,5 +309,23 @@ mod tests {
         assert!(store
             .update_keybinding(binding("play_pause", Some("escape")))
             .is_err());
+    }
+
+    #[test]
+    fn seek_step_is_validated_and_persisted() {
+        let (store, temp) = store();
+        assert_eq!(store.get_seek_step_seconds().unwrap(), 5);
+        assert_eq!(store.update_seek_step_seconds(12).unwrap(), 12);
+        assert!(store.update_seek_step_seconds(0).is_err());
+        assert!(store.update_seek_step_seconds(31).is_err());
+        drop(store);
+
+        let reopened = SqliteLibraryStore::open(
+            &temp.path().join("library.db").to_string_lossy(),
+            &temp.path().join("covers").to_string_lossy(),
+            &temp.path().to_string_lossy(),
+        )
+        .unwrap();
+        assert_eq!(reopened.get_seek_step_seconds().unwrap(), 12);
     }
 }

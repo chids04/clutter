@@ -16,6 +16,8 @@ class ArtistAutocompleteField extends StatefulWidget {
     this.helperText,
     this.multiple = false,
     this.onChanged,
+    this.focusNode,
+    this.style,
   });
 
   final TextEditingController controller;
@@ -24,6 +26,8 @@ class ArtistAutocompleteField extends StatefulWidget {
   final String? helperText;
   final bool multiple;
   final ValueChanged<String>? onChanged;
+  final FocusNode? focusNode;
+  final TextStyle? style;
 
   @override
   State<ArtistAutocompleteField> createState() =>
@@ -105,6 +109,8 @@ class _ArtistAutocompleteFieldState extends State<ArtistAutocompleteField> {
     children: [
       TextField(
         controller: widget.controller,
+        focusNode: widget.focusNode,
+        style: widget.style,
         decoration: InputDecoration(
           labelText: widget.label,
           helperText: widget.helperText,

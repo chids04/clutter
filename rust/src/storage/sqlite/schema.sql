@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS playback_state (
 );
 
 CREATE TABLE IF NOT EXISTS keybindings (
-    action           TEXT PRIMARY KEY CHECK (action IN ('play_pause', 'previous_track', 'next_track', 'omni_search')),
+    action           TEXT PRIMARY KEY CHECK (action IN ('play_pause', 'seek_backward', 'seek_forward', 'previous_track', 'next_track', 'omni_search')),
     key_code         TEXT,
     primary_modifier INTEGER NOT NULL DEFAULT 0,
     control_modifier INTEGER NOT NULL DEFAULT 0,
@@ -156,6 +156,11 @@ ON keybindings (
     shift_modifier
 )
 WHERE key_code IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS shortcut_settings (
+    id                INTEGER PRIMARY KEY CHECK (id = 1),
+    seek_step_seconds INTEGER NOT NULL DEFAULT 5 CHECK (seek_step_seconds BETWEEN 1 AND 30)
+);
 
 CREATE TABLE IF NOT EXISTS sftp_profiles (
     id                   TEXT PRIMARY KEY,
@@ -192,7 +197,10 @@ CREATE INDEX IF NOT EXISTS sftp_downloads_remote
 ON sftp_downloads(profile_id, remote_path);
 
 INSERT OR IGNORE INTO keybindings (action, key_code) VALUES ('play_pause', 'space');
+INSERT OR IGNORE INTO keybindings (action, key_code) VALUES ('seek_backward', 'arrow_left');
+INSERT OR IGNORE INTO keybindings (action, key_code) VALUES ('seek_forward', 'arrow_right');
 INSERT OR IGNORE INTO keybindings (action, key_code) VALUES ('previous_track', 'key_h');
 INSERT OR IGNORE INTO keybindings (action, key_code) VALUES ('next_track', 'key_l');
 INSERT OR IGNORE INTO keybindings (action, key_code, primary_modifier)
 VALUES ('omni_search', 'key_s', 1);
+INSERT OR IGNORE INTO shortcut_settings (id, seek_step_seconds) VALUES (1, 5);

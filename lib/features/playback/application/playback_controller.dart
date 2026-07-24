@@ -76,6 +76,10 @@ class PlaybackController extends ChangeNotifier {
   Future<void> playSongById(String id, Iterable<SongViewData> songs) async {
     final song = songs.where((candidate) => candidate.id == id).firstOrNull;
     if (song == null) return;
+    if (_currentSong?.id == id) {
+      await _restartCurrent();
+      return;
+    }
     if (_currentSong != null) queueState.remember(_currentSong!);
     await _playNow(song);
   }
@@ -148,18 +152,19 @@ class PlaybackController extends ChangeNotifier {
   Future<void> _restartCurrent() async {
     final song = _currentSong;
     if (song == null) return;
-    if (_savedPositionMs != null) {
-      _savedPositionMs = 0;
-      _position = Duration.zero;
-      notifyListeners();
-      unawaited(_saveState());
-      return;
-    }
-    await player.seek(Duration.zero);
     _position = Duration.zero;
-    if (!_isPlaying) await player.play();
-    _isPlaying = true;
     _isFinished = false;
+    if (_savedPositionMs != null) {
+      _savedPositionMs = null;
+      await player.loadAndPlay(song, startPosition: Duration.zero);
+      await player.setLoopOne(_loopOne);
+      unawaited(_recordPlay(song.id));
+      _ensureStateTimer();
+    } else {
+      await player.seek(Duration.zero);
+      if (!_isPlaying) await player.play();
+    }
+    _isPlaying = true;
     notifyListeners();
     unawaited(_saveState());
   }
@@ -252,6 +257,27 @@ class PlaybackController extends ChangeNotifier {
     if (_savedPositionMs != null) _savedPositionMs = next.inMilliseconds;
     _position = next;
     notifyListeners();
+  }
+
+  Future<void> seekBy(Duration offset) async {
+    if (_currentSong == null) return;
+    final durationMs = _duration?.inMilliseconds;
+    var targetMs =
+        (_position ?? Duration.zero).inMilliseconds + offset.inMilliseconds;
+    if (targetMs < 0) targetMs = 0;
+    if (durationMs != null && durationMs > 0 && targetMs > durationMs) {
+      targetMs = durationMs;
+    }
+    final target = Duration(milliseconds: targetMs);
+    if (_savedPositionMs != null) {
+      _savedPositionMs = targetMs;
+    } else {
+      await player.seek(target);
+    }
+    _position = target;
+    if (durationMs == null || targetMs < durationMs) _isFinished = false;
+    notifyListeners();
+    unawaited(_saveState());
   }
 
   Future<void> startScrub() async {

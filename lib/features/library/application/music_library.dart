@@ -322,6 +322,7 @@ class MusicLibrary extends ChangeNotifier {
   Future<void> toggleLoopOne() => playback.toggleLoopOne();
   void toggleLoopQueue() => playback.toggleLoopQueue();
   void setPlayerPosition(double value) => playback.setPosition(value);
+  Future<void> seekBy(Duration offset) => playback.seekBy(offset);
   void startScrub() => unawaited(playback.startScrub());
   void endScrub() => unawaited(playback.endScrub());
 

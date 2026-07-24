@@ -364,6 +364,8 @@ impl From<PinnedItemRow> for PinnedItemData {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeybindingAction {
     PlayPause,
+    SeekBackward,
+    SeekForward,
     PreviousTrack,
     NextTrack,
     OmniSearch,
@@ -373,6 +375,8 @@ impl KeybindingAction {
     fn as_str(self) -> &'static str {
         match self {
             Self::PlayPause => "play_pause",
+            Self::SeekBackward => "seek_backward",
+            Self::SeekForward => "seek_forward",
             Self::PreviousTrack => "previous_track",
             Self::NextTrack => "next_track",
             Self::OmniSearch => "omni_search",
@@ -382,6 +386,8 @@ impl KeybindingAction {
     fn from_str(value: &str) -> Self {
         match value {
             "play_pause" => Self::PlayPause,
+            "seek_backward" => Self::SeekBackward,
+            "seek_forward" => Self::SeekForward,
             "previous_track" => Self::PreviousTrack,
             "next_track" => Self::NextTrack,
             "omni_search" => Self::OmniSearch,
