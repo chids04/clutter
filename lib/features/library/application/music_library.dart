@@ -246,6 +246,8 @@ class MusicLibrary extends ChangeNotifier {
     await playback.removeMissingSongs(catalog.songs);
   }
 
+  Future<int> importManagedAudio() => scanner.importManagedDirectory();
+
   Future<void> rescanDirectory(String directory) async {
     try {
       final added = await scanner.rescan(directory);

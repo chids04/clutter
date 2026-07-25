@@ -1,28 +1,94 @@
 import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:audio_session/audio_session.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 import 'package:clutter/features/library/domain/library_entities.dart';
 import 'package:clutter/features/playback/domain/audio_player_port.dart';
+import 'package:clutter/features/playback/infrastructure/audio_session_port.dart';
 
-/// audio-service handler that owns the underlying [audioplayer] and exposes
-/// playback through the platform media session (control center, lock screen,
-/// menu-bar now playing, headset clicks, etc.).
-///
-/// the actual queue/history policy still lives in [musiclibrary]; this handler
-/// forwards skip requests back to the library via the [onskiptonext] and
-/// [onskiptoprevious] callbacks.
+abstract interface class PlaybackAudioEngine {
+  PlayerState get state;
+  double get playbackRate;
+  Stream<PlayerState> get playerStateChanges;
+  Stream<Duration> get durationChanges;
+  Stream<Duration> get positionChanges;
+  Stream<void> get completions;
+
+  Future<void> play(Source source, {Duration? position});
+  Future<void> resume();
+  Future<void> pause();
+  Future<void> stop();
+  Future<void> seek(Duration position);
+  Future<void> setVolume(double volume);
+  Future<void> setReleaseMode(ReleaseMode mode);
+}
+
+class AudioplayersEngine implements PlaybackAudioEngine {
+  final AudioPlayer _player = AudioPlayer();
+
+  @override
+  PlayerState get state => _player.state;
+
+  @override
+  double get playbackRate => _player.playbackRate;
+
+  @override
+  Stream<PlayerState> get playerStateChanges => _player.onPlayerStateChanged;
+
+  @override
+  Stream<Duration> get durationChanges => _player.onDurationChanged;
+
+  @override
+  Stream<Duration> get positionChanges => _player.onPositionChanged;
+
+  @override
+  Stream<void> get completions => _player.onPlayerComplete;
+
+  @override
+  Future<void> play(Source source, {Duration? position}) {
+    return _player.play(source, position: position);
+  }
+
+  @override
+  Future<void> resume() => _player.resume();
+
+  @override
+  Future<void> pause() => _player.pause();
+
+  @override
+  Future<void> stop() => _player.stop();
+
+  @override
+  Future<void> seek(Duration position) => _player.seek(position);
+
+  @override
+  Future<void> setVolume(double volume) => _player.setVolume(volume);
+
+  @override
+  Future<void> setReleaseMode(ReleaseMode mode) {
+    return _player.setReleaseMode(mode);
+  }
+}
+
+/// Owns the platform player and publishes a stable system media session.
 class ClutterAudioHandler extends BaseAudioHandler
     with QueueHandler, SeekHandler
     implements AudioPlayerPort {
-  ClutterAudioHandler() {
+  final PlaybackAudioSession session;
+  final PlaybackAudioEngine _player;
+
+  ClutterAudioHandler({required this.session, PlaybackAudioEngine? player})
+    : _player = player ?? AudioplayersEngine() {
     _initPlayerListeners();
   }
 
-  final AudioPlayer _player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
-  final List<StreamSubscription<void>> _subs = [];
+  final List<StreamSubscription<dynamic>> _subscriptions = [];
   Duration _position = Duration.zero;
+  bool _wantsToPlay = false;
+  bool _interrupted = false;
+  bool _initialized = false;
 
   @override
   Stream<PlaybackState> get playbackStateStream => playbackState;
@@ -33,33 +99,62 @@ class ClutterAudioHandler extends BaseAudioHandler
   @override
   Stream<Duration> get positionStream => AudioService.position;
 
-  /// called when the user activates "next" from system media controls.
   @override
   Future<void> Function()? onSkipToNext;
 
-  /// called when the user activates "previous" from system media controls.
   @override
   Future<void> Function()? onSkipToPrevious;
 
-  /// called when the current audio source finishes naturally.
   @override
   Future<void> Function()? onTrackComplete;
+
+  Future<void> initialize() async {
+    if (_initialized) return;
+    _initialized = true;
+    await _player.setReleaseMode(ReleaseMode.stop);
+    await session.configureMusic();
+    _subscriptions.add(
+      session.interruptionEvents.listen(
+        (event) => unawaited(_handleInterruption(event)),
+      ),
+    );
+    _subscriptions.add(
+      session.becomingNoisyEvents.listen((_) => unawaited(pause())),
+    );
+  }
 
   @override
   Future<void> play() async {
     if (mediaItem.value == null) return;
-    await _player.resume();
+    _wantsToPlay = true;
+    if (_interrupted) {
+      _broadcastPlaybackState(
+        playingOverride: false,
+        processingOverride: AudioProcessingState.ready,
+      );
+      return;
+    }
+    await _activateAndResume();
   }
 
   @override
   Future<void> pause() async {
-    await _player.pause();
+    _wantsToPlay = false;
+    await _pausePlayer();
   }
 
   @override
   Future<void> stop() async {
+    _wantsToPlay = false;
+    _interrupted = false;
     await _player.stop();
     await super.stop();
+    mediaItem.add(null);
+    _position = Duration.zero;
+    _broadcastPlaybackState(
+      playingOverride: false,
+      processingOverride: AudioProcessingState.idle,
+    );
   }
 
   @override
@@ -79,27 +174,87 @@ class ClutterAudioHandler extends BaseAudioHandler
     await onSkipToPrevious?.call();
   }
 
-  /// load [song] into the player and start playback. if [startposition] is
-  /// supplied, playback begins from that offset.
   @override
   Future<void> loadAndPlay(SongViewData song, {Duration? startPosition}) async {
-    final item = _songToMediaItem(song);
-    mediaItem.add(item);
+    _wantsToPlay = true;
+    _position = startPosition ?? Duration.zero;
+    mediaItem.add(_songToMediaItem(song));
+    _broadcastPlaybackState(
+      playingOverride: false,
+      processingOverride: AudioProcessingState.loading,
+    );
+    if (_interrupted || !await session.setActive(true)) {
+      _broadcastPlaybackState(
+        playingOverride: false,
+        processingOverride: AudioProcessingState.ready,
+      );
+      return;
+    }
     await _player.play(
       DeviceFileSource(song.filePath),
       position: startPosition,
     );
+    _broadcastPlaybackState();
   }
 
-  /// set the player volume in the range [0.0, 1.0].
   @override
   Future<void> setVolume(double volume) => _player.setVolume(volume);
 
-  /// keep the player in stop mode; `musiclibrary` owns repeat policy so manual
-  /// skip and natural completion can behave differently.
   @override
-  Future<void> setLoopOne(bool loopOne) async {
-    await _player.setReleaseMode(ReleaseMode.stop);
+  Future<void> setLoopOne(bool loopOne) {
+    return _player.setReleaseMode(ReleaseMode.stop);
+  }
+
+  Future<void> _handleInterruption(AudioInterruptionEvent event) async {
+    if (event.begin) {
+      _interrupted = true;
+      if (_wantsToPlay || _player.state == PlayerState.playing) {
+        await _pausePlayer(preserveIntent: true);
+      }
+      return;
+    }
+
+    _interrupted = false;
+    final shouldResume =
+        event.type == AudioInterruptionType.pause ||
+        event.type == AudioInterruptionType.duck;
+    if (_wantsToPlay && shouldResume) {
+      await _activateAndResume();
+    } else {
+      _broadcastPlaybackState(
+        playingOverride: false,
+        processingOverride: mediaItem.value == null
+            ? AudioProcessingState.idle
+            : AudioProcessingState.ready,
+      );
+    }
+  }
+
+  Future<void> _activateAndResume() async {
+    if (!await session.setActive(true)) {
+      _broadcastPlaybackState(
+        playingOverride: false,
+        processingOverride: AudioProcessingState.ready,
+      );
+      return;
+    }
+    await _player.resume();
+    _broadcastPlaybackState(
+      playingOverride: true,
+      processingOverride: AudioProcessingState.ready,
+    );
+  }
+
+  Future<void> _pausePlayer({bool preserveIntent = false}) async {
+    final intent = _wantsToPlay;
+    await _player.pause();
+    if (preserveIntent) _wantsToPlay = intent;
+    _broadcastPlaybackState(
+      playingOverride: false,
+      processingOverride: mediaItem.value == null
+          ? AudioProcessingState.idle
+          : AudioProcessingState.ready,
+    );
   }
 
   MediaItem _songToMediaItem(SongViewData song) {
@@ -108,8 +263,6 @@ class ClutterAudioHandler extends BaseAudioHandler
       title: song.title,
       artist: _artistsDisplay(song),
       album: song.album.isEmpty ? null : song.album,
-      // duration is not available in [songviewdata]; it is populated once the
-      // player reports the real duration via [ondurationchanged].
       duration: null,
       artUri: song.coverPath != null ? Uri.file(song.coverPath!) : null,
     );
@@ -121,13 +274,13 @@ class ClutterAudioHandler extends BaseAudioHandler
   }
 
   void _initPlayerListeners() {
-    _subs.add(
-      _player.onPlayerStateChanged.listen((state) {
+    _subscriptions.add(
+      _player.playerStateChanges.listen((_) {
         _broadcastPlaybackState();
       }),
     );
-    _subs.add(
-      _player.onDurationChanged.listen((duration) {
+    _subscriptions.add(
+      _player.durationChanges.listen((duration) {
         final item = mediaItem.value;
         if (item != null && duration > Duration.zero) {
           mediaItem.add(item.copyWith(duration: duration));
@@ -135,38 +288,52 @@ class ClutterAudioHandler extends BaseAudioHandler
         _broadcastPlaybackState();
       }),
     );
-    _subs.add(
-      _player.onPositionChanged.listen((position) {
+    _subscriptions.add(
+      _player.positionChanges.listen((position) {
         _position = position;
       }),
     );
-    _subs.add(
-      _player.onPlayerComplete.listen((_) async {
-        _broadcastPlaybackState();
+    _subscriptions.add(
+      _player.completions.listen((_) async {
+        _wantsToPlay = false;
+        _broadcastPlaybackState(
+          playingOverride: false,
+          processingOverride: AudioProcessingState.completed,
+        );
         await onTrackComplete?.call();
       }),
     );
   }
 
-  void _broadcastPlaybackState() {
+  void _broadcastPlaybackState({
+    bool? playingOverride,
+    AudioProcessingState? processingOverride,
+  }) {
     final item = mediaItem.value;
-    final isPlaying = _player.state == PlayerState.playing;
-    final processingState = _mapProcessingState(_player.state);
+    final isPlaying =
+        playingOverride ??
+        (!_interrupted && _player.state == PlayerState.playing);
+    final processingState =
+        processingOverride ?? _mapProcessingState(_player.state, item != null);
+    final controls = item == null
+        ? const <MediaControl>[]
+        : <MediaControl>[
+            MediaControl.skipToPrevious,
+            if (isPlaying) MediaControl.pause else MediaControl.play,
+            MediaControl.skipToNext,
+          ];
 
     playbackState.add(
       PlaybackState(
-        controls: [
-          MediaControl.skipToPrevious,
-          if (isPlaying) MediaControl.pause else MediaControl.play,
-          MediaControl.stop,
-          MediaControl.skipToNext,
-        ],
-        systemActions: const {
-          MediaAction.seek,
-          MediaAction.seekForward,
-          MediaAction.seekBackward,
-        },
-        androidCompactActionIndices: const [0, 1, 3],
+        controls: controls,
+        systemActions: item == null
+            ? const {}
+            : const {
+                MediaAction.seek,
+                MediaAction.seekForward,
+                MediaAction.seekBackward,
+              },
+        androidCompactActionIndices: item == null ? null : const [0, 1, 2],
         processingState: processingState,
         playing: isPlaying,
         updatePosition: _position,
@@ -177,19 +344,13 @@ class ClutterAudioHandler extends BaseAudioHandler
     );
   }
 
-  AudioProcessingState _mapProcessingState(PlayerState state) {
+  AudioProcessingState _mapProcessingState(PlayerState state, bool hasItem) {
     return switch (state) {
-      PlayerState.stopped => AudioProcessingState.idle,
-      PlayerState.playing => AudioProcessingState.ready,
-      PlayerState.paused => AudioProcessingState.ready,
+      PlayerState.stopped =>
+        hasItem ? AudioProcessingState.ready : AudioProcessingState.idle,
+      PlayerState.playing || PlayerState.paused => AudioProcessingState.ready,
       PlayerState.completed => AudioProcessingState.completed,
       PlayerState.disposed => AudioProcessingState.idle,
     };
-  }
-
-  @override
-  Future<void> onTaskRemoved() async {
-    await stop();
-    await super.onTaskRemoved();
   }
 }

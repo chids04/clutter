@@ -8,6 +8,25 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Audio and folders</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.audio</string>
+				<string>public.mpeg-4</string>
+				<string>public.folder</string>
+				<string>com.chx.clutter.ogg-audio</string>
+				<string>com.chx.clutter.opus-audio</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Clutter</string>
 	<key>CFBundleExecutable</key>
@@ -84,7 +103,46 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UISupportsDocumentBrowser</key>
-	<true/>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.audio</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Ogg audio</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.chx.clutter.ogg-audio</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ogg</string>
+				</array>
+				<key>public.mime-type</key>
+				<string>audio/ogg</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.audio</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Opus audio</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.chx.clutter.opus-audio</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>opus</string>
+				</array>
+				<key>public.mime-type</key>
+				<string>audio/opus</string>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>

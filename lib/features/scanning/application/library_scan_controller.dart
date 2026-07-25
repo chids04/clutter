@@ -26,6 +26,7 @@ class LibraryScanController extends ChangeNotifier {
   final List<String> _directories = [];
   final Set<String> _directorySet = {};
   bool _isScanning = false;
+  Future<void> _scanQueue = Future<void>.value();
 
   UnmodifiableListView<String> get directories =>
       UnmodifiableListView(_directories);
@@ -50,10 +51,17 @@ class LibraryScanController extends ChangeNotifier {
   }
 
   Future<int> rescan(String directory) async {
-    if (!_directorySet.contains(directory) || _isScanning) return 0;
+    if (!_directorySet.contains(directory)) return 0;
     final before = catalog.totalSongs;
     await _scan(directory);
     return catalog.totalSongs - before;
+  }
+
+  Future<int> importManagedDirectory() async {
+    if (_directorySet.contains(musicDirectory)) {
+      return rescan(musicDirectory);
+    }
+    return add(musicDirectory);
   }
 
   Future<void> setOnly(String directory) async {
@@ -107,7 +115,12 @@ class LibraryScanController extends ChangeNotifier {
   }
 
   Future<void> _scan(String directory) async {
-    if (_isScanning) return;
+    final operation = _scanQueue.then((_) => _performScan(directory));
+    _scanQueue = operation.then<void>((_) {}, onError: (_, _) {});
+    await operation;
+  }
+
+  Future<void> _performScan(String directory) async {
     _isScanning = true;
     // notify before awaiting so progress indicators appear straight away
     notifyListeners();

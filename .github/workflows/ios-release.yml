@@ -2,6 +2,8 @@ name: ios release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -25,6 +27,8 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: set up flutter
         uses: subosito/flutter-action@v2
@@ -37,36 +41,24 @@ jobs:
         with:
           targets: aarch64-apple-ios
 
-      - name: install flutter dependencies
-        run: flutter pub get
+      - name: set up nix
+        uses: cachix/install-nix-action@v31
 
       - name: build ios release
-        run: flutter build ios --release --no-codesign
+        env:
+          IPA_NAME: clutter-${{ env.RELEASE_TAG }}
+          BUNDLE_ID: com.chx.clutter
+        run: scripts/build_ios_ipa.sh
 
-      - name: package ipa
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          APP_PATH="build/ios/iphoneos/Runner.app"
-          IPA_DIR="build/ios/ipa"
-          IPA_PATH="build/ios/clutter-${RELEASE_TAG}.ipa"
-
-          if [[ ! -d "$APP_PATH" ]]; then
-            echo "expected app bundle not found at $APP_PATH" >&2
-            exit 1
-          fi
-
-          rm -rf "$IPA_DIR" "$IPA_PATH"
-          mkdir -p "$IPA_DIR/Payload"
-          cp -R "$APP_PATH" "$IPA_DIR/Payload/Runner.app"
-
-          (
-            cd "$IPA_DIR"
-            zip -qry "../clutter-${RELEASE_TAG}.ipa" Payload
-          )
+      - name: upload ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clutter-${{ env.RELEASE_TAG }}-ipa
+          path: build/ios/clutter-${{ env.RELEASE_TAG }}.ipa
+          if-no-files-found: error
 
       - name: attach ipa to release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
