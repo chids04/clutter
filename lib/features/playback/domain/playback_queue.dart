@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:math';
 
 import 'package:clutter/features/library/domain/library_entities.dart';
 
@@ -24,6 +25,24 @@ class PlaybackQueue {
     if (from == to) return;
     final item = _upNext.removeAt(from);
     _upNext.insert(to, item);
+  }
+
+  bool shuffle({Random? random}) {
+    if (_upNext.length < 2) return false;
+
+    final previousOrder = [for (final song in _upNext) song.id];
+    _upNext.shuffle(random);
+    if (!_hasOrder(previousOrder)) return true;
+
+    final firstDifferentIndex = _upNext.indexWhere(
+      (song) => song.id != _upNext.first.id,
+    );
+    if (firstDifferentIndex == -1) return false;
+
+    final first = _upNext.first;
+    _upNext[0] = _upNext[firstDifferentIndex];
+    _upNext[firstDifferentIndex] = first;
+    return true;
   }
 
   void removeAt(int index) => _upNext.removeAt(index);
@@ -69,5 +88,12 @@ class PlaybackQueue {
     for (var index = 0; index < songs.length; index++) {
       songs[index] = byId[songs[index].id] ?? songs[index];
     }
+  }
+
+  bool _hasOrder(List<String> songIds) {
+    for (var index = 0; index < songIds.length; index++) {
+      if (_upNext[index].id != songIds[index]) return false;
+    }
+    return true;
   }
 }

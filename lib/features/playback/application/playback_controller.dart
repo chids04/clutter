@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
@@ -94,7 +95,6 @@ class PlaybackController extends ChangeNotifier {
 
   Future<void> _playNow(SongViewData song) async {
     _currentSong = song;
-    _isPlaying = true;
     _isFinished = false;
     _savedPositionMs = null;
     _position = Duration.zero;
@@ -164,7 +164,6 @@ class PlaybackController extends ChangeNotifier {
       await player.seek(Duration.zero);
       if (!_isPlaying) await player.play();
     }
-    _isPlaying = true;
     notifyListeners();
     unawaited(_saveState());
   }
@@ -174,7 +173,6 @@ class PlaybackController extends ChangeNotifier {
       final song = _currentSong;
       if (song != null) {
         _position = Duration.zero;
-        _isPlaying = true;
         _isFinished = false;
         await player.loadAndPlay(song, startPosition: Duration.zero);
         await player.setLoopOne(true);
@@ -190,7 +188,6 @@ class PlaybackController extends ChangeNotifier {
   Future<void> togglePlay() async {
     if (_isPlaying) {
       await player.pause();
-      _isPlaying = false;
       notifyListeners();
       unawaited(_saveState());
       return;
@@ -207,7 +204,6 @@ class PlaybackController extends ChangeNotifier {
     } else {
       await player.play();
     }
-    _isPlaying = true;
     notifyListeners();
     unawaited(_saveState());
     _ensureStateTimer();
@@ -216,7 +212,6 @@ class PlaybackController extends ChangeNotifier {
   Future<void> pause() async {
     if (_currentSong == null) return;
     await player.pause();
-    _isPlaying = false;
     notifyListeners();
     unawaited(_saveState());
   }
@@ -224,7 +219,6 @@ class PlaybackController extends ChangeNotifier {
   Future<void> resume() async {
     if (_currentSong == null) return;
     await player.play();
-    _isPlaying = true;
     notifyListeners();
     unawaited(_saveState());
     _ensureStateTimer();
@@ -284,7 +278,6 @@ class PlaybackController extends ChangeNotifier {
     if (_currentSong == null) return;
     _isScrubbing = true;
     await player.pause();
-    _isPlaying = false;
     notifyListeners();
     unawaited(_saveState());
   }
@@ -299,7 +292,6 @@ class PlaybackController extends ChangeNotifier {
       await player.seek(_position!);
     }
     await player.play();
-    _isPlaying = true;
     notifyListeners();
     unawaited(_saveState());
     _ensureStateTimer();
@@ -325,6 +317,12 @@ class PlaybackController extends ChangeNotifier {
 
   void moveQueueItem(int from, int to) {
     queueState.move(from, to);
+    queueState.syncLoopSnapshot(_currentSong);
+    notifyListeners();
+  }
+
+  void shuffleQueue({Random? random}) {
+    if (!queueState.shuffle(random: random)) return;
     queueState.syncLoopSnapshot(_currentSong);
     notifyListeners();
   }
@@ -356,7 +354,6 @@ class PlaybackController extends ChangeNotifier {
       position: _position ?? Duration.zero,
     );
     await player.stop();
-    _isPlaying = false;
     notifyListeners();
     return release;
   }
@@ -372,7 +369,6 @@ class PlaybackController extends ChangeNotifier {
     await player.loadAndPlay(refreshed, startPosition: release.position);
     if (!release.wasPlaying) await player.pause();
     _currentSong = refreshed;
-    _isPlaying = release.wasPlaying;
     notifyListeners();
   }
 

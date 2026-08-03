@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:clutter/features/remote_sources/application/sftp_controller.dart';
 import 'package:clutter/features/remote_sources/presentation/sftp_download_panel.dart';
 import 'package:clutter/features/remote_sources/presentation/sftp_profile_dialog.dart';
+import 'package:clutter/shared/presentation/session_scroll_position.dart';
 import 'package:clutter/src/rust/api/models.dart';
 
 class SftpBrowser extends StatelessWidget {
@@ -210,15 +211,20 @@ class _EntryList extends StatelessWidget {
     if (controller.entries.isEmpty) {
       return const Center(child: Text('this folder is empty'));
     }
-    return RefreshIndicator(
-      onRefresh: () => controller.browse(controller.currentPath),
-      child: ListView.separated(
-        itemCount: controller.entries.length,
-        separatorBuilder: (_, _) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final entry = controller.entries[index];
-          return _EntryTile(entry: entry, controller: controller);
-        },
+    final profileId = controller.selectedProfile?.id ?? 'none';
+    return RememberedScrollPosition(
+      id: 'sftp:$profileId:${controller.currentPath}',
+      builder: (context, scrollController) => RefreshIndicator(
+        onRefresh: () => controller.browse(controller.currentPath),
+        child: ListView.separated(
+          controller: scrollController,
+          itemCount: controller.entries.length,
+          separatorBuilder: (_, _) => const Divider(height: 1),
+          itemBuilder: (context, index) {
+            final entry = controller.entries[index];
+            return _EntryTile(entry: entry, controller: controller);
+          },
+        ),
       ),
     );
   }

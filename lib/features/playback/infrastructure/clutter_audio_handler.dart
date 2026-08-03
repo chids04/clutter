@@ -7,6 +7,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:clutter/features/library/domain/library_entities.dart';
 import 'package:clutter/features/playback/domain/audio_player_port.dart';
 import 'package:clutter/features/playback/infrastructure/audio_session_port.dart';
+import 'package:clutter/shared/services/log.dart';
 
 abstract interface class PlaybackAudioEngine {
   PlayerState get state;
@@ -16,7 +17,7 @@ abstract interface class PlaybackAudioEngine {
   Stream<Duration> get positionChanges;
   Stream<void> get completions;
 
-  Future<void> play(Source source, {Duration? position});
+  Future<void> setSource(Source source);
   Future<void> resume();
   Future<void> pause();
   Future<void> stop();
@@ -47,9 +48,7 @@ class AudioplayersEngine implements PlaybackAudioEngine {
   Stream<void> get completions => _player.onPlayerComplete;
 
   @override
-  Future<void> play(Source source, {Duration? position}) {
-    return _player.play(source, position: position);
-  }
+  Future<void> setSource(Source source) => _player.setSource(source);
 
   @override
   Future<void> resume() => _player.resume();
@@ -85,9 +84,11 @@ class ClutterAudioHandler extends BaseAudioHandler
   }
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
+  Future<void> _operationQueue = Future.value();
   Duration _position = Duration.zero;
   bool _wantsToPlay = false;
   bool _interrupted = false;
+  bool _resumeAfterInterruption = false;
   bool _initialized = false;
 
   @override
@@ -113,11 +114,7 @@ class ClutterAudioHandler extends BaseAudioHandler
     _initialized = true;
     await _player.setReleaseMode(ReleaseMode.stop);
     await session.configureMusic();
-    _subscriptions.add(
-      session.interruptionEvents.listen(
-        (event) => unawaited(_handleInterruption(event)),
-      ),
-    );
+    _subscriptions.add(session.interruptionEvents.listen(_enqueueInterruption));
     _subscriptions.add(
       session.becomingNoisyEvents.listen((_) => unawaited(pause())),
     );
@@ -127,41 +124,49 @@ class ClutterAudioHandler extends BaseAudioHandler
   Future<void> play() async {
     if (mediaItem.value == null) return;
     _wantsToPlay = true;
-    if (_interrupted) {
-      _broadcastPlaybackState(
-        playingOverride: false,
-        processingOverride: AudioProcessingState.ready,
-      );
-      return;
-    }
-    await _activateAndResume();
+    if (_interrupted) _resumeAfterInterruption = true;
+    await _enqueueOperation(_activateAndResume);
   }
 
   @override
   Future<void> pause() async {
     _wantsToPlay = false;
-    await _pausePlayer();
+    _resumeAfterInterruption = false;
+    await _enqueueOperation(_pausePlayer);
   }
 
   @override
   Future<void> stop() async {
     _wantsToPlay = false;
-    _interrupted = false;
-    await _player.stop();
-    await super.stop();
-    mediaItem.add(null);
-    _position = Duration.zero;
-    _broadcastPlaybackState(
-      playingOverride: false,
-      processingOverride: AudioProcessingState.idle,
-    );
+    _resumeAfterInterruption = false;
+    await _enqueueOperation(() async {
+      _interrupted = false;
+      await _player.stop();
+      await super.stop();
+      mediaItem.add(null);
+      _position = Duration.zero;
+      _broadcastPlaybackState(
+        playingOverride: false,
+        processingOverride: AudioProcessingState.idle,
+      );
+    });
   }
 
   @override
   Future<void> seek(Duration position) async {
-    _position = position;
-    _broadcastPlaybackState();
-    await _player.seek(position);
+    await _enqueueOperation(() async {
+      final publishedState = playbackState.value;
+      final currentPosition = _position == publishedState.updatePosition
+          ? publishedState.position
+          : _position;
+      if (currentPosition != publishedState.updatePosition) {
+        _position = currentPosition;
+        _broadcastPlaybackState();
+      }
+      await _player.seek(position);
+      _position = position;
+      _broadcastPlaybackState();
+    });
   }
 
   @override
@@ -177,24 +182,28 @@ class ClutterAudioHandler extends BaseAudioHandler
   @override
   Future<void> loadAndPlay(SongViewData song, {Duration? startPosition}) async {
     _wantsToPlay = true;
-    _position = startPosition ?? Duration.zero;
-    mediaItem.add(_songToMediaItem(song));
-    _broadcastPlaybackState(
-      playingOverride: false,
-      processingOverride: AudioProcessingState.loading,
-    );
-    if (_interrupted || !await session.setActive(true)) {
+    if (_interrupted) _resumeAfterInterruption = true;
+    await _enqueueOperation(() async {
+      _position = startPosition ?? Duration.zero;
+      mediaItem.add(_songToMediaItem(song));
       _broadcastPlaybackState(
         playingOverride: false,
-        processingOverride: AudioProcessingState.ready,
+        processingOverride: AudioProcessingState.loading,
       );
-      return;
-    }
-    await _player.play(
-      DeviceFileSource(song.filePath),
-      position: startPosition,
-    );
-    _broadcastPlaybackState();
+      try {
+        await _player.setSource(DeviceFileSource(song.filePath));
+        if (startPosition != null && startPosition > Duration.zero) {
+          await _player.seek(startPosition);
+        }
+        await _activateAndResume();
+      } catch (error, stackTrace) {
+        Log.e('audio source preparation failed', error, stackTrace);
+        _broadcastPlaybackState(
+          playingOverride: false,
+          processingOverride: AudioProcessingState.ready,
+        );
+      }
+    });
   }
 
   @override
@@ -208,17 +217,21 @@ class ClutterAudioHandler extends BaseAudioHandler
   Future<void> _handleInterruption(AudioInterruptionEvent event) async {
     if (event.begin) {
       _interrupted = true;
+      _resumeAfterInterruption = _wantsToPlay;
       if (_wantsToPlay || _player.state == PlayerState.playing) {
-        await _pausePlayer(preserveIntent: true);
+        await _pausePlayer();
       }
       return;
     }
 
+    if (!_interrupted) return;
     _interrupted = false;
     final shouldResume =
         event.type == AudioInterruptionType.pause ||
         event.type == AudioInterruptionType.duck;
-    if (_wantsToPlay && shouldResume) {
+    final resume = _resumeAfterInterruption && _wantsToPlay && shouldResume;
+    _resumeAfterInterruption = false;
+    if (resume) {
       await _activateAndResume();
     } else {
       _broadcastPlaybackState(
@@ -231,30 +244,71 @@ class ClutterAudioHandler extends BaseAudioHandler
   }
 
   Future<void> _activateAndResume() async {
-    if (!await session.setActive(true)) {
+    try {
+      await session.configureMusic();
+      final activated = await session.setActive(true);
+      if (!activated || !_wantsToPlay) {
+        _broadcastPlaybackState(
+          playingOverride: false,
+          processingOverride: AudioProcessingState.ready,
+        );
+        return;
+      }
+      _interrupted = false;
+      _resumeAfterInterruption = false;
+      await _player.resume();
+      _broadcastPlaybackState(
+        playingOverride: true,
+        processingOverride: AudioProcessingState.ready,
+      );
+    } catch (error, stackTrace) {
+      Log.e('audio session activation failed', error, stackTrace);
       _broadcastPlaybackState(
         playingOverride: false,
         processingOverride: AudioProcessingState.ready,
       );
-      return;
     }
-    await _player.resume();
-    _broadcastPlaybackState(
-      playingOverride: true,
-      processingOverride: AudioProcessingState.ready,
-    );
   }
 
-  Future<void> _pausePlayer({bool preserveIntent = false}) async {
-    final intent = _wantsToPlay;
+  void _enqueueInterruption(AudioInterruptionEvent event) {
+    unawaited(_enqueueOperation(() => _handleInterruptionSafely(event)));
+  }
+
+  Future<void> _handleInterruptionSafely(AudioInterruptionEvent event) async {
+    try {
+      await _handleInterruption(event);
+    } catch (error, stackTrace) {
+      Log.e('audio interruption recovery failed', error, stackTrace);
+      _broadcastPlaybackState(
+        playingOverride: false,
+        processingOverride: mediaItem.value == null
+            ? AudioProcessingState.idle
+            : AudioProcessingState.ready,
+      );
+    }
+  }
+
+  Future<void> _pausePlayer() async {
     await _player.pause();
-    if (preserveIntent) _wantsToPlay = intent;
     _broadcastPlaybackState(
       playingOverride: false,
       processingOverride: mediaItem.value == null
           ? AudioProcessingState.idle
           : AudioProcessingState.ready,
     );
+  }
+
+  Future<void> _enqueueOperation(Future<void> Function() operation) {
+    final completer = Completer<void>();
+    _operationQueue = _operationQueue.then((_) async {
+      try {
+        await operation();
+        completer.complete();
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
+      }
+    });
+    return completer.future;
   }
 
   MediaItem _songToMediaItem(SongViewData song) {

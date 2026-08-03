@@ -10,6 +10,7 @@ import 'package:clutter/features/library/presentation/albums_view.dart';
 import 'package:clutter/shared/presentation/search_sliver_app_bar.dart';
 import 'package:clutter/features/library/presentation/widgets/song_delegate.dart';
 import 'package:clutter/features/metadata_editor/presentation/metadata_editors.dart';
+import 'package:clutter/shared/presentation/session_scroll_position.dart';
 
 class ArtistsView extends StatefulWidget {
   const ArtistsView({super.key});
@@ -22,18 +23,32 @@ class _ArtistsViewState extends State<ArtistsView> {
   final _controller = TextEditingController();
   Timer? _debounce;
   List<ArtistViewData>? _results;
+  ScrollController? _scrollController;
+
+  void _resetScrollPosition() {
+    final controller = _scrollController;
+    if (controller != null && controller.hasClients) {
+      controller.jumpTo(0);
+    }
+  }
 
   void _onQueryChanged(String raw) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 200), () async {
       final q = raw.trim();
       if (q.isEmpty) {
-        if (mounted) setState(() => _results = null);
+        if (mounted) {
+          _resetScrollPosition();
+          setState(() => _results = null);
+        }
         return;
       }
       final lib = context.read<MusicLibrary>();
       final res = await lib.searchArtists(q);
-      if (mounted) setState(() => _results = res);
+      if (mounted) {
+        _resetScrollPosition();
+        setState(() => _results = res);
+      }
     });
   }
 
@@ -52,40 +67,46 @@ class _ArtistsViewState extends State<ArtistsView> {
           return const Center(child: CircularProgressIndicator());
         }
         final artists = _results ?? musicLibrary.artists;
-        return CustomScrollView(
-          slivers: [
-            SearchSliverAppBar(
-              controller: _controller,
-              hint: "search artists",
-              onChanged: _onQueryChanged,
-            ),
-            if (artists.isEmpty)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Text(
-                    "no artists",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.all(12),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 180,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.78,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) => _ArtistTile(artist: artists[i]),
-                    childCount: artists.length,
-                  ),
-                ),
+        return RememberedScrollPosition(
+          id: 'library:artists',
+          onControllerChanged: (controller) => _scrollController = controller,
+          builder: (context, scrollController) => CustomScrollView(
+            controller: scrollController,
+            slivers: [
+              SearchSliverAppBar(
+                controller: _controller,
+                hint: "search artists",
+                onChanged: _onQueryChanged,
               ),
-          ],
+              if (artists.isEmpty)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      "no artists",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.all(12),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 180,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.78,
+                        ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, i) => _ArtistTile(artist: artists[i]),
+                      childCount: artists.length,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         );
       },
     );
@@ -174,6 +195,26 @@ typedef _ArtistDetailData = ({
   List<SongViewData> featuredSongs,
 });
 
+List<SongViewData> songsCreditingArtist(
+  ArtistViewData artist,
+  Iterable<SongViewData> songs,
+) {
+  final artistName = artist.name.trim().toLowerCase();
+  final seen = <String>{};
+  final creditedSongs = <SongViewData>[];
+  for (final song in songs) {
+    final creditsArtist =
+        song.primaryArtist.trim().toLowerCase() == artistName ||
+        song.featuredArtists.any(
+          (name) => name.trim().toLowerCase() == artistName,
+        );
+    if (creditsArtist && seen.add(song.id)) {
+      creditedSongs.add(song);
+    }
+  }
+  return creditedSongs;
+}
+
 class ArtistDetailView extends StatefulWidget {
   final ArtistViewData artist;
 
@@ -243,35 +284,48 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
           }
           final data = snapshot.data!;
           return Consumer<MusicLibrary>(
-            builder: (context, lib, _) => CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(child: _Header(artist: _artist)),
-                if (data.albums.isNotEmpty) ...[
-                  const _SectionHeader(title: "Albums"),
-                  SliverToBoxAdapter(
-                    child: _AlbumCarousel(albums: data.albums),
-                  ),
-                ],
-                if (data.featuredAlbums.isNotEmpty) ...[
-                  const _SectionHeader(title: "Featured on"),
-                  SliverToBoxAdapter(
-                    child: _AlbumCarousel(albums: data.featuredAlbums),
-                  ),
-                ],
-                if (data.featuredSongs.isNotEmpty) ...[
-                  const _SectionHeader(title: "Featured songs"),
-                  SliverList.separated(
-                    itemCount: data.featuredSongs.length,
-                    itemBuilder: (context, i) => SongDelegate(
-                      song: data.featuredSongs[i],
-                      musicLibrary: lib,
+            builder: (context, lib, _) {
+              final songs = songsCreditingArtist(_artist, lib.songs);
+              return RememberedScrollPosition(
+                id: 'artist:${_artist.id}',
+                builder: (context, scrollController) => CustomScrollView(
+                  controller: scrollController,
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _Header(
+                        artist: _artist,
+                        songs: songs,
+                        musicLibrary: lib,
+                      ),
                     ),
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                  ),
-                ],
-                const SliverToBoxAdapter(child: SizedBox(height: 16)),
-              ],
-            ),
+                    if (data.albums.isNotEmpty) ...[
+                      const _SectionHeader(title: "Albums"),
+                      SliverToBoxAdapter(
+                        child: _AlbumCarousel(albums: data.albums),
+                      ),
+                    ],
+                    if (data.featuredAlbums.isNotEmpty) ...[
+                      const _SectionHeader(title: "Featured on"),
+                      SliverToBoxAdapter(
+                        child: _AlbumCarousel(albums: data.featuredAlbums),
+                      ),
+                    ],
+                    if (data.featuredSongs.isNotEmpty) ...[
+                      const _SectionHeader(title: "Featured songs"),
+                      SliverList.separated(
+                        itemCount: data.featuredSongs.length,
+                        itemBuilder: (context, i) => SongDelegate(
+                          song: data.featuredSongs[i],
+                          musicLibrary: lib,
+                        ),
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                      ),
+                    ],
+                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                  ],
+                ),
+              );
+            },
           );
         },
       ),
@@ -281,8 +335,14 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
 
 class _Header extends StatelessWidget {
   final ArtistViewData artist;
+  final List<SongViewData> songs;
+  final MusicLibrary musicLibrary;
 
-  const _Header({required this.artist});
+  const _Header({
+    required this.artist,
+    required this.songs,
+    required this.musicLibrary,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -322,6 +382,16 @@ class _Header extends StatelessWidget {
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
+                const SizedBox(height: 6),
+                ArtistPlaybackActions(
+                  onPlayNow: songs.isEmpty
+                      ? null
+                      : () => musicLibrary.playSongsFromStart(songs),
+                  onQueue: songs.isEmpty
+                      ? null
+                      : () =>
+                            musicLibrary.queueSongs(songs, label: artist.name),
+                ),
               ],
             ),
           ),
@@ -329,6 +399,61 @@ class _Header extends StatelessWidget {
       ),
     );
   }
+}
+
+class ArtistPlaybackActions extends StatelessWidget {
+  final VoidCallback? onPlayNow;
+  final VoidCallback? onQueue;
+
+  const ArtistPlaybackActions({
+    super.key,
+    required this.onPlayNow,
+    required this.onQueue,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        IconButton(
+          tooltip: "play now",
+          onPressed: onPlayNow,
+          icon: Icon(
+            Icons.play_arrow_rounded,
+            size: 26,
+            color: theme.colorScheme.onSurface.withValues(
+              alpha: onPlayNow == null ? 0.3 : 0.85,
+            ),
+          ),
+          style: _buttonStyle(theme),
+        ),
+        const SizedBox(width: 2),
+        IconButton(
+          tooltip: "add to queue",
+          onPressed: onQueue,
+          icon: Icon(
+            Icons.playlist_add_rounded,
+            size: 24,
+            color: theme.colorScheme.onSurface.withValues(
+              alpha: onQueue == null ? 0.3 : 0.85,
+            ),
+          ),
+          style: _buttonStyle(theme),
+        ),
+      ],
+    );
+  }
+
+  ButtonStyle _buttonStyle(ThemeData theme) => IconButton.styleFrom(
+    backgroundColor: Colors.transparent,
+    foregroundColor: theme.colorScheme.onSurface,
+    disabledForegroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+    padding: const EdgeInsets.all(6),
+    minimumSize: const Size(36, 36),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    visualDensity: VisualDensity.compact,
+  );
 }
 
 class _SectionHeader extends StatelessWidget {

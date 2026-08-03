@@ -10,6 +10,7 @@ import 'package:clutter/shared/presentation/search_sliver_app_bar.dart';
 import 'package:clutter/features/library/presentation/widgets/song_delegate.dart';
 import 'package:clutter/features/metadata_editor/presentation/metadata_editors.dart';
 import 'package:clutter/shared/presentation/cover_image.dart';
+import 'package:clutter/shared/presentation/session_scroll_position.dart';
 
 class PlaylistsView extends StatefulWidget {
   const PlaylistsView({super.key});
@@ -22,18 +23,32 @@ class _PlaylistsViewState extends State<PlaylistsView> {
   final _controller = TextEditingController();
   Timer? _debounce;
   List<PlaylistViewData>? _results;
+  ScrollController? _scrollController;
+
+  void _resetScrollPosition() {
+    final controller = _scrollController;
+    if (controller != null && controller.hasClients) {
+      controller.jumpTo(0);
+    }
+  }
 
   void _onQueryChanged(String raw) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 200), () async {
       final q = raw.trim();
       if (q.isEmpty) {
-        if (mounted) setState(() => _results = null);
+        if (mounted) {
+          _resetScrollPosition();
+          setState(() => _results = null);
+        }
         return;
       }
       final lib = context.read<MusicLibrary>();
       final res = await lib.searchPlaylists(q);
-      if (mounted) setState(() => _results = res);
+      if (mounted) {
+        _resetScrollPosition();
+        setState(() => _results = res);
+      }
     });
   }
 
@@ -49,43 +64,49 @@ class _PlaylistsViewState extends State<PlaylistsView> {
     return Consumer<MusicLibrary>(
       builder: (context, musicLibrary, _) {
         final playlists = _results ?? musicLibrary.playlists;
-        return CustomScrollView(
-          slivers: [
-            SearchSliverAppBar(
-              controller: _controller,
-              hint: "search playlists",
-              onChanged: _onQueryChanged,
-            ),
-            if (playlists.isEmpty)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Text(
-                    "no playlists",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.all(12),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 180,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.78,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) => _PlaylistTile(
-                      playlist: playlists[i],
-                      musicLibrary: musicLibrary,
-                    ),
-                    childCount: playlists.length,
-                  ),
-                ),
+        return RememberedScrollPosition(
+          id: 'library:playlists',
+          onControllerChanged: (controller) => _scrollController = controller,
+          builder: (context, scrollController) => CustomScrollView(
+            controller: scrollController,
+            slivers: [
+              SearchSliverAppBar(
+                controller: _controller,
+                hint: "search playlists",
+                onChanged: _onQueryChanged,
               ),
-          ],
+              if (playlists.isEmpty)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      "no playlists",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.all(12),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 180,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.78,
+                        ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, i) => _PlaylistTile(
+                        playlist: playlists[i],
+                        musicLibrary: musicLibrary,
+                      ),
+                      childCount: playlists.length,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         );
       },
     );
@@ -312,27 +333,31 @@ class PlaylistDetailView extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
             final songs = snapshot.data!;
-            return ListView.separated(
-              padding: const EdgeInsets.only(bottom: 8),
-              itemCount: songs.length + 1,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return _PlaylistHeader(
-                    playlist: playlist,
-                    songs: songs,
+            return RememberedScrollPosition(
+              id: 'playlist:${playlist.id}',
+              builder: (context, scrollController) => ListView.separated(
+                controller: scrollController,
+                padding: const EdgeInsets.only(bottom: 8),
+                itemCount: songs.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return _PlaylistHeader(
+                      playlist: playlist,
+                      songs: songs,
+                      musicLibrary: musicLibrary,
+                    );
+                  }
+                  final song = songs[index - 1];
+                  return SongDelegate(
+                    song: song,
                     musicLibrary: musicLibrary,
+                    onRemoveFromPlaylist: () => musicLibrary
+                        .removeSongFromPlaylist(playlist.id, song.id),
                   );
-                }
-                final song = songs[index - 1];
-                return SongDelegate(
-                  song: song,
-                  musicLibrary: musicLibrary,
-                  onRemoveFromPlaylist: () =>
-                      musicLibrary.removeSongFromPlaylist(playlist.id, song.id),
-                );
-              },
-              separatorBuilder: (context, index) =>
-                  index == 0 ? const SizedBox.shrink() : const Divider(),
+                },
+                separatorBuilder: (context, index) =>
+                    index == 0 ? const SizedBox.shrink() : const Divider(),
+              ),
             );
           },
         ),

@@ -8,6 +8,34 @@ import 'package:clutter/shared/presentation/confirm_dialog.dart';
 import 'package:clutter/features/metadata_editor/presentation/metadata_editors.dart';
 import 'package:clutter/shared/presentation/cover_image.dart';
 
+class _SongContextMenuBounceCurve extends Curve {
+  const _SongContextMenuBounceCurve();
+
+  @override
+  double transformInternal(double t) {
+    const firstSettle = 0.72;
+    const recoilEnd = 0.86;
+    const recoil = 0.025;
+
+    if (t <= firstSettle) {
+      return Curves.easeOutCubic.transform(t / firstSettle);
+    }
+    if (t <= recoilEnd) {
+      final progress = (t - firstSettle) / (recoilEnd - firstSettle);
+      return 1 - (recoil * Curves.easeInOut.transform(progress));
+    }
+
+    final progress = (t - recoilEnd) / (1 - recoilEnd);
+    return (1 - recoil) + (recoil * Curves.easeOut.transform(progress));
+  }
+}
+
+const _songContextMenuAnimationStyle = AnimationStyle(
+  curve: _SongContextMenuBounceCurve(),
+  reverseCurve: Curves.easeInCubic,
+  duration: Duration(milliseconds: 180),
+);
+
 AlbumViewData? _albumForSong(MusicLibrary musicLibrary, SongViewData song) {
   for (final album in musicLibrary.albums) {
     if (album.id == song.albumId) return album;
@@ -75,6 +103,7 @@ Future<void> showSongContextMenu(
   final pinned = musicLibrary.isPinned(id: song.id, kind: QuickPlayKind.song);
   final v = await showMenu<String>(
     context: context,
+    popUpAnimationStyle: _songContextMenuAnimationStyle,
     position: RelativeRect.fromLTRB(
       globalPosition.dx,
       globalPosition.dy,
@@ -118,7 +147,12 @@ Future<void> showSongContextMenu(
           children: [
             Icon(pinned ? Icons.push_pin : Icons.push_pin_outlined, size: 18),
             const SizedBox(width: 8),
-            Text(pinned ? "unpin from quick play" : "pin to quick play"),
+            Flexible(
+              child: Text(
+                pinned ? "unpin from quick play" : "pin to quick play",
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
@@ -153,7 +187,12 @@ Future<void> showSongContextMenu(
             children: [
               Icon(Icons.playlist_remove, size: 18),
               SizedBox(width: 8),
-              Text("remove from playlist"),
+              Flexible(
+                child: Text(
+                  "remove from playlist",
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
         ),
@@ -173,9 +212,12 @@ Future<void> showSongContextMenu(
           children: [
             Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
             SizedBox(width: 8),
-            Text(
-              "delete from library",
-              style: TextStyle(color: Colors.redAccent),
+            Flexible(
+              child: Text(
+                "delete from library",
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.redAccent),
+              ),
             ),
           ],
         ),

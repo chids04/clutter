@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:clutter/features/remote_sources/application/sftp_controller.dart';
 import 'package:clutter/features/search/presentation/search_view.dart';
+import 'package:clutter/shared/presentation/session_scroll_position.dart';
 
 import 'sftp_controller_test.dart' show FakeSftpCredentials, FakeSftpRepository;
 
@@ -17,8 +18,11 @@ void main() {
       onLibraryChanged: () async {},
     );
     await tester.pumpWidget(
-      ChangeNotifierProvider.value(
-        value: controller,
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: controller),
+          Provider(create: (_) => SessionScrollPositionStore()),
+        ],
         child: const MaterialApp(home: SearchView()),
       ),
     );

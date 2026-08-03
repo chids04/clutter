@@ -6,6 +6,7 @@ import 'package:clutter/features/keybindings/application/keybinding_controller.d
 import 'package:clutter/features/keybindings/domain/key_code_codec.dart';
 import 'package:clutter/features/library/domain/library_entities.dart';
 import 'package:clutter/shared/presentation/confirm_dialog.dart';
+import 'package:clutter/shared/presentation/session_scroll_position.dart';
 
 class KeybindingsView extends StatefulWidget {
   const KeybindingsView({super.key});
@@ -121,69 +122,75 @@ class _KeybindingsViewState extends State<KeybindingsView> {
               return const Center(child: CircularProgressIndicator());
             }
             final seekStep = _seekStepDraft ?? controller.seekStepSeconds;
-            return ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: KeybindingAction.values.length + 1,
-              separatorBuilder: (_, _) => const Divider(),
-              itemBuilder: (context, index) {
-                if (index == 0) {
+            return RememberedScrollPosition(
+              id: 'settings:keybindings',
+              builder: (context, scrollController) => ListView.separated(
+                controller: scrollController,
+                padding: const EdgeInsets.all(16),
+                itemCount: KeybindingAction.values.length + 1,
+                separatorBuilder: (_, _) => const Divider(),
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return ListTile(
+                      leading: const Icon(Icons.fast_forward),
+                      title: const Text('seek interval'),
+                      subtitle: Row(
+                        children: [
+                          Expanded(
+                            child: Slider(
+                              value: seekStep.toDouble(),
+                              min: 1,
+                              max: 30,
+                              divisions: 29,
+                              label: '$seekStep seconds',
+                              onChanged: _savingSeekStep
+                                  ? null
+                                  : (value) => setState(
+                                      () => _seekStepDraft = value.round(),
+                                    ),
+                              onChangeEnd: _savingSeekStep
+                                  ? null
+                                  : _saveSeekStep,
+                            ),
+                          ),
+                          SizedBox(
+                            width: 76,
+                            child: Text(
+                              '$seekStep seconds',
+                              textAlign: TextAlign.end,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  final action = KeybindingAction.values[index - 1];
+                  final recording = _recording == action;
                   return ListTile(
-                    leading: const Icon(Icons.fast_forward),
-                    title: const Text('seek interval'),
-                    subtitle: Row(
+                    title: Text(_actionLabel(action)),
+                    subtitle: Text(
+                      recording
+                          ? 'press a shortcut, or escape to cancel'
+                          : controller.labelFor(action),
+                    ),
+                    leading: Icon(_actionIcon(action)),
+                    trailing: Wrap(
+                      spacing: 8,
                       children: [
-                        Expanded(
-                          child: Slider(
-                            value: seekStep.toDouble(),
-                            min: 1,
-                            max: 30,
-                            divisions: 29,
-                            label: '$seekStep seconds',
-                            onChanged: _savingSeekStep
-                                ? null
-                                : (value) => setState(
-                                    () => _seekStepDraft = value.round(),
-                                  ),
-                            onChangeEnd: _savingSeekStep ? null : _saveSeekStep,
-                          ),
+                        IconButton(
+                          tooltip: 'clear shortcut',
+                          onPressed: () => _clear(action),
+                          icon: const Icon(Icons.backspace_outlined),
                         ),
-                        SizedBox(
-                          width: 76,
-                          child: Text(
-                            '$seekStep seconds',
-                            textAlign: TextAlign.end,
-                          ),
+                        FilledButton.tonal(
+                          onPressed: () => _startRecording(action),
+                          child: Text(recording ? 'listening…' : 'record'),
                         ),
                       ],
                     ),
                   );
-                }
-                final action = KeybindingAction.values[index - 1];
-                final recording = _recording == action;
-                return ListTile(
-                  title: Text(_actionLabel(action)),
-                  subtitle: Text(
-                    recording
-                        ? 'press a shortcut, or escape to cancel'
-                        : controller.labelFor(action),
-                  ),
-                  leading: Icon(_actionIcon(action)),
-                  trailing: Wrap(
-                    spacing: 8,
-                    children: [
-                      IconButton(
-                        tooltip: 'clear shortcut',
-                        onPressed: () => _clear(action),
-                        icon: const Icon(Icons.backspace_outlined),
-                      ),
-                      FilledButton.tonal(
-                        onPressed: () => _startRecording(action),
-                        child: Text(recording ? 'listening…' : 'record'),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                },
+              ),
             );
           },
         ),

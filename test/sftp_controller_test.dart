@@ -52,15 +52,57 @@ void main() {
           downloaded: false,
         ),
       );
-      repository.downloads.add(_progress(SftpDownloadStateData.completed));
+      repository.emit('job-1', SftpDownloadStateData.completed);
       await Future<void>.delayed(Duration.zero);
 
       expect(refreshes, 1);
       expect(repository.browsedPaths.last, '');
-      await repository.downloads.close();
+      await repository.closeDownloads();
       controller.dispose();
     },
   );
+
+  test('simultaneous downloads retain independent progress', () async {
+    final repository = FakeSftpRepository();
+    final credentials = FakeSftpCredentials();
+    var refreshes = 0;
+    repository.profiles = [_profile(id: 'home')];
+    credentials.passwords['home'] = 'secret';
+    final controller = SftpController(
+      repository: repository,
+      credentials: credentials,
+      onLibraryChanged: () async => refreshes++,
+    );
+    await controller.hydrate();
+
+    await controller.startDownload(_entry('first.mp3'));
+    await controller.startDownload(_entry('second.mp3'));
+    repository.emit('job-1', SftpDownloadStateData.downloading);
+    repository.emit('job-2', SftpDownloadStateData.importing);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(controller.jobs.map((job) => job.jobId), ['job-1', 'job-2']);
+    expect(controller.jobs.map((job) => job.label), [
+      'first.mp3',
+      'second.mp3',
+    ]);
+    expect(controller.jobs.map((job) => job.progress.state), [
+      SftpDownloadStateData.downloading,
+      SftpDownloadStateData.importing,
+    ]);
+
+    repository.emit('job-1', SftpDownloadStateData.completed);
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.jobs.map((job) => job.jobId), ['job-1', 'job-2']);
+
+    repository.emit('job-2', SftpDownloadStateData.completed);
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.jobs.map((job) => job.jobId), ['job-2']);
+    expect(refreshes, 2);
+
+    await repository.closeDownloads();
+    controller.dispose();
+  });
 }
 
 SftpProfileData _profile({required String id}) => SftpProfileData(
@@ -74,16 +116,25 @@ SftpProfileData _profile({required String id}) => SftpProfileData(
   isSelected: true,
 );
 
-SftpDownloadProgressData _progress(SftpDownloadStateData state) =>
-    SftpDownloadProgressData(
-      jobId: 'job',
-      state: state,
-      filesCompleted: state == SftpDownloadStateData.completed ? 1 : 0,
-      filesTotal: 1,
-      bytesCompleted: BigInt.one,
-      bytesTotal: BigInt.one,
-      failedFiles: 0,
-    );
+SftpEntryData _entry(String name) => SftpEntryData(
+  name: name,
+  relativePath: name,
+  kind: SftpEntryKindData.file,
+  downloaded: false,
+);
+
+SftpDownloadProgressData _progress(
+  SftpDownloadStateData state, {
+  String jobId = 'job-1',
+}) => SftpDownloadProgressData(
+  jobId: jobId,
+  state: state,
+  filesCompleted: state == SftpDownloadStateData.completed ? 1 : 0,
+  filesTotal: 1,
+  bytesCompleted: BigInt.one,
+  bytesTotal: BigInt.one,
+  failedFiles: 0,
+);
 
 class FakeSftpCredentials implements SftpCredentialStore {
   final passwords = <String, String>{};
@@ -108,7 +159,15 @@ class FakeSftpRepository implements SftpRepository {
   List<SftpProfileData> profiles = [];
   final deletedProfiles = <String>[];
   final browsedPaths = <String>[];
-  final downloads = StreamController<SftpDownloadProgressData>();
+  final downloads = <String, StreamController<SftpDownloadProgressData>>{};
+  int _nextJob = 0;
+
+  void emit(String jobId, SftpDownloadStateData state) {
+    downloads[jobId]!.add(_progress(state, jobId: jobId));
+  }
+
+  Future<void> closeDownloads() =>
+      Future.wait(downloads.values.map((download) => download.close()));
 
   @override
   Future<List<SftpEntryData>> browse(
@@ -167,9 +226,13 @@ class FakeSftpRepository implements SftpRepository {
     String profileId,
     String relativePath,
     bool recursive,
-  ) async => _progress(SftpDownloadStateData.discovering);
+  ) async {
+    final jobId = 'job-${++_nextJob}';
+    downloads[jobId] = StreamController<SftpDownloadProgressData>();
+    return _progress(SftpDownloadStateData.discovering, jobId: jobId);
+  }
 
   @override
   Stream<SftpDownloadProgressData> watchDownload(String jobId) =>
-      downloads.stream;
+      downloads[jobId]!.stream;
 }

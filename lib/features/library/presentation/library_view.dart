@@ -12,6 +12,7 @@ import 'package:clutter/features/library/presentation/playlists_view.dart';
 import 'package:clutter/features/library/presentation/songs_view.dart';
 import 'package:clutter/features/library/presentation/widgets/library_action_style.dart';
 import 'package:clutter/features/library/presentation/widgets/song_delegate.dart';
+import 'package:clutter/shared/presentation/session_scroll_position.dart';
 import 'package:clutter/features/video_import/data/platform_video_picker.dart';
 import 'package:clutter/features/video_import/presentation/video_import_flow.dart';
 
@@ -188,12 +189,16 @@ class RecentlyPlayedView extends StatelessWidget {
                 ),
               );
             }
-            return ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              itemCount: songs.length,
-              itemBuilder: (context, i) =>
-                  SongDelegate(song: songs[i], musicLibrary: musicLibrary),
-              separatorBuilder: (_, _) => const Divider(),
+            return RememberedScrollPosition(
+              id: 'library:recently-played',
+              builder: (context, scrollController) => ListView.separated(
+                controller: scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                itemCount: songs.length,
+                itemBuilder: (context, i) =>
+                    SongDelegate(song: songs[i], musicLibrary: musicLibrary),
+                separatorBuilder: (_, _) => const Divider(),
+              ),
             );
           },
         );

@@ -7,6 +7,26 @@ import 'package:clutter/features/remote_sources/data/sftp_credential_store.dart'
 import 'package:clutter/features/remote_sources/data/sftp_repository.dart';
 import 'package:clutter/src/rust/api/models.dart';
 
+class SftpDownloadJob {
+  final String label;
+  final SftpDownloadProgressData progress;
+
+  const SftpDownloadJob({required this.label, required this.progress});
+
+  String get jobId => progress.jobId;
+
+  bool get isTerminal => switch (progress.state) {
+    SftpDownloadStateData.completed ||
+    SftpDownloadStateData.completedWithErrors ||
+    SftpDownloadStateData.cancelled ||
+    SftpDownloadStateData.failed => true,
+    _ => false,
+  };
+
+  SftpDownloadJob withProgress(SftpDownloadProgressData next) =>
+      SftpDownloadJob(label: label, progress: next);
+}
+
 class SftpController extends ChangeNotifier {
   final SftpRepository repository;
   final SftpCredentialStore credentials;
@@ -20,7 +40,7 @@ class SftpController extends ChangeNotifier {
 
   List<SftpProfileData> _profiles = const [];
   List<SftpEntryData> _entries = const [];
-  final Map<String, SftpDownloadProgressData> _jobs = {};
+  final Map<String, SftpDownloadJob> _jobs = {};
   final Map<String, StreamSubscription<SftpDownloadProgressData>>
   _jobSubscriptions = {};
   SftpProfileData? _selectedProfile;
@@ -33,7 +53,7 @@ class SftpController extends ChangeNotifier {
       UnmodifiableListView(_profiles);
   UnmodifiableListView<SftpEntryData> get entries =>
       UnmodifiableListView(_entries);
-  UnmodifiableListView<SftpDownloadProgressData> get jobs =>
+  UnmodifiableListView<SftpDownloadJob> get jobs =>
       UnmodifiableListView(_jobs.values);
   SftpProfileData? get selectedProfile => _selectedProfile;
   String get currentPath => _currentPath;
@@ -155,7 +175,10 @@ class SftpController extends ChangeNotifier {
         entry.relativePath,
         entry.kind == SftpEntryKindData.directory,
       );
-      _jobs[initial.jobId] = initial;
+      _jobs[initial.jobId] = SftpDownloadJob(
+        label: entry.name,
+        progress: initial,
+      );
       _watchJob(initial.jobId);
     });
   }
@@ -165,7 +188,15 @@ class SftpController extends ChangeNotifier {
         .watchDownload(jobId)
         .listen(
           (progress) async {
-            _jobs[jobId] = progress;
+            final job = _jobs[jobId];
+            if (job == null) return;
+            _jobs[jobId] = job.withProgress(progress);
+            if (_isTerminal(progress.state)) {
+              _jobs.removeWhere(
+                (candidateId, candidate) =>
+                    candidateId != jobId && candidate.isTerminal,
+              );
+            }
             notifyListeners();
             if (!_isTerminal(progress.state)) return;
             await _jobSubscriptions.remove(jobId)?.cancel();

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -48,12 +49,43 @@ class _NowPlayingOverlay extends StatefulWidget {
   State<_NowPlayingOverlay> createState() => _NowPlayingOverlayState();
 }
 
-class _NowPlayingOverlayState extends State<_NowPlayingOverlay> {
+class _NowPlayingOverlayState extends State<_NowPlayingOverlay>
+    with SingleTickerProviderStateMixin {
   double _dragOffset = 0;
   bool _showQueue = false;
+  bool _queueClosing = false;
+  late final AnimationController _queueController;
+  late final CurvedAnimation _queueCurve;
+  late final Animation<Offset> _queueSlide;
 
   bool get _isDesktop =>
       Platform.isLinux || Platform.isMacOS || Platform.isWindows;
+
+  @override
+  void initState() {
+    super.initState();
+    _queueController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+      reverseDuration: const Duration(milliseconds: 220),
+    );
+    _queueCurve = CurvedAnimation(
+      parent: _queueController,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    _queueSlide = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(_queueCurve);
+  }
+
+  @override
+  void dispose() {
+    _queueCurve.dispose();
+    _queueController.dispose();
+    super.dispose();
+  }
 
   String _formatDuration(Duration? duration) {
     if (duration == null) return "0:00";
@@ -69,7 +101,42 @@ class _NowPlayingOverlayState extends State<_NowPlayingOverlay> {
     }
   }
 
+  void _showQueueLayer() {
+    if (_showQueue) return;
+    setState(() {
+      _showQueue = true;
+      _queueClosing = false;
+    });
+    _queueController.forward(from: 0);
+  }
+
+  void _hideQueueLayer() {
+    if (!_showQueue || _queueClosing) return;
+    setState(() {
+      _queueClosing = true;
+    });
+    unawaited(
+      _queueController.reverse().then<void>((_) {
+        if (!mounted) return;
+        setState(() {
+          _dragOffset = 0;
+          _showQueue = false;
+          _queueClosing = false;
+        });
+      }),
+    );
+  }
+
+  void _dismissCurrentLayer() {
+    if (_showQueue) {
+      _hideQueueLayer();
+    } else {
+      _dismiss();
+    }
+  }
+
   void _onVerticalDragUpdate(DragUpdateDetails details) {
+    if (_queueClosing) return;
     if (details.delta.dy < 0 && _dragOffset <= 0) return;
     setState(() {
       _dragOffset = math.max(0, _dragOffset + details.delta.dy);
@@ -77,9 +144,10 @@ class _NowPlayingOverlayState extends State<_NowPlayingOverlay> {
   }
 
   void _onVerticalDragEnd(DragEndDetails details) {
+    if (_queueClosing) return;
     final velocity = details.primaryVelocity ?? 0;
     if (_dragOffset > 120 || velocity > 700) {
-      _dismiss();
+      _dismissCurrentLayer();
       return;
     }
     setState(() => _dragOffset = 0);
@@ -98,7 +166,7 @@ class _NowPlayingOverlayState extends State<_NowPlayingOverlay> {
         actions: {
           _DismissNowPlayingIntent: CallbackAction<_DismissNowPlayingIntent>(
             onInvoke: (_) {
-              _dismiss();
+              _dismissCurrentLayer();
               return null;
             },
           ),
@@ -110,7 +178,11 @@ class _NowPlayingOverlayState extends State<_NowPlayingOverlay> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 120),
               curve: Curves.easeOut,
-              transform: Matrix4.translationValues(0, _dragOffset, 0),
+              transform: Matrix4.translationValues(
+                0,
+                _showQueue ? 0 : _dragOffset,
+                0,
+              ),
               child: GestureDetector(
                 onVerticalDragUpdate: _onVerticalDragUpdate,
                 onVerticalDragEnd: _onVerticalDragEnd,
@@ -119,25 +191,88 @@ class _NowPlayingOverlayState extends State<_NowPlayingOverlay> {
                   child: Consumer<MusicLibrary>(
                     builder: (context, musicLibrary, _) {
                       final current = musicLibrary.currentSong;
-                      return Column(
+                      return Stack(
+                        fit: StackFit.expand,
                         children: [
-                          _Header(
-                            onDismiss: _dismiss,
-                            showQueue: _showQueue,
-                            onToggleQueue: () =>
-                                setState(() => _showQueue = !_showQueue),
+                          Column(
+                            children: [
+                              const _OverlayTitle(title: "now playing"),
+                              Expanded(
+                                child: _NowPlayingBody(
+                                  musicLibrary: musicLibrary,
+                                  current: current,
+                                  theme: theme,
+                                  media: media,
+                                  isDesktop: _isDesktop,
+                                  formatDuration: _formatDuration,
+                                  onShowQueue: _showQueueLayer,
+                                ),
+                              ),
+                            ],
                           ),
-                          Expanded(
-                            child: _showQueue
-                                ? _ExpandedQueue(musicLibrary: musicLibrary)
-                                : _NowPlayingBody(
-                                    musicLibrary: musicLibrary,
-                                    current: current,
-                                    theme: theme,
-                                    media: media,
-                                    isDesktop: _isDesktop,
-                                    formatDuration: _formatDuration,
+                          IgnorePointer(
+                            ignoring: !_showQueue || _queueClosing,
+                            child: ExcludeSemantics(
+                              excluding: !_showQueue,
+                              child: SlideTransition(
+                                position: _queueSlide,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 120),
+                                  curve: Curves.easeOut,
+                                  transform: Matrix4.translationValues(
+                                    0,
+                                    _dragOffset,
+                                    0,
                                   ),
+                                  child: ColoredBox(
+                                    key: const ValueKey(
+                                      "now-playing-queue-layer",
+                                    ),
+                                    color: AppColors.darkBackground,
+                                    child: Column(
+                                      children: [
+                                        const _OverlayTitle(title: "queue"),
+                                        Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 56,
+                                            ),
+                                            child: _ExpandedQueue(
+                                              musicLibrary: musicLibrary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 4,
+                            bottom: 4,
+                            child: IconButton(
+                              key: const ValueKey("now-playing-dismiss"),
+                              tooltip: _showQueue ? "hide queue" : "close",
+                              onPressed: _dismissCurrentLayer,
+                              icon: Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                size: 32,
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.9,
+                                ),
+                              ),
+                              style: const ButtonStyle(
+                                minimumSize: WidgetStatePropertyAll(
+                                  Size(48, 48),
+                                ),
+                                splashFactory: NoSplash.splashFactory,
+                                overlayColor: WidgetStatePropertyAll(
+                                  Colors.transparent,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       );
@@ -153,61 +288,26 @@ class _NowPlayingOverlayState extends State<_NowPlayingOverlay> {
   }
 }
 
-class _Header extends StatelessWidget {
-  final VoidCallback onDismiss;
-  final bool showQueue;
-  final VoidCallback onToggleQueue;
+class _OverlayTitle extends StatelessWidget {
+  final String title;
 
-  const _Header({
-    required this.onDismiss,
-    required this.showQueue,
-    required this.onToggleQueue,
-  });
+  const _OverlayTitle({required this.title});
 
   @override
   Widget build(BuildContext context) {
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
-      child: Row(
-        children: [
-          IconButton(
-            tooltip: "close",
-            onPressed: onDismiss,
-            icon: Icon(
-              Icons.keyboard_arrow_down_rounded,
-              size: 32,
-              color: onSurface.withValues(alpha: 0.9),
-            ),
-            style: const ButtonStyle(
-              splashFactory: NoSplash.splashFactory,
-              overlayColor: WidgetStatePropertyAll(Colors.transparent),
-            ),
+    return SizedBox(
+      height: 52,
+      child: Center(
+        child: Text(
+          title,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.4,
+            color: onSurface.withValues(alpha: 0.7),
           ),
-          const Spacer(),
-          Text(
-            showQueue ? "queue" : "now playing",
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.4,
-              color: onSurface.withValues(alpha: 0.7),
-            ),
-          ),
-          const Spacer(),
-          IconButton(
-            tooltip: showQueue ? "now playing" : "queue",
-            onPressed: onToggleQueue,
-            icon: Icon(
-              showQueue ? Icons.album_outlined : Icons.queue_music_rounded,
-              color: onSurface.withValues(alpha: 0.9),
-            ),
-            style: const ButtonStyle(
-              splashFactory: NoSplash.splashFactory,
-              overlayColor: WidgetStatePropertyAll(Colors.transparent),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -220,6 +320,7 @@ class _NowPlayingBody extends StatelessWidget {
   final MediaQueryData media;
   final bool isDesktop;
   final String Function(Duration?) formatDuration;
+  final VoidCallback onShowQueue;
 
   const _NowPlayingBody({
     required this.musicLibrary,
@@ -228,6 +329,7 @@ class _NowPlayingBody extends StatelessWidget {
     required this.media,
     required this.isDesktop,
     required this.formatDuration,
+    required this.onShowQueue,
   });
 
   @override
@@ -254,10 +356,11 @@ class _NowPlayingBody extends StatelessWidget {
             ),
           ),
           const Spacer(flex: 2),
-          Align(
-            alignment: Alignment.centerLeft,
+          SizedBox(
+            width: double.infinity,
             child: Text(
               current?.title ?? "nothing playing",
+              textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -270,10 +373,11 @@ class _NowPlayingBody extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerLeft,
+          SizedBox(
+            width: double.infinity,
             child: Text(
               current == null ? "" : musicLibrary.artistsDisplay(current!),
+              textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -288,7 +392,7 @@ class _NowPlayingBody extends StatelessWidget {
             formatDuration: formatDuration,
           ),
           const SizedBox(height: 8),
-          _TransportRow(musicLibrary: musicLibrary),
+          _TransportRow(musicLibrary: musicLibrary, onShowQueue: onShowQueue),
           if (isDesktop) ...[
             const SizedBox(height: 8),
             _DesktopExtras(musicLibrary: musicLibrary),
@@ -366,8 +470,9 @@ class _ProgressSection extends StatelessWidget {
 
 class _TransportRow extends StatelessWidget {
   final MusicLibrary musicLibrary;
+  final VoidCallback onShowQueue;
 
-  const _TransportRow({required this.musicLibrary});
+  const _TransportRow({required this.musicLibrary, required this.onShowQueue});
 
   @override
   Widget build(BuildContext context) {
@@ -379,17 +484,36 @@ class _TransportRow extends StatelessWidget {
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        IconButton(
-          tooltip: musicLibrary.loopOne ? "disable loop" : "loop track",
-          onPressed: hasSong ? musicLibrary.toggleLoopOne : null,
-          icon: Icon(
-            musicLibrary.loopOne ? Icons.repeat_one_rounded : Icons.repeat_rounded,
-            color: musicLibrary.loopOne
-                ? onSurface
-                : onSurface.withValues(alpha: 0.55),
-          ),
-          style: _iconStyle,
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              key: const ValueKey("now-playing-repeat"),
+              tooltip: musicLibrary.loopOne ? "disable loop" : "loop track",
+              onPressed: hasSong ? musicLibrary.toggleLoopOne : null,
+              icon: Icon(
+                musicLibrary.loopOne
+                    ? Icons.repeat_one_rounded
+                    : Icons.repeat_rounded,
+                color: musicLibrary.loopOne
+                    ? onSurface
+                    : onSurface.withValues(alpha: 0.55),
+              ),
+              style: _iconStyle,
+            ),
+            IconButton(
+              key: const ValueKey("now-playing-show-queue"),
+              tooltip: "show queue",
+              onPressed: onShowQueue,
+              icon: Icon(
+                Icons.queue_music_rounded,
+                color: onSurface.withValues(alpha: 0.7),
+              ),
+              style: _iconStyle,
+            ),
+          ],
         ),
         IconButton(
           tooltip: "previous",
@@ -406,10 +530,7 @@ class _TransportRow extends StatelessWidget {
           style: _iconStyle,
         ),
         DecoratedBox(
-          decoration: BoxDecoration(
-            color: onSurface,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: onSurface, shape: BoxShape.circle),
           child: IconButton(
             tooltip: musicLibrary.isPlaying ? "pause" : "play",
             onPressed: hasSong ? musicLibrary.togglePlay : null,
@@ -440,9 +561,7 @@ class _TransportRow extends StatelessWidget {
               : () => musicLibrary.toggleLiked(musicLibrary.currentSong!),
           icon: Icon(
             liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            color: liked
-                ? Colors.redAccent
-                : onSurface.withValues(alpha: 0.7),
+            color: liked ? Colors.redAccent : onSurface.withValues(alpha: 0.7),
           ),
           style: _iconStyle,
         ),
@@ -504,80 +623,171 @@ class _ExpandedQueue extends StatelessWidget {
   Widget build(BuildContext context) {
     final q = musicLibrary.queue;
     final theme = Theme.of(context);
-    if (q.isEmpty) {
-      return Center(
-        child: Text(
-          "queue is empty",
-          style: TextStyle(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-          ),
-        ),
-      );
-    }
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                "${q.length} queued",
-                style: theme.textTheme.labelLarge,
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: musicLibrary.toggleLoopQueue,
-                child: Text(
-                  musicLibrary.loopQueue ? "loop on" : "loop off",
-                  style: TextStyle(
-                    color: musicLibrary.loopQueue
-                        ? theme.colorScheme.onSurface
-                        : theme.colorScheme.onSurface.withValues(alpha: 0.55),
-                  ),
+              Text("${q.length} queued", style: theme.textTheme.labelLarge),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _BouncyShuffleButton(
+                      onPressed: q.length < 2
+                          ? null
+                          : musicLibrary.shuffleQueue,
+                    ),
+                    TextButton(
+                      onPressed: q.isEmpty
+                          ? null
+                          : musicLibrary.toggleLoopQueue,
+                      child: Text(
+                        musicLibrary.loopQueue ? "loop on" : "loop off",
+                        style: TextStyle(
+                          color: musicLibrary.loopQueue
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.55,
+                                ),
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: q.isEmpty ? null : musicLibrary.clearQueue,
+                      child: const Text("clear"),
+                    ),
+                  ],
                 ),
-              ),
-              TextButton(
-                onPressed: musicLibrary.clearQueue,
-                child: const Text("clear"),
               ),
             ],
           ),
         ),
         Expanded(
-          child: ReorderableListView.builder(
-            itemCount: q.length,
-            onReorder: (from, to) {
-              if (to > from) to -= 1;
-              musicLibrary.moveQueueItem(from, to);
-            },
-            itemBuilder: (context, i) {
-              final song = q[i];
-              return ListTile(
-                key: ValueKey("np-queue-${song.id}-$i"),
-                leading: coverImg(song.coverPath, 44, cacheSize: 132),
-                title: Text(
-                  song.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  musicLibrary.artistsDisplay(song),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.close, size: 18),
-                  onPressed: () => musicLibrary.removeFromQueue(i),
-                  style: const ButtonStyle(
-                    splashFactory: NoSplash.splashFactory,
-                    overlayColor: WidgetStatePropertyAll(Colors.transparent),
+          child: q.isEmpty
+              ? Center(
+                  child: Text(
+                    "queue is empty",
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
                   ),
+                )
+              : ReorderableListView.builder(
+                  itemCount: q.length,
+                  onReorder: (from, to) {
+                    if (to > from) to -= 1;
+                    musicLibrary.moveQueueItem(from, to);
+                  },
+                  itemBuilder: (context, i) {
+                    final song = q[i];
+                    return ListTile(
+                      key: ValueKey("np-queue-${song.id}-$i"),
+                      leading: coverImg(song.coverPath, 44, cacheSize: 132),
+                      title: Text(
+                        song.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        musicLibrary.artistsDisplay(song),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: () => musicLibrary.removeFromQueue(i),
+                        style: const ButtonStyle(
+                          splashFactory: NoSplash.splashFactory,
+                          overlayColor: WidgetStatePropertyAll(
+                            Colors.transparent,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
         ),
       ],
+    );
+  }
+}
+
+class _BouncyShuffleButton extends StatefulWidget {
+  final VoidCallback? onPressed;
+
+  const _BouncyShuffleButton({required this.onPressed});
+
+  @override
+  State<_BouncyShuffleButton> createState() => _BouncyShuffleButtonState();
+}
+
+class _BouncyShuffleButtonState extends State<_BouncyShuffleButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    );
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.0,
+          end: 0.82,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 35,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 0.82,
+          end: 1.08,
+        ).chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 40,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.08,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 25,
+      ),
+    ]).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _bounceAndShuffle() {
+    _controller.forward(from: 0);
+    widget.onPressed?.call();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      key: const ValueKey("shuffle-queue"),
+      tooltip: "shuffle queue",
+      onPressed: widget.onPressed == null ? null : _bounceAndShuffle,
+      icon: ScaleTransition(
+        key: const ValueKey("shuffle-queue-scale"),
+        scale: _scale,
+        child: const Icon(Icons.shuffle_rounded),
+      ),
+      style: const ButtonStyle(
+        splashFactory: NoSplash.splashFactory,
+        overlayColor: WidgetStatePropertyAll(Colors.transparent),
+      ),
     );
   }
 }

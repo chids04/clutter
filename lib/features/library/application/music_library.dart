@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
@@ -344,12 +345,18 @@ class MusicLibrary extends ChangeNotifier {
     );
   }
 
+  void queueLibraryShuffled({Random? random}) {
+    final shuffled = List<SongViewData>.of(catalog.songs)..shuffle(random);
+    queueSongs(shuffled, label: 'library');
+  }
+
   void queueSongNext(SongViewData song) {
     playback.playNextInQueue(song);
     showToast('${song.title} queued next');
   }
 
   void moveQueueItem(int from, int to) => playback.moveQueueItem(from, to);
+  void shuffleQueue({Random? random}) => playback.shuffleQueue(random: random);
   void removeFromQueue(int index) => playback.removeQueueItem(index);
   void clearQueue() => playback.clearQueue();
   void loopSong() {}

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:clutter/features/keybindings/application/keybinding_controller.dart';
 import 'package:clutter/features/keybindings/presentation/desktop_shortcut_scope.dart';
 import 'package:clutter/features/keybindings/presentation/keybindings_view.dart';
+import 'package:clutter/shared/presentation/session_scroll_position.dart';
 import 'package:clutter/features/library/domain/library_entities.dart';
 import 'package:clutter/shared/platform/desktop_platform.dart';
 
@@ -192,8 +193,11 @@ Widget _app(
   VoidCallback? onNext,
   VoidCallback? onOmni,
 }) {
-  return ChangeNotifierProvider.value(
-    value: controller,
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider.value(value: controller),
+      Provider(create: (_) => SessionScrollPositionStore()),
+    ],
     child: MaterialApp(
       home: DesktopShortcutScope(
         onPlayPause: onPlayPause ?? () {},

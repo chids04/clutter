@@ -183,6 +183,50 @@ void main() {
     }
   });
 
+  testWidgets(
+    'long press opens the song context menu with a short transition',
+    (tester) async {
+      final result = await _pumpSongDelegate(tester);
+      try {
+        await tester.longPress(find.text(_song.title));
+        await tester.pump();
+
+        final menuItem = find.text('add to queue');
+        expect(menuItem, findsOneWidget);
+
+        final menuScrollView = find.ancestor(
+          of: menuItem,
+          matching: find.byType(SingleChildScrollView),
+        );
+        final itemFades = find.descendant(
+          of: menuScrollView,
+          matching: find.byType(FadeTransition),
+        );
+
+        expect(itemFades, findsWidgets);
+        expect(
+          tester
+              .widgetList<FadeTransition>(itemFades)
+              .any((transition) => transition.opacity.value < 1),
+          isTrue,
+        );
+
+        await tester.pump(const Duration(milliseconds: 180));
+
+        for (final transition in tester.widgetList<FadeTransition>(itemFades)) {
+          expect(transition.opacity.value, closeTo(1, 0.001));
+        }
+
+        await tester.tapAt(const Offset(5, 5));
+        await tester.pumpAndSettle();
+
+        expect(menuItem, findsNothing);
+      } finally {
+        await _disposeLibrary(tester, result.library);
+      }
+    },
+  );
+
   testWidgets('album row shows track number to the right of playing marker', (
     tester,
   ) async {
