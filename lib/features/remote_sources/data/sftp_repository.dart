@@ -11,6 +11,12 @@ abstract interface class SftpRepository {
   Future<void> testConnection(SftpProfileData profile, String password);
   Future<void> disconnect(String profileId);
   Future<List<SftpEntryData>> browse(String profileId, String relativePath);
+  Future<List<SftpEntryData>> search(
+    String profileId,
+    String relativePath,
+    String query,
+    int limit,
+  );
   Future<SftpDownloadProgressData> startDownload(
     String profileId,
     String relativePath,
@@ -60,6 +66,19 @@ class RustSftpRepository implements SftpRepository {
   @override
   Future<List<SftpEntryData>> browse(String profileId, String relativePath) =>
       _api.browseSftp(profileId: profileId, relativePath: relativePath);
+
+  @override
+  Future<List<SftpEntryData>> search(
+    String profileId,
+    String relativePath,
+    String query,
+    int limit,
+  ) => _api.searchSftp(
+    profileId: profileId,
+    relativePath: relativePath,
+    query: query,
+    limit: limit,
+  );
 
   @override
   Future<SftpDownloadProgressData> startDownload(

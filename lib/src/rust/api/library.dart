@@ -181,6 +181,13 @@ abstract class LibraryApi implements RustOpaqueInterface {
     required int limit,
   });
 
+  Future<List<SftpEntryData>> searchSftp({
+    required String profileId,
+    required String relativePath,
+    required String query,
+    required int limit,
+  });
+
   Future<List<SongViewData>> searchSongs({
     required String query,
     required int limit,

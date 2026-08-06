@@ -103,6 +103,54 @@ void main() {
     await repository.closeDownloads();
     controller.dispose();
   });
+
+  test('recursive search uses the current folder and caps results', () async {
+    final repository = FakeSftpRepository();
+    final credentials = FakeSftpCredentials();
+    repository.profiles = [_profile(id: 'home')];
+    repository.browseEntries = [_entry('visible.mp3')];
+    repository.searchEntries = List.generate(
+      201,
+      (index) => _entry('match-$index.mp3'),
+    );
+    credentials.passwords['home'] = 'secret';
+    final controller = SftpController(
+      repository: repository,
+      credentials: credentials,
+      onLibraryChanged: () async {},
+    );
+    await controller.hydrate();
+    await controller.browse('albums/live');
+
+    final before = controller.entries.toList();
+    final results = await controller.searchCurrentSubtree('  MATCH  ');
+
+    expect(repository.searchedProfileId, 'home');
+    expect(repository.searchedPath, 'albums/live');
+    expect(repository.searchedQuery, 'MATCH');
+    expect(repository.searchedLimit, 201);
+    expect(results.entries, hasLength(200));
+    expect(results.truncated, isTrue);
+    expect(controller.entries, before);
+    expect(controller.currentPath, 'albums/live');
+    controller.dispose();
+  });
+
+  test('blank recursive search does not call the repository', () async {
+    final repository = FakeSftpRepository();
+    final controller = SftpController(
+      repository: repository,
+      credentials: FakeSftpCredentials(),
+      onLibraryChanged: () async {},
+    );
+
+    final results = await controller.searchCurrentSubtree('   ');
+
+    expect(results.entries, isEmpty);
+    expect(results.truncated, isFalse);
+    expect(repository.searchedQuery, isNull);
+    controller.dispose();
+  });
 }
 
 SftpProfileData _profile({required String id}) => SftpProfileData(
@@ -157,9 +205,19 @@ class FakeSftpCredentials implements SftpCredentialStore {
 
 class FakeSftpRepository implements SftpRepository {
   List<SftpProfileData> profiles = [];
+  List<SftpEntryData> browseEntries = [];
+  List<SftpEntryData> searchEntries = [];
+  Completer<String>? probeCompleter;
+  Completer<void>? testConnectionCompleter;
   final deletedProfiles = <String>[];
+  final savedProfiles = <SftpProfileData>[];
   final browsedPaths = <String>[];
+  final downloadedPaths = <String>[];
   final downloads = <String, StreamController<SftpDownloadProgressData>>{};
+  String? searchedProfileId;
+  String? searchedPath;
+  String? searchedQuery;
+  int? searchedLimit;
   int _nextJob = 0;
 
   void emit(String jobId, SftpDownloadStateData state) {
@@ -175,7 +233,7 @@ class FakeSftpRepository implements SftpRepository {
     String relativePath,
   ) async {
     browsedPaths.add(relativePath);
-    return [];
+    return browseEntries;
   }
 
   @override
@@ -197,7 +255,8 @@ class FakeSftpRepository implements SftpRepository {
   Future<List<SftpProfileData>> getProfiles() async => profiles;
 
   @override
-  Future<String> probeFingerprint(String host, int port) async => 'SHA256:test';
+  Future<String> probeFingerprint(String host, int port) async =>
+      probeCompleter == null ? 'SHA256:test' : await probeCompleter!.future;
 
   @override
   Future<SftpProfileData> saveProfile(SftpProfileData profile) async {
@@ -211,6 +270,7 @@ class FakeSftpRepository implements SftpRepository {
       hostKeyFingerprint: profile.hostKeyFingerprint,
       isSelected: profile.isSelected,
     );
+    savedProfiles.add(saved);
     profiles = [saved];
     return saved;
   }
@@ -219,7 +279,23 @@ class FakeSftpRepository implements SftpRepository {
   Future<void> selectProfile(String profileId) async {}
 
   @override
-  Future<void> testConnection(SftpProfileData profile, String password) async {}
+  Future<List<SftpEntryData>> search(
+    String profileId,
+    String relativePath,
+    String query,
+    int limit,
+  ) async {
+    searchedProfileId = profileId;
+    searchedPath = relativePath;
+    searchedQuery = query;
+    searchedLimit = limit;
+    return searchEntries.take(limit).toList();
+  }
+
+  @override
+  Future<void> testConnection(SftpProfileData profile, String password) async {
+    await testConnectionCompleter?.future;
+  }
 
   @override
   Future<SftpDownloadProgressData> startDownload(
@@ -227,6 +303,7 @@ class FakeSftpRepository implements SftpRepository {
     String relativePath,
     bool recursive,
   ) async {
+    downloadedPaths.add(relativePath);
     final jobId = 'job-${++_nextJob}';
     downloads[jobId] = StreamController<SftpDownloadProgressData>();
     return _progress(SftpDownloadStateData.discovering, jobId: jobId);

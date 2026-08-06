@@ -109,6 +109,48 @@ void main() {
   final panel = find.byKey(const ValueKey('quick-play-sidebar-panel'));
 
   testWidgets(
+    'desktop click toggles the sidebar immediately',
+    (tester) async {
+      final library = await _pumpSidebar(tester);
+
+      await tester.tap(handle);
+      await tester.pump();
+      await tester.pump();
+      expect(tester.widget<AnimatedPositioned>(panel).right, 0);
+
+      await tester.pumpAndSettle();
+      await tester.tap(handle);
+      await tester.pump();
+      await tester.pump();
+      expect(tester.widget<AnimatedPositioned>(panel).right, -280);
+
+      await _disposeLibrary(tester, library);
+    },
+    variant: const TargetPlatformVariant({TargetPlatform.windows}),
+  );
+
+  testWidgets(
+    'desktop mouse movement does not postpone hover opening',
+    (tester) async {
+      final library = await _pumpSidebar(tester);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      final center = tester.getCenter(handle);
+
+      await mouse.addPointer(location: center);
+      for (var index = 0; index < 5; index++) {
+        await tester.pump(const Duration(milliseconds: 100));
+        await mouse.moveTo(center + Offset(0, index.isEven ? 2 : -2));
+      }
+
+      expect(tester.widget<AnimatedPositioned>(panel).right, 0);
+
+      await mouse.removePointer();
+      await _disposeLibrary(tester, library);
+    },
+    variant: const TargetPlatformVariant({TargetPlatform.macOS}),
+  );
+
+  testWidgets(
     'desktop pointer-down prevents hover opening during a drag',
     (tester) async {
       final library = await _pumpSidebar(tester);

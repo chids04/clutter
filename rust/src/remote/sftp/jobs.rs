@@ -102,6 +102,31 @@ impl SftpService {
             .map_err(|error| error.to_string())
     }
 
+    pub fn search(
+        &self,
+        profile_id: &str,
+        relative: &str,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<super::SftpEntry>, String> {
+        let connections = self
+            .connections
+            .lock()
+            .map_err(|error| format!("lock sftp connections: {error}"))?;
+        let state = connections
+            .get(profile_id)
+            .ok_or_else(|| "sftp profile is not connected".to_string())?;
+        self.runtime
+            .block_on(client::search(
+                &state.connection,
+                &state.profile,
+                relative,
+                query,
+                limit,
+            ))
+            .map_err(|error| error.to_string())
+    }
+
     pub fn start_download(
         &self,
         profile_id: &str,

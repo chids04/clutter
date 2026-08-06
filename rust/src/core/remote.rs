@@ -61,6 +61,25 @@ impl LibraryCore {
         Ok(entries)
     }
 
+    pub fn search_sftp(
+        &self,
+        profile_id: &str,
+        relative: &str,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<SftpEntry>, String> {
+        let mut entries = self.sftp.search(profile_id, relative, query, limit)?;
+        let paths = entries
+            .iter()
+            .map(|entry| entry.relative_path.clone())
+            .collect::<Vec<_>>();
+        let downloaded = self.store.sftp_downloaded_paths(profile_id, &paths)?;
+        for entry in &mut entries {
+            entry.downloaded = downloaded.contains(&entry.relative_path);
+        }
+        Ok(entries)
+    }
+
     pub fn start_sftp_download(
         &self,
         profile_id: &str,

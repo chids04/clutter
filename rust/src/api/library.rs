@@ -82,6 +82,18 @@ impl LibraryApi {
             .map(|entries| entries.into_iter().map(Into::into).collect())
     }
 
+    pub fn search_sftp(
+        &self,
+        profile_id: String,
+        relative_path: String,
+        query: String,
+        limit: u32,
+    ) -> Result<Vec<SftpEntryData>, String> {
+        self.core
+            .search_sftp(&profile_id, &relative_path, &query, limit as usize)
+            .map(|entries| entries.into_iter().map(Into::into).collect())
+    }
+
     pub fn start_sftp_download(
         &self,
         profile_id: String,

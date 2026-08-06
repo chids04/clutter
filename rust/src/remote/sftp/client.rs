@@ -5,6 +5,7 @@ use russh::keys::ssh_key::{HashAlg, PublicKey};
 use russh::{client, ChannelId};
 use russh_sftp::client::SftpSession;
 use russh_sftp::protocol::FileType;
+use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
 pub struct SftpConnection {
@@ -129,6 +130,55 @@ pub async fn browse(
             .then_with(|| left.name.to_lowercase().cmp(&right.name.to_lowercase()))
     });
     Ok(result)
+}
+
+pub async fn search(
+    connection: &SftpConnection,
+    profile: &SftpProfile,
+    relative: &str,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<SftpEntry>> {
+    let query = query.trim().to_lowercase();
+    if query.is_empty() || limit == 0 {
+        return Ok(Vec::new());
+    }
+
+    let mut pending = VecDeque::from([relative.to_string()]);
+    let mut matches = Vec::new();
+    while let Some(directory) = pending.pop_front() {
+        for entry in browse(connection, profile, &directory).await? {
+            if entry.kind == SftpEntryKind::Directory {
+                pending.push_back(entry.relative_path.clone());
+            }
+            if entry.name.to_lowercase().contains(&query) {
+                matches.push(entry);
+                if matches.len() == limit {
+                    matches.sort_by(|left, right| {
+                        entry_rank(left.kind)
+                            .cmp(&entry_rank(right.kind))
+                            .then_with(|| {
+                                left.relative_path
+                                    .to_lowercase()
+                                    .cmp(&right.relative_path.to_lowercase())
+                            })
+                    });
+                    return Ok(matches);
+                }
+            }
+        }
+    }
+
+    matches.sort_by(|left, right| {
+        entry_rank(left.kind)
+            .cmp(&entry_rank(right.kind))
+            .then_with(|| {
+                left.relative_path
+                    .to_lowercase()
+                    .cmp(&right.relative_path.to_lowercase())
+            })
+    });
+    Ok(matches)
 }
 
 fn entry_rank(kind: SftpEntryKind) -> u8 {

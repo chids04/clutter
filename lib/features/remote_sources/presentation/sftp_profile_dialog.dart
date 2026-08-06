@@ -10,7 +10,7 @@ Future<void> showSftpProfileDialog(
 }) async {
   await showDialog<void>(
     context: context,
-    barrierDismissible: false,
+    barrierDismissible: true,
     builder: (_) => ChangeNotifierProvider.value(
       value: context.read<SftpController>(),
       child: _SftpProfileDialog(profile: profile),
@@ -81,6 +81,7 @@ class _SftpProfileDialogState extends State<_SftpProfileDialog> {
                 _field(_root, 'music root'),
                 TextFormField(
                   controller: _password,
+                  enabled: !_saving,
                   obscureText: false,
                   decoration: const InputDecoration(labelText: 'password'),
                   validator: _required,
@@ -101,7 +102,7 @@ class _SftpProfileDialogState extends State<_SftpProfileDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _saving ? null : () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(context),
           child: const Text('cancel'),
         ),
         FilledButton(
@@ -124,6 +125,7 @@ class _SftpProfileDialogState extends State<_SftpProfileDialog> {
   }) {
     return TextFormField(
       controller: controller,
+      enabled: !_saving,
       keyboardType: numeric ? TextInputType.number : TextInputType.text,
       decoration: InputDecoration(labelText: label),
       validator: _required,

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:clutter/features/remote_sources/application/sftp_controller.dart';
 import 'package:clutter/features/remote_sources/presentation/sftp_download_panel.dart';
 import 'package:clutter/features/remote_sources/presentation/sftp_profile_dialog.dart';
+import 'package:clutter/features/remote_sources/presentation/sftp_search_overlay.dart';
 import 'package:clutter/shared/presentation/session_scroll_position.dart';
 import 'package:clutter/src/rust/api/models.dart';
 
@@ -22,7 +23,13 @@ class SftpBrowser extends StatelessWidget {
             _ProfileToolbar(controller: controller),
             if (controller.error case final error?)
               _ErrorBanner(message: error),
-            _Breadcrumbs(path: controller.currentPath),
+            _Breadcrumbs(
+              path: controller.currentPath,
+              onSearch:
+                  controller.connected && controller.selectedProfile != null
+                  ? () => showSftpSearchOverlay(context)
+                  : null,
+            ),
             Expanded(child: _EntryList(controller: controller)),
             if (controller.jobs.isNotEmpty)
               SftpDownloadPanel(
@@ -163,8 +170,9 @@ class _ProfileToolbar extends StatelessWidget {
 
 class _Breadcrumbs extends StatelessWidget {
   final String path;
+  final VoidCallback? onSearch;
 
-  const _Breadcrumbs({required this.path});
+  const _Breadcrumbs({required this.path, required this.onSearch});
 
   @override
   Widget build(BuildContext context) {
@@ -172,23 +180,36 @@ class _Breadcrumbs extends StatelessWidget {
     final parts = path.isEmpty ? <String>[] : path.split('/');
     return SizedBox(
       height: 42,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
         children: [
-          TextButton.icon(
-            onPressed: () => controller.browse(''),
-            icon: const Icon(Icons.home_outlined, size: 18),
-            label: const Text('root'),
+          const SizedBox(width: 4),
+          IconButton(
+            key: const ValueKey('sftp-search-button'),
+            tooltip: 'search this folder and subfolders',
+            onPressed: onSearch,
+            icon: const Icon(Icons.search_rounded, size: 20),
           ),
-          for (var index = 0; index < parts.length; index++) ...[
-            const Center(child: Icon(Icons.chevron_right, size: 18)),
-            TextButton(
-              onPressed: () =>
-                  controller.browse(parts.take(index + 1).join('/')),
-              child: Text(parts[index]),
+          Expanded(
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(right: 12),
+              children: [
+                TextButton.icon(
+                  onPressed: () => controller.browse(''),
+                  icon: const Icon(Icons.home_outlined, size: 18),
+                  label: const Text('root'),
+                ),
+                for (var index = 0; index < parts.length; index++) ...[
+                  const Center(child: Icon(Icons.chevron_right, size: 18)),
+                  TextButton(
+                    onPressed: () =>
+                        controller.browse(parts.take(index + 1).join('/')),
+                    child: Text(parts[index]),
+                  ),
+                ],
+              ],
             ),
-          ],
+          ),
         ],
       ),
     );

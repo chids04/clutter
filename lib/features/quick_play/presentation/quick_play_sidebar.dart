@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -34,6 +33,7 @@ class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
   Timer? _hoverTimer;
   bool _hoveringTrigger = false;
   bool _hoveringPanel = false;
+  double _desktopHandlePointerTravel = 0;
   double _handleTop = _kHandleHeight;
 
   bool get _isDesktop => switch (defaultTargetPlatform) {
@@ -53,6 +53,15 @@ class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
     _hoverTimer?.cancel();
     if (!_isOpen) return;
     setState(() => _isOpen = false);
+  }
+
+  void _toggle() {
+    _hoverTimer?.cancel();
+    if (_isOpen) {
+      _close();
+    } else {
+      _open();
+    }
   }
 
   void _scheduleOpen() {
@@ -81,12 +90,6 @@ class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
 
   void _onTriggerEnter(PointerEvent _) {
     _hoveringTrigger = true;
-    if (_isDesktop && !_isPressingHandle && !_isMovingHandle) {
-      _scheduleOpen();
-    }
-  }
-
-  void _onTriggerHover(PointerHoverEvent _) {
     if (_isDesktop && !_isPressingHandle && !_isMovingHandle) {
       _scheduleOpen();
     }
@@ -130,6 +133,25 @@ class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
   void _onHandleDragStart(DragStartDetails _) {
     _hoverTimer?.cancel();
     setState(() => _isMovingHandle = true);
+  }
+
+  void _onDesktopHandlePointerDown(PointerDownEvent _) {
+    if (_isDesktop) _desktopHandlePointerTravel = 0;
+  }
+
+  void _onDesktopHandlePointerMove(PointerMoveEvent event) {
+    if (_isDesktop) _desktopHandlePointerTravel += event.delta.distance;
+  }
+
+  void _onDesktopHandlePointerUp(PointerUpEvent _) {
+    if (!_isDesktop || _desktopHandlePointerTravel > 6) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _toggle();
+    });
+  }
+
+  void _onDesktopHandlePointerCancel(PointerCancelEvent _) {
+    _desktopHandlePointerTravel = 0;
   }
 
   void _onHandleDragUpdate(DragUpdateDetails details, double maxTop) {
@@ -217,34 +239,42 @@ class _QuickPlaySidebarState extends State<QuickPlaySidebar> {
                                   _onHandleDragUpdate(details, maxTop),
                               onVerticalDragEnd: _onHandleDragEnd,
                               onVerticalDragCancel: _onHandleDragCancel,
-                              child: MouseRegion(
-                                cursor: SystemMouseCursors.resizeUpDown,
-                                onEnter: _onTriggerEnter,
-                                onHover: _onTriggerHover,
-                                onExit: _onTriggerExit,
-                                child: Container(
-                                  width: _kHandleWidth,
-                                  height: _kHandleHeight,
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.surface,
-                                    border: Border(
-                                      left: BorderSide(color: borderColor),
-                                      top: BorderSide(color: borderColor),
-                                      bottom: BorderSide(color: borderColor),
+                              child: Listener(
+                                onPointerDown: _onDesktopHandlePointerDown,
+                                onPointerMove: _onDesktopHandlePointerMove,
+                                onPointerUp: _onDesktopHandlePointerUp,
+                                onPointerCancel: _onDesktopHandlePointerCancel,
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.resizeUpDown,
+                                  onEnter: _onTriggerEnter,
+                                  onExit: _onTriggerExit,
+                                  child: Container(
+                                    width: _kHandleWidth,
+                                    height: _kHandleHeight,
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.surface,
+                                      border: Border(
+                                        left: BorderSide(color: borderColor),
+                                        top: BorderSide(color: borderColor),
+                                        bottom: BorderSide(color: borderColor),
+                                      ),
+                                      borderRadius:
+                                          const BorderRadius.horizontal(
+                                            left: Radius.circular(
+                                              _kHandleWidth / 2,
+                                            ),
+                                          ),
                                     ),
-                                    borderRadius: const BorderRadius.horizontal(
-                                      left: Radius.circular(_kHandleWidth / 2),
-                                    ),
-                                  ),
-                                  child: Center(
-                                    child: Container(
-                                      width: 3,
-                                      height: 24,
-                                      decoration: BoxDecoration(
-                                        color: theme.colorScheme.onSurface
-                                            .withValues(alpha: 0.3),
-                                        borderRadius: BorderRadius.circular(
-                                          1.5,
+                                    child: Center(
+                                      child: Container(
+                                        width: 3,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.onSurface
+                                              .withValues(alpha: 0.3),
+                                          borderRadius: BorderRadius.circular(
+                                            1.5,
+                                          ),
                                         ),
                                       ),
                                     ),

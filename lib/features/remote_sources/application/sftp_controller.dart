@@ -27,6 +27,15 @@ class SftpDownloadJob {
       SftpDownloadJob(label: label, progress: next);
 }
 
+class SftpSearchResults {
+  final List<SftpEntryData> entries;
+  final bool truncated;
+
+  const SftpSearchResults({required this.entries, required this.truncated});
+
+  static const empty = SftpSearchResults(entries: [], truncated: false);
+}
+
 class SftpController extends ChangeNotifier {
   final SftpRepository repository;
   final SftpCredentialStore credentials;
@@ -164,6 +173,28 @@ class SftpController extends ChangeNotifier {
       _entries = await repository.browse(profile.id, relativePath);
       _currentPath = relativePath;
     });
+  }
+
+  Future<SftpSearchResults> searchCurrentSubtree(
+    String rawQuery, {
+    int limit = 200,
+  }) async {
+    final query = rawQuery.trim();
+    final profile = _selectedProfile;
+    final relativePath = _currentPath;
+    if (query.isEmpty || profile == null || !_connected || limit <= 0) {
+      return SftpSearchResults.empty;
+    }
+    final entries = await repository.search(
+      profile.id,
+      relativePath,
+      query,
+      limit + 1,
+    );
+    return SftpSearchResults(
+      entries: entries.take(limit).toList(growable: false),
+      truncated: entries.length > limit,
+    );
   }
 
   Future<void> startDownload(SftpEntryData entry) async {

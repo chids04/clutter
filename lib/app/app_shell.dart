@@ -11,6 +11,8 @@ import 'package:clutter/features/settings/presentation/settings_view.dart';
 import 'package:clutter/features/search/presentation/search_view.dart';
 import 'package:clutter/features/playback/presentation/media_bar.dart';
 import 'package:clutter/features/quick_play/presentation/quick_play_sidebar.dart';
+import 'package:clutter/features/remote_sources/application/sftp_controller.dart';
+import 'package:clutter/features/remote_sources/presentation/sftp_search_overlay.dart';
 import 'package:clutter/features/search/presentation/omni_search_overlay.dart';
 import 'package:clutter/features/keybindings/presentation/desktop_shortcut_scope.dart';
 import 'package:clutter/shared/platform/desktop_platform.dart';
@@ -25,6 +27,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
   bool _isOmniSearchOpen = false;
+  bool _isSftpSearchOpen = false;
   final FocusNode _shortcutFocusNode = FocusNode(debugLabel: 'root-shortcuts');
   final GlobalKey<NavigatorState> _libraryNavigatorKey =
       GlobalKey<NavigatorState>();
@@ -41,7 +44,12 @@ class _AppShellState extends State<AppShell> {
   void _scheduleShortcutFocus() {
     // focus requests need a rendered node, so schedule them after this frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _selectedIndex != 0 || _isOmniSearchOpen) return;
+      if (!mounted ||
+          (_selectedIndex != 0 && _selectedIndex != 1) ||
+          _isOmniSearchOpen ||
+          _isSftpSearchOpen) {
+        return;
+      }
       _shortcutFocusNode.requestFocus();
     });
   }
@@ -73,19 +81,46 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
-  Future<void> _openOmniSearchFromLongPress() async {
-    if (_selectedIndex != 0 || _isOmniSearchOpen) return;
+  Future<void> _openSftpSearch() async {
+    if (_selectedIndex != 1 || _isSftpSearchOpen) return;
+    final controller = context.read<SftpController>();
+    if (!controller.connected || controller.selectedProfile == null) return;
+    _isSftpSearchOpen = true;
+    try {
+      await showSftpSearchOverlay(context);
+    } finally {
+      _isSftpSearchOpen = false;
+      _scheduleShortcutFocus();
+    }
+  }
+
+  Future<void> _openContextSearch() => switch (_selectedIndex) {
+    0 => _openOmniSearch(),
+    1 => _openSftpSearch(),
+    _ => Future<void>.value(),
+  };
+
+  Future<void> _openContextSearchFromLongPress() async {
+    final canOpen = switch (_selectedIndex) {
+      0 => !_isOmniSearchOpen,
+      1 =>
+        !_isSftpSearchOpen &&
+            context.read<SftpController>().connected &&
+            context.read<SftpController>().selectedProfile != null,
+      _ => false,
+    };
+    if (!canOpen) return;
     if (Platform.isIOS || Platform.isMacOS) {
       await HapticFeedback.mediumImpact();
     }
-    await _openOmniSearch();
+    await _openContextSearch();
   }
 
   void _selectTab(int index) {
     setState(() {
       _selectedIndex = index;
     });
-    if (index == 0) {
+    if (index == 0 || index == 1) {
       _scheduleShortcutFocus();
     }
   }
@@ -143,7 +178,7 @@ class _AppShellState extends State<AppShell> {
             _BouncyBottomNav(
               currentIndex: _selectedIndex,
               onTap: _selectTab,
-              onSearchLongPress: _openOmniSearchFromLongPress,
+              onSearchLongPress: _openContextSearchFromLongPress,
             ),
           ],
         ),
@@ -157,7 +192,7 @@ class _AppShellState extends State<AppShell> {
       onSeekForward: (seconds) => library.seekBy(Duration(seconds: seconds)),
       onPreviousTrack: library.playPrevious,
       onNextTrack: library.playNext,
-      onOmniSearch: _openOmniSearch,
+      onOmniSearch: _openContextSearch,
       child: content,
     );
   }
@@ -197,6 +232,7 @@ class _BouncyBottomNav extends StatelessWidget {
               for (var i = 0; i < _items.length; i++)
                 Expanded(
                   child: _BouncyNavItem(
+                    key: ValueKey('bottom-nav-${_items[i].label}'),
                     icon: _items[i].icon,
                     label: _items[i].label,
                     selected: currentIndex == i,
@@ -224,6 +260,7 @@ class _BouncyNavItem extends StatefulWidget {
   final VoidCallback? onLongPress;
 
   const _BouncyNavItem({
+    super.key,
     required this.icon,
     required this.label,
     required this.selected,

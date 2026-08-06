@@ -10,6 +10,7 @@ import 'package:clutter/features/library/domain/library_entities.dart';
 import 'package:clutter/shared/presentation/cover_image.dart';
 import 'package:clutter/features/library/presentation/albums_view.dart';
 import 'package:clutter/features/library/presentation/playlists_view.dart';
+import 'package:clutter/shared/presentation/search_result_focus_tile.dart';
 
 Future<void> showOmniSearchOverlay({
   required BuildContext context,
@@ -56,6 +57,11 @@ class _OmniSearchDialog extends StatefulWidget {
 
 class _OmniSearchDialogState extends State<_OmniSearchDialog> {
   final _controller = TextEditingController();
+  final _searchFocusNode = FocusNode(debugLabel: 'library-search-field');
+  final _focusScopeNode = FocusScopeNode(
+    debugLabel: 'library-search-scope',
+    traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+  );
   Timer? _debounce;
   OmniSearchResults? _results;
   bool _isLoading = false;
@@ -66,6 +72,8 @@ class _OmniSearchDialogState extends State<_OmniSearchDialog> {
   void dispose() {
     _debounce?.cancel();
     _controller.dispose();
+    _searchFocusNode.dispose();
+    _focusScopeNode.dispose();
     super.dispose();
   }
 
@@ -108,6 +116,14 @@ class _OmniSearchDialogState extends State<_OmniSearchDialog> {
 
   void _dismiss() {
     Navigator.of(context, rootNavigator: true).maybePop();
+  }
+
+  void _handleEscape() {
+    if (_searchFocusNode.hasPrimaryFocus) {
+      _dismiss();
+    } else {
+      _searchFocusNode.requestFocus();
+    }
   }
 
   void _playSong(MusicLibrary musicLibrary, SongViewData song) {
@@ -170,7 +186,11 @@ class _OmniSearchDialogState extends State<_OmniSearchDialog> {
         return Column(
           mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
           children: [
-            _SearchField(controller: _controller, onChanged: _onQueryChanged),
+            _SearchField(
+              controller: _controller,
+              focusNode: _searchFocusNode,
+              onChanged: _onQueryChanged,
+            ),
             Divider(
               height: 1,
               color: theme.dividerTheme.color ?? Colors.transparent,
@@ -189,46 +209,52 @@ class _OmniSearchDialogState extends State<_OmniSearchDialog> {
         actions: {
           _DismissOmniSearchIntent: CallbackAction<_DismissOmniSearchIntent>(
             onInvoke: (_) {
-              _dismiss();
+              _handleEscape();
               return null;
             },
           ),
         },
-        child: AnimatedPadding(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.fromLTRB(
-            horizontalInset,
-            topInset,
-            horizontalInset,
-            bottomInset,
-          ),
-          child: Align(
-            alignment: isMobile ? Alignment.topCenter : Alignment.center,
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                width: maxWidth,
-                height: isMobile ? maxHeight : null,
-                constraints: isMobile
-                    ? null
-                    : BoxConstraints(maxHeight: maxHeight),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: theme.dividerTheme.color ?? Colors.transparent,
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x66000000),
-                      blurRadius: 32,
-                      offset: Offset(0, 18),
+        child: FocusScope.withExternalFocusNode(
+          focusScopeNode: _focusScopeNode,
+          child: FocusTraversalGroup(
+            policy: WidgetOrderTraversalPolicy(),
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.fromLTRB(
+                horizontalInset,
+                topInset,
+                horizontalInset,
+                bottomInset,
+              ),
+              child: Align(
+                alignment: isMobile ? Alignment.topCenter : Alignment.center,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    width: maxWidth,
+                    height: isMobile ? maxHeight : null,
+                    constraints: isMobile
+                        ? null
+                        : BoxConstraints(maxHeight: maxHeight),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: theme.dividerTheme.color ?? Colors.transparent,
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x66000000),
+                          blurRadius: 32,
+                          offset: Offset(0, 18),
+                        ),
+                      ],
                     ),
-                  ],
+                    clipBehavior: Clip.antiAlias,
+                    child: resultsBody,
+                  ),
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: resultsBody,
               ),
             ),
           ),
@@ -240,14 +266,21 @@ class _OmniSearchDialogState extends State<_OmniSearchDialog> {
 
 class _SearchField extends StatelessWidget {
   final TextEditingController controller;
+  final FocusNode focusNode;
   final ValueChanged<String> onChanged;
 
-  const _SearchField({required this.controller, required this.onChanged});
+  const _SearchField({
+    required this.controller,
+    required this.focusNode,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      key: const ValueKey('library-search-field'),
       controller: controller,
+      focusNode: focusNode,
       autofocus: true,
       onChanged: onChanged,
       textInputAction: TextInputAction.search,
@@ -298,42 +331,46 @@ class _ResultsBody extends StatelessWidget {
       return const _CenteredMessage(text: "no results");
     }
 
-    return ListView(
+    return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      shrinkWrap: true,
-      children: [
-        if (data.playlists.isNotEmpty)
-          _ResultSection(
-            title: "Playlists",
-            children: [
-              for (final playlist in data.playlists)
-                _PlaylistResultTile(
-                  playlist: playlist,
-                  onTap: () => onPlaylistTap(playlist),
-                ),
-            ],
-          ),
-        if (data.albums.isNotEmpty)
-          _ResultSection(
-            title: "Albums",
-            children: [
-              for (final album in data.albums)
-                _AlbumResultTile(album: album, onTap: () => onAlbumTap(album)),
-            ],
-          ),
-        if (data.songs.isNotEmpty)
-          _ResultSection(
-            title: "Songs",
-            children: [
-              for (final song in data.songs)
-                _SongResultTile(
-                  song: song,
-                  musicLibrary: musicLibrary,
-                  onTap: () => onSongTap(song),
-                ),
-            ],
-          ),
-      ],
+      child: Column(
+        children: [
+          if (data.playlists.isNotEmpty)
+            _ResultSection(
+              title: "Playlists",
+              children: [
+                for (final playlist in data.playlists)
+                  _PlaylistResultTile(
+                    playlist: playlist,
+                    onTap: () => onPlaylistTap(playlist),
+                  ),
+              ],
+            ),
+          if (data.albums.isNotEmpty)
+            _ResultSection(
+              title: "Albums",
+              children: [
+                for (final album in data.albums)
+                  _AlbumResultTile(
+                    album: album,
+                    onTap: () => onAlbumTap(album),
+                  ),
+              ],
+            ),
+          if (data.songs.isNotEmpty)
+            _ResultSection(
+              title: "Songs",
+              children: [
+                for (final song in data.songs)
+                  _SongResultTile(
+                    song: song,
+                    musicLibrary: musicLibrary,
+                    onTap: () => onSongTap(song),
+                  ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }
@@ -383,20 +420,37 @@ class _SongResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: coverImg(song.coverPath, 44, cacheSize: 132),
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onKeyEvent: (_, event) {
+        final keyboard = HardwareKeyboard.instance;
+        final queueShortcut =
+            event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.keyQ &&
+            !keyboard.isControlPressed &&
+            !keyboard.isMetaPressed &&
+            !keyboard.isAltPressed;
+        if (!queueShortcut) return KeyEventResult.ignored;
+        musicLibrary.queueSong(song);
+        return KeyEventResult.handled;
+      },
+      child: SearchResultFocusTile(
+        resultKey: ValueKey('library-search-song-${song.id}'),
+        dense: true,
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: coverImg(song.coverPath, 44, cacheSize: 132),
+        ),
+        title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          musicLibrary.artistsDisplay(song),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: const _KindLabel(label: "song"),
+        onTap: onTap,
       ),
-      title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        musicLibrary.artistsDisplay(song),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: const _KindLabel(label: "song"),
-      onTap: onTap,
     );
   }
 }
@@ -409,7 +463,8 @@ class _AlbumResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
+    return SearchResultFocusTile(
+      resultKey: ValueKey('library-search-album-${album.id}'),
       dense: true,
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(4),
@@ -435,7 +490,8 @@ class _PlaylistResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
+    return SearchResultFocusTile(
+      resultKey: ValueKey('library-search-playlist-${playlist.id}'),
       dense: true,
       leading: _PlaylistIcon(playlist: playlist),
       title: Text(playlist.name, maxLines: 1, overflow: TextOverflow.ellipsis),
